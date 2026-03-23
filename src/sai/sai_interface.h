@@ -1,18 +1,24 @@
 #pragma once
 
-#include <string>
+#include "common/types.hpp"
+
+namespace MiniSonic::Sai {
 
 class SaiInterface {
 public:
     virtual ~SaiInterface() = default;
 
-    virtual void create_port(int port_id) = 0;
-    virtual void remove_port(int port_id) = 0;
+    virtual void createPort(Types::Port port_id) = 0;
+    virtual void removePort(Types::Port port_id) = 0;
 
-    virtual void add_fdb_entry(const std::string& mac, int port) = 0;
-    virtual void remove_fdb_entry(const std::string& mac) = 0;
+    virtual void addFdbEntry(const Types::MacAddress& mac, Types::Port port) = 0;
+    virtual void removeFdbEntry(const Types::MacAddress& mac) = 0;
 
-    virtual void add_route(const std::string& prefix,
-                           const std::string& next_hop) = 0;
-    virtual void remove_route(const std::string& prefix) = 0;
+    virtual void addRoute(
+        const Types::String& prefix,
+        const Types::NextHop& next_hop
+    ) = 0;
+    virtual void removeRoute(const Types::String& prefix) = 0;
 };
+
+} // namespace MiniSonic::Sai

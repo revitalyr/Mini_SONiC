@@ -1,31 +1,45 @@
 #include "core/event_loop.h"
-#include <thread>
 #include <chrono>
 
-EventLoop::EventLoop(Pipeline& pipeline)
-    : pipeline_(pipeline) {}
+namespace MiniSonic::Core {
+
+EventLoop::EventLoop(DataPlane::Pipeline& pipeline)
+    : m_pipeline(pipeline) {}
+
+EventLoop::~EventLoop() {
+    stop();
+}
 
 void EventLoop::run() {
     // Add some test routes
-    pipeline_.get_l3().add_route("10.0.0.0", 8, "1.1.1.1");
-    pipeline_.get_l3().add_route("10.1.0.0", 16, "2.2.2.2");
-    pipeline_.get_l3().add_route("10.1.1.0", 24, "3.3.3.3");
+    m_pipeline.getL3().addRoute("10.0.0.0", 8, "1.1.1.1");
+    m_pipeline.getL3().addRoute("10.1.0.0", 16, "2.2.2.2");
+    m_pipeline.getL3().addRoute("10.1.1.0", 24, "3.3.3.3");
 
-    while (running_) {
-        Packet pkt{
-            .src_mac = "aa:bb:cc:dd:ee:ff",
-            .dst_mac = "ff:ee:dd:cc:bb:aa",
-            .src_ip = "10.1.1.100",
-            .dst_ip = "10.1.1.42",
-            .ingress_port = 1
-        };
+    while (m_running.load()) {
+        generateTestPackets();
 
-        pipeline_.process(pkt);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(Types::Milliseconds(500));
     }
 }
 
 void EventLoop::stop() {
-    running_ = false;
+    m_running.store(false);
+    if (m_worker_thread && m_worker_thread->joinable()) {
+        m_worker_thread->join();
+    }
 }
+
+void EventLoop::generateTestPackets() {
+    DataPlane::Packet pkt(
+        "aa:bb:cc:dd:ee:ff",  // src_mac
+        "ff:ee:dd:cc:bb:aa",  // dst_mac
+        "10.1.1.100",         // src_ip
+        "10.1.1.42",          // dst_ip
+        1                     // ingress_port
+    );
+
+    m_pipeline.process(pkt);
+}
+
+} // namespace MiniSonic::Core

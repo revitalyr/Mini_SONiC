@@ -1,11 +1,19 @@
 #include "core/app.h"
 
+namespace MiniSonic::Core {
+
 App::App() {
-    sai_ = std::make_unique<SimulatedSai>();
-    pipeline_ = std::make_unique<Pipeline>(*sai_);
-    event_loop_ = std::make_unique<EventLoop>(*pipeline_);
+    m_sai = std::make_unique<Sai::SimulatedSai>();
+    m_pipeline = std::make_unique<DataPlane::Pipeline>(*m_sai);
+    m_event_loop = std::make_unique<EventLoop>(*m_pipeline);
 }
 
 void App::run() {
-    event_loop_->run();
+    m_event_loop->run();
 }
+
+bool App::isRunning() const noexcept {
+    return m_event_loop && m_event_loop->isRunning();
+}
+
+} // namespace MiniSonic::Core

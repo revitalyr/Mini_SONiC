@@ -1,10 +1,13 @@
 #include "l3/lpm_trie.h"
 #include <sstream>
+#include <array>
 
-uint32_t LpmTrie::ip_to_int(const std::string& ip) {
+namespace MiniSonic::L3 {
+
+std::uint32_t LpmTrie::ipToInt(const Types::String& ip) {
     std::stringstream ss(ip);
-    std::string item;
-    uint32_t result = 0;
+    Types::String item;
+    std::uint32_t result = 0;
 
     for (int i = 0; i < 4; ++i) {
         std::getline(ss, item, '.');
@@ -14,52 +17,61 @@ uint32_t LpmTrie::ip_to_int(const std::string& ip) {
     return result;
 }
 
-void LpmTrie::insert(const std::string& prefix, int prefix_len,
-                     const std::string& next_hop) {
-    uint32_t ip = ip_to_int(prefix);
-    Node* node = root_.get();
+void LpmTrie::insert(
+    const Types::String& prefix, 
+    Types::PrefixLength prefix_len,
+    const Types::NextHop& next_hop
+) {
+    const auto ip = ipToInt(prefix);
+    auto* node = m_root.get();
 
-    for (int i = 31; i >= 32 - prefix_len; --i) {
-        bool bit = (ip >> i) & 1;
+    for (int i = 31; i >= static_cast<int>(32 - prefix_len); --i) {
+        const bool bit = (ip >> i) & 1;
 
         if (bit) {
-            if (!node->right)
-                node->right = std::make_unique<Node>();
-            node = node->right.get();
+            if (!node->m_right) {
+                node->m_right = std::make_unique<Node>();
+            }
+            node = node->m_right.get();
         } else {
-            if (!node->left)
-                node->left = std::make_unique<Node>();
-            node = node->left.get();
+            if (!node->m_left) {
+                node->m_left = std::make_unique<Node>();
+            }
+            node = node->m_left.get();
         }
     }
 
-    node->next_hop = next_hop;
+    node->m_next_hop = next_hop;
 }
 
-std::optional<std::string> LpmTrie::lookup(const std::string& ip_str) {
-    uint32_t ip = ip_to_int(ip_str);
+Types::Optional<Types::NextHop> LpmTrie::lookup(const Types::String& ip) const {
+    const auto ip_int = ipToInt(ip);
 
-    Node* node = root_.get();
-    std::optional<std::string> best_match;
+    const auto* node = m_root.get();
+    Types::Optional<Types::NextHop> best_match;
 
     // Check root first (for default route 0.0.0.0/0)
-    if (node->next_hop)
-        best_match = node->next_hop;
+    if (node->m_next_hop) {
+        best_match = node->m_next_hop;
+    }
 
     for (int i = 31; i >= 0; --i) {
-        bool bit = (ip >> i) & 1;
+        const bool bit = (ip_int >> i) & 1;
 
         if (bit) {
-            if (!node->right) break;
-            node = node->right.get();
+            if (!node->m_right) break;
+            node = node->m_right.get();
         } else {
-            if (!node->left) break;
-            node = node->left.get();
+            if (!node->m_left) break;
+            node = node->m_left.get();
         }
         
-        if (node->next_hop)
-            best_match = node->next_hop;
+        if (node->m_next_hop) {
+            best_match = node->m_next_hop;
+        }
     }
 
     return best_match;
 }
+
+} // namespace MiniSonic::L3

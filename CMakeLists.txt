@@ -1,16 +1,20 @@
-cmake_minimum_required(VERSION 3.16)
-project(mini_sonic)
+cmake_minimum_required(VERSION 3.20)
+project(mini_sonic VERSION 1.0.0 LANGUAGES CXX)
 
+# Set C++20 standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Compiler-specific options
 if(MSVC)
-    add_compile_options(/W4 /O2)
+    add_compile_options(/W4 /permissive- /Zc:__cplusplus)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic -O2)
+    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
+# Include directories
 include_directories(src)
 
 # Enable testing
@@ -24,6 +28,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+# Main executable
 add_executable(mini_sonic
     src/main.cpp
     src/core/app.cpp
@@ -35,7 +40,7 @@ add_executable(mini_sonic
     src/sai/simulated_sai.cpp
 )
 
-# Threads
+# Find and link threads
 find_package(Threads REQUIRED)
 target_link_libraries(mini_sonic Threads::Threads)
 
@@ -75,3 +80,22 @@ target_include_directories(mini_sonic_tests PRIVATE src)
 
 # Add tests
 add_test(NAME AllTests COMMAND mini_sonic_tests)
+
+# Set target properties
+set_target_properties(mini_sonic PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(mini_sonic_lib PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(mini_sonic_tests PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)

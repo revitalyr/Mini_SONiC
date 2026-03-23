@@ -1,23 +1,42 @@
 #pragma once
 
+#include "common/types.hpp"
 #include <memory>
-#include <optional>
-#include <string>
+
+namespace MiniSonic::L3 {
 
 class LpmTrie {
 public:
-    void insert(const std::string& prefix, int prefix_len,
-                const std::string& next_hop);
+    LpmTrie() = default;
+    ~LpmTrie() = default;
 
-    std::optional<std::string> lookup(const std::string& ip);
+    // Rule of five
+    LpmTrie(const LpmTrie& other) = delete;
+    LpmTrie& operator=(const LpmTrie& other) = delete;
+    LpmTrie(LpmTrie&& other) noexcept = default;
+    LpmTrie& operator=(LpmTrie&& other) noexcept = default;
+
+    void insert(
+        const Types::String& prefix, 
+        Types::PrefixLength prefix_len,
+        const Types::NextHop& next_hop
+    );
+
+    [[nodiscard]] Types::Optional<Types::NextHop> lookup(const Types::String& ip) const;
 
 private:
     struct Node {
-        std::unique_ptr<Node> left;   // bit 0
-        std::unique_ptr<Node> right;  // bit 1
-        std::optional<std::string> next_hop;
+        Types::UniquePtr<Node> m_left;   // bit 0
+        Types::UniquePtr<Node> m_right;  // bit 1
+        Types::Optional<Types::NextHop> m_next_hop;
+
+        Node() = default;
+        ~Node() = default;
     };
 
-    std::unique_ptr<Node> root_ = std::make_unique<Node>();
-    uint32_t ip_to_int(const std::string& ip);
+    Types::UniquePtr<Node> m_root = std::make_unique<Node>();
+    
+    [[nodiscard]] static std::uint32_t ipToInt(const Types::String& ip);
 };
+
+} // namespace MiniSonic::L3
