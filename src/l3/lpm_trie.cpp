@@ -42,10 +42,11 @@ std::optional<std::string> LpmTrie::lookup(const std::string& ip_str) {
     Node* node = root_.get();
     std::optional<std::string> best_match;
 
-    for (int i = 31; i >= 0; --i) {
-        if (node->next_hop)
-            best_match = node->next_hop;
+    // Check root first (for default route 0.0.0.0/0)
+    if (node->next_hop)
+        best_match = node->next_hop;
 
+    for (int i = 31; i >= 0; --i) {
         bool bit = (ip >> i) & 1;
 
         if (bit) {
@@ -55,6 +56,9 @@ std::optional<std::string> LpmTrie::lookup(const std::string& ip_str) {
             if (!node->left) break;
             node = node->left.get();
         }
+        
+        if (node->next_hop)
+            best_match = node->next_hop;
     }
 
     return best_match;
