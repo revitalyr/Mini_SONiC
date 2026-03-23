@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  switch1:
+    build: .
+    container_name: mini-sonic-switch1
+    hostname: switch1
+    networks:
+      - spine-leaf
+    ports:
+      - "8081:8080"
+    environment:
+      - SWITCH_ID=1
+      - LOG_LEVEL=INFO
+
+  switch2:
+    build: .
+    container_name: mini-sonic-switch2
+    hostname: switch2
+    networks:
+      - spine-leaf
+    ports:
+      - "8082:8080"
+    environment:
+      - SWITCH_ID=2
+      - LOG_LEVEL=INFO
+
+  switch3:
+    build: .
+    container_name: mini-sonic-switch3
+    hostname: switch3
+    networks:
+      - spine-leaf
+    ports:
+      - "8083:8080"
+    environment:
+      - SWITCH_ID=3
+      - LOG_LEVEL=INFO
+
+networks:
+  spine-leaf:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
