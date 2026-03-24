@@ -67,7 +67,7 @@ private:
      * @brief Process a batch of packets
      * @param batch Vector of packets to process
      */
-    void processBatch(const std::vector<Packet>& batch);
+    void processBatch(std::vector<Packet>& batch);
 
     /**
      * @brief Add timestamp to packet for latency measurement

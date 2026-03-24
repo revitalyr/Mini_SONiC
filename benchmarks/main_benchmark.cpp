@@ -6,17 +6,21 @@
  * @file main_benchmark.cpp
  * @brief Main entry point for Mini SONiC performance benchmarks
  * 
- * This file serves as the entry point for running comprehensive benchmarks
- * of the Mini SONiC networking stack. It includes all benchmark modules
+ * This file serves as entry point for running comprehensive benchmarks
+ * of Mini SONiC networking stack. It includes all benchmark modules
  * and provides a unified interface for performance testing.
  */
 
 // Forward declarations for benchmark functions
+void RegisterBasicBenchmarks();
+
+#ifdef BOOST_FOUND
 void RegisterPacketProcessingBenchmarks();
 void RegisterLatencyBenchmarks();
 void RegisterThroughputBenchmarks();
 void RegisterMemoryBenchmarks();
 void RegisterMultithreadingBenchmarks();
+#endif
 
 int main(int argc, char** argv) {
     std::cout << "=== Mini SONiC Performance Benchmarks ===\n";
@@ -32,16 +36,26 @@ int main(int argc, char** argv) {
 #else
         "Unknown\n";
 #endif
+
+#ifdef BOOST_FOUND
+    std::cout << "  Boost: Available\n";
+#else
+    std::cout << "  Boost: Not available - running basic benchmarks only\n";
+#endif
     
     // Reset metrics before benchmarks
     MiniSonic::Utils::Metrics::instance().reset();
     
     // Register all benchmark categories
+    RegisterBasicBenchmarks();
+    
+#ifdef BOOST_FOUND
     RegisterPacketProcessingBenchmarks();
     RegisterLatencyBenchmarks();
     RegisterThroughputBenchmarks();
     RegisterMemoryBenchmarks();
     RegisterMultithreadingBenchmarks();
+#endif
     
     std::cout << "\nRunning benchmarks...\n";
     std::cout << "Note: Results are saved to JSON format for analysis\n\n";

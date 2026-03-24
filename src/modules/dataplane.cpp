@@ -1,12 +1,29 @@
-#include "dataplane/pipeline_thread.h"
-#include <iostream>
-#include <algorithm>
+module;
 
-namespace MiniSonic::DataPlane {
+// Import the module we're implementing
+import MiniSonic.DataPlane;
 
+// Import dependencies
+import <memory>;
+import <string>;
+import <vector>;
+import <atomic>;
+import <thread>;
+import <chrono>;
+import <iostream>;
+import <sstream>;
+
+// Import local modules
+import MiniSonic.SAI;
+import MiniSonic.L2;
+import MiniSonic.L3;
+
+export namespace MiniSonic::DataPlane {
+
+// PipelineThread Implementation
 PipelineThread::PipelineThread(
     Pipeline& pipeline, 
-    Utils::SPSCQueue<Packet>& queue,
+    SPSCQueue<Packet>& queue,
     Types::Count batch_size
 ) : m_pipeline(pipeline),
     m_queue(queue),
@@ -47,7 +64,7 @@ bool PipelineThread::isRunning() const noexcept {
     return m_running.load();
 }
 
-Types::String PipelineThread::getStats() const {
+std::string PipelineThread::getStats() const {
     std::ostringstream oss;
     oss << "Pipeline Thread Stats:\n"
          << "  Running: " << (m_running.load() ? "Yes" : "No") << "\n"
@@ -109,7 +126,8 @@ void PipelineThread::processBatch(std::vector<Packet>& batch) {
             now - pkt.timestamp
         ).count();
         
-        Utils::Metrics::instance().addLatency(latency_us);
+        // Note: This would need Metrics module integration
+        // Utils::Metrics::instance().addLatency(latency_us);
     }
     
     const auto end_time = Clock::now();
@@ -120,15 +138,13 @@ void PipelineThread::processBatch(std::vector<Packet>& batch) {
     m_total_processing_time_us.fetch_add(processing_time_us, std::memory_order_relaxed);
     
     // Update metrics
-    Utils::Metrics::instance().inc("pipeline_batches");
-    Utils::Metrics::instance().inc("pipeline_packets", batch.size());
+    // Utils::Metrics::instance().inc("pipeline_batches");
+    // Utils::Metrics::instance().inc("pipeline_packets", batch.size());
 }
 
 void PipelineThread::markPacketTimestamp(Packet& pkt) {
     // Add timestamp field to packet for latency measurement
-    // Note: This would require extending Packet struct in a real implementation
-    // For now, we use current time as reference
-    pkt.timestamp = Clock::now();
+    pkt.updateTimestamp();
 }
 
-} // namespace MiniSonic::DataPlane
+} // export namespace MiniSonic::DataPlane

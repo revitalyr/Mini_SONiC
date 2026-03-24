@@ -7,7 +7,7 @@ echo "=== Mini SONiC Demo ==="
 echo "Starting 3-switch topology..."
 
 # Start the topology
-docker-compose up -d
+docker-compose -f docker/docker-compose.yml up -d
 
 echo "Waiting for switches to initialize..."
 sleep 10
@@ -21,9 +21,9 @@ echo "4. Verify forwarding"
 # Function to execute CLI command
 exec_cli() {
     local switch=$1
-    local cmd=$2
-    echo "Switch $switch: $cmd"
-    python3 cli/cli.py --url http://localhost:808$switch $cmd
+    shift
+    echo "Switch $switch: $*"
+    python3 cli/cli.py --url http://localhost:808$switch "$@"
     echo ""
 }
 
@@ -33,10 +33,10 @@ exec_cli 2 show-mac
 exec_cli 3 show-mac
 
 echo "=== Adding Routes ==="
-exec_cli 1 add-route 192.168.2.0/24 172.20.0.2
-exec_cli 2 add-route 192.168.1.0/24 172.20.0.1
-exec_cli 2 add-route 192.168.3.0/24 172.20.0.3
-exec_cli 3 add-route 192.168.2.0/24 172.20.0.2
+exec_cli 1 add-route 192.168.2.0/24 172.20.0.12
+exec_cli 2 add-route 192.168.1.0/24 172.20.0.11
+exec_cli 2 add-route 192.168.3.0/24 172.20.0.13
+exec_cli 3 add-route 192.168.2.0/24 172.20.0.12
 
 echo "=== Route Tables After Configuration ==="
 exec_cli 1 show-routes
@@ -54,4 +54,4 @@ echo "docker logs mini-sonic-switch3"
 
 echo ""
 echo "To stop the demo:"
-echo "docker-compose down"
+echo "docker-compose -f docker/docker-compose.yml down"

@@ -14,31 +14,23 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
-# Find Boost
-find_package(Boost 1.81 REQUIRED COMPONENTS system thread)
+# Find Boost (optional for basic functionality)
+find_package(Boost 1.81 QUIET COMPONENTS system thread)
 if(Boost_FOUND)
     message(STATUS "Found Boost ${Boost_VERSION}")
     message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
     message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
 else()
-    # Fetch Boost if not found
-    message(STATUS "Boost not found, fetching...")
-    include(FetchContent)
-    FetchContent_Declare(
-        boost
-        URL https://github.com/boostorg/boost/releases/download/boost-1.81.0.tar.gz
-        URL_HASH SHA256=71fe75000069223be3caca798b011e7be6e0c7177c6bd3be6f3d0a649
-    )
-    FetchContent_GetProperties(boost)
-    FetchContent_MakeAvailable(boost)
-    
-    set(Boost_INCLUDE_DIR ${boost_SOURCE_DIR})
-    set(Boost_LIBRARIES boost_system boost_thread)
-    message(STATUS "Downloaded Boost to ${boost_SOURCE_DIR}")
+    message(STATUS "Boost not found - using basic benchmarks only")
+    set(Boost_INCLUDE_DIR "")
+    set(Boost_LIBRARIES "")
 endif()
 
 # Include directories
-include_directories(src ${Boost_INCLUDE_DIRS})
+include_directories(src)
+if(Boost_FOUND)
+    include_directories(src ${Boost_INCLUDE_DIRS})
+endif()
 
 # Enable testing
 enable_testing()
@@ -61,7 +53,7 @@ FetchContent_MakeAvailable(googlebenchmark)
 # Main executable
 add_executable(mini_sonic
     src/main.cpp
-    src/core/app.cpp
+    src/core/app_basic.cpp
     src/core/event_loop.cpp
     src/dataplane/pipeline.cpp
     src/dataplane/pipeline_thread.cpp
@@ -69,16 +61,29 @@ add_executable(mini_sonic
     src/l3/l3_service.cpp
     src/l3/lpm_trie.cpp
     src/sai/simulated_sai.cpp
-    src/link/tcp_link_async.cpp
 )
+
+# Add Boost-dependent components only if Boost is found
+if(Boost_FOUND)
+    target_sources(mini_sonic PRIVATE
+        src/core/app.cpp
+        src/link/tcp_link_async.cpp
+    )
+    target_compile_definitions(mini_sonic PRIVATE BOOST_FOUND)
+endif()
 
 # Find and link threads
 find_package(Threads REQUIRED)
-target_link_libraries(mini_sonic Threads::Threads ${Boost_LIBRARIES})
+target_link_libraries(mini_sonic
+    Threads::Threads
+)
+if(Boost_FOUND)
+    target_link_libraries(mini_sonic ${Boost_LIBRARIES})
+endif()
 
 # Create static library for core components
 add_library(mini_sonic_lib STATIC
-    src/core/app.cpp
+    src/core/app_basic.cpp
     src/core/event_loop.cpp
     src/dataplane/pipeline.cpp
     src/dataplane/pipeline_thread.cpp
@@ -86,10 +91,21 @@ add_library(mini_sonic_lib STATIC
     src/l3/l3_service.cpp
     src/l3/lpm_trie.cpp
     src/sai/simulated_sai.cpp
-    src/link/tcp_link_async.cpp
 )
 
-target_link_libraries(mini_sonic_lib Threads::Threads ${Boost_LIBRARIES})
+# Add Boost-dependent components only if Boost is found
+if(Boost_FOUND)
+    target_sources(mini_sonic_lib PRIVATE
+        src/core/app.cpp
+        src/link/tcp_link_async.cpp
+    )
+    target_compile_definitions(mini_sonic_lib PRIVATE BOOST_FOUND)
+endif()
+
+target_link_libraries(mini_sonic_lib Threads::Threads)
+if(Boost_FOUND)
+    target_link_libraries(mini_sonic_lib ${Boost_LIBRARIES})
+endif()
 
 # Test executable
 add_executable(mini_sonic_tests
@@ -107,26 +123,38 @@ target_link_libraries(mini_sonic_tests
     gmock
     mini_sonic_lib
     Threads::Threads
-    ${Boost_LIBRARIES}
 )
+if(Boost_FOUND)
+    target_link_libraries(mini_sonic_tests ${Boost_LIBRARIES})
+endif()
 
 # Benchmark executable
 add_executable(mini_sonic_benchmarks
     benchmarks/main_benchmark.cpp
-    benchmarks/benchmark_packet_processing.cpp
-    benchmarks/benchmark_latency.cpp
-    benchmarks/benchmark_throughput.cpp
-    benchmarks/benchmark_memory.cpp
-    benchmarks/benchmark_multithreading.cpp
+    benchmarks/benchmark_basic.cpp
 )
+
+# Add Boost-dependent benchmarks only if Boost is found
+if(Boost_FOUND)
+    target_sources(mini_sonic_benchmarks PRIVATE
+        benchmarks/benchmark_packet_processing.cpp
+        benchmarks/benchmark_latency.cpp
+        benchmarks/benchmark_throughput.cpp
+        benchmarks/benchmark_memory.cpp
+        benchmarks/benchmark_multithreading.cpp
+    )
+endif()
 
 target_link_libraries(mini_sonic_benchmarks
     benchmark
     benchmark_main
     mini_sonic_lib
     Threads::Threads
-    ${Boost_LIBRARIES}
 )
+if(Boost_FOUND)
+    target_link_libraries(mini_sonic_benchmarks ${Boost_LIBRARIES})
+    target_compile_definitions(mini_sonic_benchmarks PRIVATE BOOST_FOUND)
+endif()
 
 # Add include directories for benchmarks
 target_include_directories(mini_sonic_benchmarks PRIVATE src)
