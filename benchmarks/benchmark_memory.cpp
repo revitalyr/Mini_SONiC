@@ -120,8 +120,12 @@ static void BM_L2FDBMemoryUsage(benchmark::State& state) {
         // Add MAC entries
         for (int i = 0; i < num_entries; ++i) {
             char mac[18];
-            snprintf(mac, sizeof(mac), "aa:bb:cc:dd:%02x:%02x", i >> 8, i & 0xff);
-            l2_service.learn(mac, i % 24 + 1);
+            snprintf(mac, sizeof(mac), "aa:bb:cc:dd:%02x:%02x", (i >> 8) & 0xff, i & 0xff);
+            DataPlane::Packet learn_pkt(
+                mac, "ff:ff:ff:ff:ff:ff", "0.0.0.0", "0.0.0.0", i % 24 + 1
+            );
+            // Use public handle method
+            l2_service.handle(learn_pkt);
         }
         
         auto end_memory = MemoryProfiler::getCurrentMemoryUsage();
@@ -146,8 +150,8 @@ static void BM_L3RoutingMemoryUsage(benchmark::State& state) {
         
         // Add routes
         for (int i = 0; i < num_routes; ++i) {
-            char network[16];
-            char next_hop[16];
+            char network[32];
+            char next_hop[32];
             snprintf(network, sizeof(network), "10.%d.%d.0", i / 256, i % 256);
             snprintf(next_hop, sizeof(next_hop), "10.%d.%d.1", i / 256, i % 256);
             l3_service.addRoute(network, 24, next_hop);
@@ -175,8 +179,8 @@ static void BM_LpmTrieMemoryUsage(benchmark::State& state) {
         
         // Add routes
         for (int i = 0; i < num_routes; ++i) {
-            char network[16];
-            char next_hop[16];
+            char network[32];
+            char next_hop[32];
             snprintf(network, sizeof(network), "10.%d.%d.0", i / 256, i % 256);
             snprintf(next_hop, sizeof(next_hop), "10.%d.%d.1", i / 256, i % 256);
             trie.insert(network, 24, next_hop);
@@ -205,7 +209,8 @@ static void BM_QueueMemoryUsage(benchmark::State& state) {
         auto end_memory = MemoryProfiler::getCurrentMemoryUsage();
         size_t memory_used = end_memory - start_memory;
         
-        benchmark::DoNotOptimize(queue);
+        // Prevent optimization by using a side effect
+        benchmark::DoNotOptimize(queue.capacity());
         
         state.SetLabel("Memory=" + std::to_string(memory_used / 1024) + "KB,PerSlot=" + std::to_string(memory_used / queue_size) + "B");
     }
@@ -269,7 +274,7 @@ static void BM_MemoryFragmentation(benchmark::State& state) {
         
         // Random deallocation to cause fragmentation
         for (int i = 0; i < num_allocations / 2; ++i) {
-            if (i * 2 < packets.size()) {
+            if (static_cast<size_t>(i * 2) < packets.size()) {
                 packets[i * 2].reset();
             }
         }

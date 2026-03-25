@@ -1,7 +1,8 @@
+#include <iostream>
+#include <string_view>
+#include <exception>
+
 import MiniSonic.App;
-import <iostream>;
-import <string_view>;
-import <exception>;
 
 int main(int argc, char* argv[]) {
     try {

@@ -1,21 +1,18 @@
 module;
 
-// Import the module we're implementing
-import MiniSonic.SAI;
+#include <memory>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <atomic>
+#include <iostream>
+#include <sstream>
+#include <mutex>
+#include <chrono>
 
-// Import dependencies
-import <memory>;
-import <string>;
-import <vector>;
-import <unordered_map>;
-import <atomic>;
-import <iostream>;
-import <sstream>;
-import <mutex>;
-import <chrono>;
+module MiniSonic.SAI;
 
-export namespace MiniSonic::SAI {
-
+namespace MiniSonic::SAI {
 // SimulatedSai Implementation
 SimulatedSai::SimulatedSai() {
     std::cout << "[SAI] Initializing simulated SAI\n";

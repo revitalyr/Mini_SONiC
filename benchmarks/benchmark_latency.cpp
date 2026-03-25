@@ -4,11 +4,13 @@
 #include "l2/l2_service.h"
 #include "l3/l3_service.h"
 #include "l3/lpm_trie.h"
+#include "utils/spsc_queue.hpp"
 #include "sai/simulated_sai.h"
 #include "utils/metrics.hpp"
 #include <chrono>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 
 using namespace MiniSonic;
 
@@ -174,7 +176,11 @@ static void BM_L2ForwardingLatency(benchmark::State& state) {
     for (int i = 0; i < 1000; ++i) {
         char mac[18];
         snprintf(mac, sizeof(mac), "aa:bb:cc:dd:%02x:%02x", i >> 8, i & 0xff);
-        l2_service.learn(mac, i % 24 + 1);
+        DataPlane::Packet learn_pkt(
+            mac, "ff:ff:ff:ff:ff:ff", "0.0.0.0", "0.0.0.0", i % 24 + 1
+        );
+        // Use public handle method to learn MAC, as learn() is private
+        l2_service.handle(learn_pkt);
     }
     
     DataPlane::Packet pkt(

@@ -1,17 +1,15 @@
 module;
 
-// Import the module we're implementing
-import MiniSonic.App;
+#include <memory>
+#include <string>
+#include <vector>
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <sstream>
 
-// Import dependencies
-import <memory>;
-import <string>;
-import <vector>;
-import <atomic>;
-import <thread>;
-import <chrono>;
-import <iostream>;
-import <sstream>;
+module MiniSonic.App;
 
 // Import our custom modules
 import MiniSonic.DataPlane;
@@ -20,7 +18,7 @@ import MiniSonic.SAI;
 import MiniSonic.L2L3;
 import MiniSonic.Utils;
 
-export namespace MiniSonic::Core {
+namespace MiniSonic::Core {
 
 // App Implementation
 App::App(

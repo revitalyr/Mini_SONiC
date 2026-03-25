@@ -1,25 +1,22 @@
 module;
 
-// Import the module we're implementing
-import MiniSonic.Utils;
+#include <memory>
+#include <string>
+#include <vector>
+#include <atomic>
+#include <mutex>
+#include <iostream>
+#include <sstream>
+#include <chrono>
+#include <algorithm>
+#include <iomanip>
+#include <limits>
+#include <unordered_map>
+#include <cctype>
 
-// Import dependencies
-import <memory>;
-import <string>;
-import <vector>;
-import <atomic>;
-import <mutex>;
-import <iostream>;
-import <sstream>;
-import <chrono>;
-import <algorithm>;
-import <iomanip>;
-import <limits>;
-import <unordered_map>;
-import <cctype>;
+module MiniSonic.Utils;
 
-export namespace MiniSonic::Utils {
-
+namespace MiniSonic::Utils {
 // Metrics Implementation
 Metrics& Metrics::instance() {
     static Metrics instance;

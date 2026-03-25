@@ -77,7 +77,7 @@ static void BM_ConcurrentPacketProcessing(benchmark::State& state) {
         sync_point.arrive_and_wait();
         
         // Process packets
-        for (const auto& pkt : packets) {
+        for (auto pkt : packets) {
             g_pipeline->process(pkt);
             total_processed.fetch_add(1, std::memory_order_relaxed);
         }
@@ -124,7 +124,7 @@ static void BM_ConcurrentQueueOperations(benchmark::State& state) {
     std::atomic<int64_t> total_pushed{0};
     std::atomic<int64_t> total_popped{0};
     
-    auto producer_func = [&](int thread_id) {
+    auto producer_func = [&]([[maybe_unused]] int thread_id) {
         std::vector<DataPlane::Packet> packets;
         packets.reserve(operations_per_thread);
         
@@ -148,7 +148,7 @@ static void BM_ConcurrentQueueOperations(benchmark::State& state) {
         }
     };
     
-    auto consumer_func = [&](int thread_id) {
+    auto consumer_func = [&]([[maybe_unused]] int thread_id) {
         DataPlane::Packet pkt;
         int popped = 0;
         
@@ -223,7 +223,7 @@ static void BM_ScalabilityAnalysis(benchmark::State& state) {
         }
         
         // Process packets
-        for (const auto& pkt : packets) {
+        for (auto pkt : packets) {
             g_pipeline->process(pkt);
             total_processed.fetch_add(1, std::memory_order_relaxed);
         }
@@ -271,7 +271,7 @@ static void BM_ThreadContention(benchmark::State& state) {
     std::vector<std::thread> threads;
     std::atomic<int64_t> total_processed{0};
     
-    auto worker_func = [&](int thread_id) {
+    auto worker_func = [&]([[maybe_unused]] int thread_id) {
         // Use the same pipeline to create contention
         for (int i = 0; i < operations_per_thread; ++i) {
             DataPlane::Packet pkt(

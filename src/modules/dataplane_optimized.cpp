@@ -1,28 +1,25 @@
 module;
 
-// Import the module we're implementing
-import MiniSonic.DataPlane.Optimized;
+#include <memory>
+#include <string>
+#include <vector>
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <algorithm>
+#include <cstring>
+#include <bit>
+#include <immintrin.h> // For SIMD instructions
+#include <sched.h>      // For NUMA
+#include <sys/mman.h>    // For memory mapping
+#include <fcntl.h>        // For file operations
+#include <unistd.h>       // For system calls
 
-// Import dependencies
-import <memory>;
-import <string>;
-import <vector>;
-import <atomic>;
-import <thread>;
-import <chrono>;
-import <iostream>;
-import <sstream>;
-import <algorithm>;
-import <cstring>;
-import <bit>;
-import <immintrin>; // For SIMD instructions
-import <sched.h>;      // For NUMA
-import <sys/mman.h>;    // For memory mapping
-import <fcntl.h>;        // For file operations
-import <unistd.h>;       // For system calls
+module MiniSonic.DataPlane.Optimized;
 
-export namespace MiniSonic::DataPlane::Optimized {
-
+namespace MiniSonic::DataPlane::Optimized {
 // PacketPool Implementation
 PacketPool::PacketPool(size_t pool_size, size_t packet_size)
     : m_pool_size(pool_size), m_packet_size(packet_size) {

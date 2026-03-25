@@ -1,22 +1,19 @@
 module;
 
-// Import the module we're implementing
-import MiniSonic.L2L3;
+#include <memory>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <atomic>
+#include <iostream>
+#include <sstream>
+#include <algorithm>
+#include <mutex>
+#include <chrono>
 
-// Import dependencies
-import <memory>;
-import <string>;
-import <vector>;
-import <unordered_map>;
-import <atomic>;
-import <iostream>;
-import <sstream>;
-import <algorithm>;
-import <mutex>;
-import <chrono>;
+module MiniSonic.L2L3;
 
-export namespace MiniSonic::L2 {
-
+namespace MiniSonic::L2 {
 // L2Service Implementation
 L2Service::L2Service(SAI::SaiInterface& sai) : m_sai(sai) {
     std::cout << "[L2] Initializing L2 service\n";
@@ -113,7 +110,7 @@ bool L2Service::forwardPacket(Packet& pkt) {
 
 } // export namespace MiniSonic::L2
 
-export namespace MiniSonic::L3 {
+namespace MiniSonic::L3 {
 
 // LpmTrie Implementation
 void LpmTrie::insert(const std::string& network, int prefix_len, const std::string& next_hop) {

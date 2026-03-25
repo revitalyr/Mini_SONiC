@@ -37,6 +37,7 @@ public:
     App(App&& other) noexcept = delete;
     App& operator=(App&& other) noexcept = delete;
 
+    void setupHandler();
     void run();
     void stop();
 
@@ -69,8 +70,8 @@ private:
     Types::UniquePtr<DataPlane::Pipeline> m_pipeline;
     Types::UniquePtr<Utils::SPSCQueue<DataPlane::Packet>> m_packet_queue;
     Types::UniquePtr<DataPlane::PipelineThread> m_pipeline_thread;
-    Types::UniquePtr<Link::TcpLinkAsync> m_tcp_link;
     Types::UniquePtr<EventLoop> m_event_loop;
+    Types::SharedPtr<Link::TcpLinkAsync> m_tcp_link;
 
     // Configuration
     const Types::Port m_listen_port;

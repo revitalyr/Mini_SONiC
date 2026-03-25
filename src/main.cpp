@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string_view>
 
+using namespace MiniSonic;
+
 int main(int argc, char* argv[]) {
     try {
         // Parse command line arguments
@@ -44,13 +46,19 @@ int main(int argc, char* argv[]) {
         
         std::cout << "[MAIN] Starting Mini SONiC with async architecture\n"
                      << "  Listen Port: " << listen_port << "\n"
-                     << "  Peer: " << peer_ip << ":" << peer_port << "\n";
+                     << "  Peer: " << peer_ip << ":" << peer_port << "\n" << std::flush;
         
         // Create and run application
-        MiniSonic::Core::App app(listen_port, peer_ip, peer_port);
-        app.run();
+        auto app = std::make_shared<MiniSonic::Core::App>(listen_port, peer_ip, peer_port);
+        app->setupHandler();
+        app->run();
         
         return 0;
+        
+        return 0;
+    } catch (const std::bad_weak_ptr& e) {
+        std::cerr << "Bad weak ptr error: " << e.what() << '\n';
+        return 1;
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << '\n';
         return 1;

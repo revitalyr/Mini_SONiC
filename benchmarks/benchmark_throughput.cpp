@@ -84,7 +84,7 @@ static void BM_PacketProcessingThroughput(benchmark::State& state) {
     auto start_time = std::chrono::high_resolution_clock::now();
     
     for (auto _ : state) {
-        for (const auto& pkt : packets) {
+        for (auto pkt : packets) {
             g_pipeline->process(pkt);
         }
     }
@@ -213,7 +213,11 @@ static void BM_L2SwitchingThroughput(benchmark::State& state) {
     for (int i = 0; i < 1000; ++i) {
         char mac[18];
         snprintf(mac, sizeof(mac), "aa:bb:cc:dd:%02x:%02x", i >> 8, i & 0xff);
-        l2_service.learn(mac, i % 24 + 1);
+        // Use public handle method to learn MAC, as learn() is private
+        DataPlane::Packet learn_pkt(
+            mac, "ff:ff:ff:ff:ff:ff", "0.0.0.0", "0.0.0.0", i % 24 + 1
+        );
+        l2_service.handle(learn_pkt);
     }
     
     const int packet_count = state.range(0);
@@ -224,8 +228,8 @@ static void BM_L2SwitchingThroughput(benchmark::State& state) {
     for (int i = 0; i < packet_count; ++i) {
         char src_mac[18];
         char dst_mac[18];
-        snprintf(src_mac, sizeof(src_mac), "aa:bb:cc:dd:%02x:%02x", i >> 8, i & 0xff);
-        snprintf(dst_mac, sizeof(dst_mac), "bb:cc:dd:ee:%02x:%02x", (i + 1) >> 8, (i + 1) & 0xff);
+        snprintf(src_mac, sizeof(src_mac), "aa:bb:cc:dd:%02x:%02x", (i >> 8) & 0xff, i & 0xff);
+        snprintf(dst_mac, sizeof(dst_mac), "bb:cc:dd:ee:%02x:%02x", ((i + 1) >> 8) & 0xff, (i + 1) & 0xff);
         
         packets.emplace_back(
             src_mac,
@@ -239,7 +243,7 @@ static void BM_L2SwitchingThroughput(benchmark::State& state) {
     auto start_time = std::chrono::high_resolution_clock::now();
     
     for (auto _ : state) {
-        for (const auto& pkt : packets) {
+        for (auto pkt : packets) {
             l2_service.handle(pkt);
         }
     }
@@ -290,7 +294,7 @@ static void BM_L3RoutingThroughput(benchmark::State& state) {
     auto start_time = std::chrono::high_resolution_clock::now();
     
     for (auto _ : state) {
-        for (const auto& pkt : packets) {
+        for (auto pkt : packets) {
             l3_service.handle(pkt);
         }
     }

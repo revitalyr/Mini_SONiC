@@ -18,14 +18,15 @@ TcpLinkAsync::TcpLinkAsync(
         Tcp::endpoint() : 
         Tcp::endpoint(boost::asio::ip::make_address(peer_ip), peer_port)
     ),
-    m_strand(io_context),
+    m_strand(io_context.get_executor()),
     m_listen_port(listen_port),
     m_peer_ip(peer_ip),
     m_peer_port(peer_port) {
+    std::cout << "[LINK] TcpLinkAsync constructed\n";
 }
 
 TcpLinkAsync::~TcpLinkAsync() {
-    stop();
+    // stop();
 }
 
 void TcpLinkAsync::start() {

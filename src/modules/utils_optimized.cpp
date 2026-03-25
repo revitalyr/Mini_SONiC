@@ -1,31 +1,28 @@
 module;
 
-// Import the module we're implementing
-import MiniSonic.Utils.Optimized;
+#include <memory>
+#include <string>
+#include <vector>
+#include <atomic>
+#include <mutex>
+#include <shared_mutex>
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <algorithm>
+#include <bit>
+#include <immintrin.h>
+#include <sched.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstring>
+#include <unordered_map>
 
-// Import dependencies
-import <memory>;
-import <string>;
-import <vector>;
-import <atomic>;
-import <mutex>;
-import <shared_mutex>;
-import <thread>;
-import <chrono>;
-import <iostream>;
-import <sstream>;
-import <algorithm>;
-import <bit>;
-import <immintrin.h>;
-import <sched.h>;
-import <sys/mman.h>;
-import <fcntl.h>;
-import <unistd.h>;
-import <cstring>;
-import <unordered_map>;
+module MiniSonic.Utils.Optimized;
 
-export namespace MiniSonic::Utils::Optimized {
-
+namespace MiniSonic::Utils::Optimized {
 // LockFreeMetrics Implementation
 LockFreeMetrics& LockFreeMetrics::instance() {
     static LockFreeMetrics instance;

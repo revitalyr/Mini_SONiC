@@ -141,7 +141,7 @@ static void BM_BasicL3Lookup(benchmark::State& state) {
     const std::string test_ip = "10.1.1.42";
     
     for (auto _ : state) {
-        std::string result = trie.lookup(test_ip);
+        auto result = trie.lookup(test_ip).value_or("");
         benchmark::DoNotOptimize(result);
     }
     
@@ -196,7 +196,7 @@ static void BM_BasicThroughput(benchmark::State& state) {
     auto start_time = std::chrono::high_resolution_clock::now();
     
     for (auto _ : state) {
-        for (const auto& pkt : packets) {
+        for (auto pkt : packets) {
             g_pipeline->process(pkt);
         }
     }

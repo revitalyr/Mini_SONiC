@@ -1,27 +1,25 @@
 module;
 
-// Import the module we're implementing
-import MiniSonic.Networking;
-
-// Import dependencies
-import <memory>;
-import <string>;
-import <functional>;
-import <thread>;
-import <chrono>;
-import <iostream>;
-import <sstream>;
+#include <memory>
+#include <string>
+#include <functional>
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <sstream>
 
 #ifdef HAS_BOOST_ASIO
-import <boost/asio.hpp>;
-import <boost/system/error_code.hpp>;
+#include <boost/asio.hpp>
+#include <boost/system/error_code.hpp>
 #endif
+
+module MiniSonic.Networking;
 
 // Import local modules
 import MiniSonic.DataPlane;
 import MiniSonic.Utils;
 
-export namespace MiniSonic::Networking {
+namespace MiniSonic::Networking {
 
 #ifdef HAS_BOOST_ASIO
 

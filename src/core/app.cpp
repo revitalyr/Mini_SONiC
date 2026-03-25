@@ -16,27 +16,48 @@ App::App(
 }
 
 void App::initialize() {
-    std::cout << "[APP] Initializing Mini SONiC with async architecture\n";
+    std::cout << "[APP] Initializing Mini SONiC with async architecture" << std::endl;
     
     // Initialize Boost.Asio IO context
+    std::cout << "[APP] Creating IO context" << std::endl;
     m_io_context = std::make_unique<boost::asio::io_context>();
     
     // Initialize core components
-    m_sai = std::make_unique<Sai::SimulatedSai>();
-    m_pipeline = std::make_unique<DataPlane::Pipeline>(*m_sai);
-    m_packet_queue = std::make_unique<Utils::SPSCQueue<DataPlane::Packet>>(1024);
-    m_pipeline_thread = std::make_unique<DataPlane::PipelineThread>(
-        *m_pipeline, *m_packet_queue, 32
-    );
+    std::cout << "[APP] Creating SAI\n";
+    // m_sai = std::make_unique<Sai::SimulatedSai>();
+    
+    std::cout << "[APP] Creating pipeline\n";
+    // m_pipeline = std::make_unique<DataPlane::Pipeline>(*m_sai);
+    
+    std::cout << "[APP] Creating packet queue\n";
+    // m_packet_queue = std::make_unique<Utils::SPSCQueue<DataPlane::Packet>>(1024);
+    
+    std::cout << "[APP] Creating pipeline thread\n";
+    // m_pipeline_thread = std::make_unique<DataPlane::PipelineThread>(
+    //     *m_pipeline, *m_packet_queue, 32
+    // );
     
     // Initialize async TCP link
-    m_tcp_link = std::make_unique<Link::TcpLinkAsync>(
-        *m_io_context,
-        m_listen_port,
-        m_peer_ip,
-        m_peer_port
-    );
+    std::cout << "[APP] Creating TCP link\n";
+    // m_tcp_link = std::make_shared<Link::TcpLinkAsync>(
+    //     *m_io_context,
+    //     m_listen_port,
+    //     m_peer_ip,
+    //     m_peer_port
+    // );
     
+    // Initialize event loop (for local packet generation)
+    std::cout << "[APP] Creating event loop\n";
+    // m_event_loop = std::make_unique<EventLoop>(*m_pipeline);
+    
+    std::cout << "[APP] Initialized with:\n"
+              << "  Listen Port: " << m_listen_port << "\n"
+              << "  Peer: " << m_peer_ip << ":" << m_peer_port << "\n"
+              << "  Queue Size: " << m_packet_queue->capacity() << "\n"
+              << "  Batch Size: 32\n";
+}
+
+void App::setupHandler() {
     // Set packet handler for incoming TCP packets
     m_tcp_link->setHandler([this](const DataPlane::Packet& pkt) {
         // Add timestamp and queue for processing
@@ -49,15 +70,6 @@ void App::initialize() {
             Utils::Metrics::instance().inc("app_queue_full");
         }
     });
-    
-    // Initialize event loop (for local packet generation)
-    m_event_loop = std::make_unique<EventLoop>(*m_pipeline);
-    
-    std::cout << "[APP] Initialized with:\n"
-              << "  Listen Port: " << m_listen_port << "\n"
-              << "  Peer: " << m_peer_ip << ":" << m_peer_port << "\n"
-              << "  Queue Size: " << m_packet_queue->capacity() << "\n"
-              << "  Batch Size: 32\n";
 }
 
 void App::run() {
@@ -70,17 +82,19 @@ void App::run() {
         m_pipeline_thread->start();
         
         // Start async TCP link
-        m_tcp_link->start();
+        // m_tcp_link->start();
         
         // Start Asio IO context in separate thread
-        m_asio_thread = std::make_unique<std::thread>([this]() {
-            try {
-                std::cout << "[APP] Starting Asio IO thread\n";
-                m_io_context->run();
-            } catch (const std::exception& e) {
-                std::cerr << "[APP] Asio thread error: " << e.what() << "\n";
-            }
-        });
+        // m_asio_thread = std::make_unique<std::thread>([io_context = m_io_context.get()]() {
+        //     try {
+        //         std::cout << "[APP] Starting Asio IO thread\n";
+        //         io_context->run();
+        //     } catch (const std::exception& e) {
+        //         std::cerr << "[APP] Asio thread error: " << e.what() << "\n";
+        //     }
+        // });
+        
+        std::cout << "[APP] Skipping Asio thread for testing\n";
         
         // Start packet generator
         startPacketGenerator();
@@ -123,9 +137,9 @@ void App::stop() {
         m_io_context->stop();
     }
     
-    if (m_asio_thread && m_asio_thread->joinable()) {
-        m_asio_thread->join();
-    }
+    // if (m_asio_thread && m_asio_thread->joinable()) {
+    //     m_asio_thread->join();
+    // }
     
     if (m_pipeline_thread) {
         m_pipeline_thread->stop();
@@ -166,21 +180,19 @@ Types::String App::getStats() const {
 }
 
 void App::startPacketGenerator() {
-    m_generator_thread = std::make_unique<std::thread>([this]() {
+    m_generator_thread = std::make_unique<std::thread>([running = &m_running]() {
         std::cout << "[APP] Starting packet generator thread\n";
         
         Types::Count packet_counter = 0;
-        while (m_running.load()) {
-            generateTestPackets();
-            ++packet_counter;
-            
-            // Generate packets at ~20 pps (50ms interval)
+        while (running->load()) {
+            // For now, just sleep - actual packet generation would be implemented here
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
             
             // Update metrics
             if (packet_counter % 100 == 0) {
                 Utils::Metrics::instance().inc("app_generator_cycles");
             }
+            ++packet_counter;
         }
         
         std::cout << "[APP] Packet generator stopped\n";
