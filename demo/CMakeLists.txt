@@ -45,6 +45,11 @@ add_executable(mini_sonic_animated_demo
     animated_real_demo.cpp
 )
 
+# Create the silent animated demo executable
+add_executable(mini_sonic_silent_demo
+    silent_animated_demo.cpp
+)
+
 # Link with Mini SONiC library
 target_link_libraries(mini_sonic_real_demo
     PRIVATE
@@ -66,6 +71,13 @@ target_link_libraries(mini_sonic_animated_demo
     ${MINI_SONIC_BUILD_DIR}/mini_sonic_lib
 )
 
+# Link with Mini SONiC library for silent demo
+target_link_libraries(mini_sonic_silent_demo
+    PRIVATE
+    Threads::Threads
+    ${MINI_SONIC_BUILD_DIR}/mini_sonic_lib
+)
+
 # Set target properties
 set_target_properties(mini_sonic_real_demo PROPERTIES
     CXX_STANDARD 20
@@ -80,6 +92,12 @@ set_target_properties(mini_sonic_clean_demo PROPERTIES
 )
 
 set_target_properties(mini_sonic_animated_demo PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(mini_sonic_silent_demo PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF

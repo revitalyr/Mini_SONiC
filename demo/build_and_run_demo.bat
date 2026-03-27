@@ -49,48 +49,59 @@ if not exist "mini_sonic_real_demo.exe" (
 )
 
 echo Available demo configurations:
-echo   1. Animated Real Demo (BEST) - Real components with live animation
-echo   2. Clean Visual Demo - Clean output with basic animation
-echo   3. Real Demo (verbose) - Detailed logging output
-echo   4. Animated Demo - Custom configuration
-echo   5. Show help
+echo   1. Silent Animated Demo (BEST) - Real components, no debug logging
+echo   2. Animated Real Demo - Real components with live animation
+echo   3. Clean Visual Demo - Clean output with basic animation
+echo   4. Real Demo (verbose) - Detailed logging output
+echo   5. Silent Demo - Custom configuration
+echo   6. Show help
 echo.
 
-set /p choice="Select demo configuration (1-5): "
+set /p choice="Select demo configuration (1-6): "
 
 if "%choice%"=="1" (
     echo.
-    echo [INFO] Running Animated Real Demo (BEST)...
+    echo [INFO] Running Silent Animated Demo (BEST - No Debug Logging)...
+    echo ========================================
+    mini_sonic_silent_demo.exe --switches 3 --rate 30 --duration 30
+) else if "%choice%"=="2" (
+    echo.
+    echo [INFO] Running Animated Real Demo...
     echo ========================================
     mini_sonic_animated_demo.exe --switches 3 --rate 100 --duration 30
-) else if "%choice%"=="2" (
+) else if "%choice%"=="3" (
     echo.
     echo [INFO] Running Clean Visual Demo...
     echo ========================================
     mini_sonic_clean_demo.exe --switches 3 --rate 100 --duration 30
-) else if "%choice%"=="3" (
+) else if "%choice%"=="4" (
     echo.
     echo [INFO] Running Real Demo (verbose)...
     echo ========================================
     mini_sonic_real_demo.exe --switches 3 --rate 50 --duration 15
-) else if "%choice%"=="4" (
+) else if "%choice%"=="5" (
     echo.
     set /p switches="Number of switches (default 3): "
-    set /p rate="Packets per second (default 100): "
+    set /p rate="Packets per second (default 30): "
     set /p duration="Duration in seconds (default 30): "
+    set /p refresh="Refresh interval in ms (default 500): "
     
     if "%switches%"=="" set switches=3
-    if "%rate%"=="" set rate=100
+    if "%rate%"=="" set rate=30
     if "%duration%"=="" set duration=30
+    if "%refresh%"=="" set refresh=500
     
     echo.
-    echo [INFO] Running Animated Custom Demo...
+    echo [INFO] Running Silent Custom Demo...
     echo ========================================
-    mini_sonic_animated_demo.exe --switches %switches% --rate %rate% --duration %duration%
-) else if "%choice%"=="5" (
+    mini_sonic_silent_demo.exe --switches %switches% --rate %rate% --duration %duration% --refresh %refresh%
+) else if "%choice%"=="6" (
     echo.
     echo [INFO] Showing help for all demos...
     echo ========================================
+    echo.
+    echo Silent Animated Demo:
+    mini_sonic_silent_demo.exe --help
     echo.
     echo Animated Real Demo:
     mini_sonic_animated_demo.exe --help
@@ -101,11 +112,11 @@ if "%choice%"=="1" (
     echo Real Demo (verbose):
     mini_sonic_real_demo.exe --help
 ) else (
-    echo [WARNING] Invalid choice, running animated demo...
+    echo [WARNING] Invalid choice, running silent demo...
     echo.
-    echo [INFO] Running Animated Real Demo...
+    echo [INFO] Running Silent Animated Demo...
     echo ========================================
-    mini_sonic_animated_demo.exe
+    mini_sonic_silent_demo.exe
 )
 
 echo.
