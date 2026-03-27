@@ -12,12 +12,20 @@
 #include <array>
 #include <bit>
 #include <iomanip>
-#include <numa.h>      // For NUMA API (numa_available, etc.)
 #include <immintrin.h> // For SIMD instructions
-#include <sched.h>      // For sched_getcpu
-#include <sys/mman.h>    // For memory mapping
-#include <fcntl.h>        // For file operations
-#include <unistd.h>       // For system calls
+
+#ifdef WIN32
+    // Windows-specific headers
+    #include <windows.h>
+    #include <process.h>
+#else
+    // Linux/Unix-specific headers
+    #include <numa.h>      // For NUMA API (numa_available, etc.)
+    #include <sched.h>      // For sched_getcpu
+    #include <sys/mman.h>    // For memory mapping
+    #include <fcntl.h>        // For file operations
+    #include <unistd.h>       // For system calls
+#endif
 
 namespace MiniSonic::DataPlane::Optimized {
 
@@ -112,7 +120,12 @@ public:
     bool sync() noexcept;
     bool isValid() const noexcept;
 private:
+#ifdef WIN32
+    HANDLE m_file_handle;
+    HANDLE m_mapping_handle;
+#else
     int m_file_descriptor;
+#endif
     void* m_mapped_data;
     size_t m_mapped_size;
     bool m_is_valid;
@@ -417,14 +430,14 @@ void OptimizedProcessor::prefetchBatch(OptimizedPacket* packets, size_t count) n
     // Prefetch packets into cache for better performance
     for (size_t i = 0; i < count; i += 8) {
         // Prefetch next 8 packets
-        _mm_prefetch(&packets[i], _MM_HINT_T0);
-        if (i + 1 < count) _mm_prefetch(&packets[i + 1], _MM_HINT_T0);
-        if (i + 2 < count) _mm_prefetch(&packets[i + 2], _MM_HINT_T0);
-        if (i + 3 < count) _mm_prefetch(&packets[i + 3], _MM_HINT_T0);
-        if (i + 4 < count) _mm_prefetch(&packets[i + 4], _MM_HINT_T0);
-        if (i + 5 < count) _mm_prefetch(&packets[i + 5], _MM_HINT_T0);
-        if (i + 6 < count) _mm_prefetch(&packets[i + 6], _MM_HINT_T0);
-        if (i + 7 < count) _mm_prefetch(&packets[i + 7], _MM_HINT_T0);
+        _mm_prefetch(reinterpret_cast<const char*>(&packets[i]), _MM_HINT_T0);
+        if (i + 1 < count) _mm_prefetch(reinterpret_cast<const char*>(&packets[i + 1]), _MM_HINT_T0);
+        if (i + 2 < count) _mm_prefetch(reinterpret_cast<const char*>(&packets[i + 2]), _MM_HINT_T0);
+        if (i + 3 < count) _mm_prefetch(reinterpret_cast<const char*>(&packets[i + 3]), _MM_HINT_T0);
+        if (i + 4 < count) _mm_prefetch(reinterpret_cast<const char*>(&packets[i + 4]), _MM_HINT_T0);
+        if (i + 5 < count) _mm_prefetch(reinterpret_cast<const char*>(&packets[i + 5]), _MM_HINT_T0);
+        if (i + 6 < count) _mm_prefetch(reinterpret_cast<const char*>(&packets[i + 6]), _MM_HINT_T0);
+        if (i + 7 < count) _mm_prefetch(reinterpret_cast<const char*>(&packets[i + 7]), _MM_HINT_T0);
     }
 }
 
@@ -472,6 +485,34 @@ std::string OptimizedProcessor::getStats() const {
 MemoryMappedIO::MemoryMappedIO(const std::string& filename, size_t size)
     : m_mapped_size(size) {
     
+#ifdef WIN32
+    m_file_handle = CreateFileA(filename.c_str(), GENERIC_READ | GENERIC_WRITE,
+                               FILE_SHARE_READ, nullptr, CREATE_ALWAYS,
+                               FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (m_file_handle == INVALID_HANDLE_VALUE) {
+        std::cerr << "[MMAP] Failed to create file: " << filename << "\n";
+        return;
+    }
+    
+    m_mapping_handle = CreateFileMapping(m_file_handle, nullptr, PAGE_READWRITE,
+                                        0, static_cast<DWORD>(size), nullptr);
+    if (m_mapping_handle == nullptr) {
+        std::cerr << "[MMAP] Failed to create file mapping\n";
+        CloseHandle(m_file_handle);
+        m_file_handle = INVALID_HANDLE_VALUE;
+        return;
+    }
+    
+    m_mapped_data = MapViewOfFile(m_mapping_handle, FILE_MAP_ALL_ACCESS, 0, 0, size);
+    if (m_mapped_data == nullptr) {
+        std::cerr << "[MMAP] Failed to map file\n";
+        CloseHandle(m_mapping_handle);
+        CloseHandle(m_file_handle);
+        m_file_handle = INVALID_HANDLE_VALUE;
+        m_mapping_handle = nullptr;
+        return;
+    }
+#else
     m_file_descriptor = open(filename.c_str(), O_RDWR | O_CREAT, 0644);
     if (m_file_descriptor == -1) {
         std::cerr << "[MMAP] Failed to open file: " << filename << "\n";
@@ -494,6 +535,7 @@ MemoryMappedIO::MemoryMappedIO(const std::string& filename, size_t size)
         m_file_descriptor = -1;
         return;
     }
+#endif
     
     m_is_valid = true;
     
@@ -502,12 +544,15 @@ MemoryMappedIO::MemoryMappedIO(const std::string& filename, size_t size)
 
 MemoryMappedIO::~MemoryMappedIO() {
     if (m_is_valid && m_mapped_data != nullptr) {
+#ifdef WIN32
+        UnmapViewOfFile(m_mapped_data);
+        CloseHandle(m_mapping_handle);
+        CloseHandle(m_file_handle);
+#else
         munmap(m_mapped_data, m_mapped_size);
-        std::cout << "[MMAP] Unmapped " << m_mapped_size << " bytes\n";
-    }
-    
-    if (m_file_descriptor != -1) {
         close(m_file_descriptor);
+#endif
+        std::cout << "[MMAP] Unmapped " << m_mapped_size << " bytes\n";
     }
 }
 
@@ -526,7 +571,11 @@ size_t MemoryMappedIO::size() const noexcept {
 bool MemoryMappedIO::sync() noexcept {
     if (!m_is_valid) return false;
     
+#ifdef WIN32
+    return FlushViewOfFile(m_mapped_data, m_mapped_size) != FALSE;
+#else
     return msync(m_mapped_data, m_mapped_size, MS_SYNC) == 0;
+#endif
 }
 
 bool MemoryMappedIO::isValid() const noexcept {
@@ -552,28 +601,44 @@ void* NumaAllocator::allocate(size_t size, int numa_node) noexcept {
 void NumaAllocator::deallocate(void* ptr) noexcept {
     if (!ptr) return;
     
+#ifdef WIN32
+    _aligned_free(ptr);
+#else
     // Always use std::free because we don't track size for numa_free
     std::free(ptr);
+#endif
 }
 
 int NumaAllocator::getNodeCount() noexcept {
+#ifdef WIN32
+    return 1; // Windows NUMA detection would require additional setup
+#else
     if (isNumaAvailable()) {
         return numa_max_node() + 1;
     } else {
         return 1;
     }
+#endif
 }
 
 int NumaAllocator::getCurrentNode() noexcept {
+#ifdef WIN32
+    return 0; // Windows CPU affinity would require additional setup
+#else
     if (isNumaAvailable()) {
         return numa_node_of_cpu(sched_getcpu());
     } else {
         return 0;
     }
+#endif
 }
 
 bool NumaAllocator::isNumaAvailable() noexcept {
+#ifdef WIN32
+    return false; // NUMA not available in this Windows build
+#else
     return numa_available() != -1;
+#endif
 }
 
 void* NumaAllocator::allocateNumaAware(size_t size, [[maybe_unused]] int numa_node) noexcept {
@@ -585,8 +650,11 @@ void* NumaAllocator::allocateNumaAware(size_t size, [[maybe_unused]] int numa_no
 
 void* NumaAllocator::allocateStandard(size_t size) noexcept {
     // Standard allocation with alignment
-    void* ptr = std::aligned_alloc(64, size);
-    return ptr;
+#ifdef WIN32
+    return _aligned_malloc(size, 64);
+#else
+    return std::aligned_alloc(64, size);
+#endif
 }
 
 } // namespace MiniSonic::DataPlane::Optimized

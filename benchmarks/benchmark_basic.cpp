@@ -163,7 +163,7 @@ static void BM_BasicMemoryUsage(benchmark::State& state) {
                 "ff:ee:dd:cc:bb:aa",
                 "10.1.1." + std::to_string(100 + i),
                 "10.1.1." + std::to_string(1 + i),
-                i % 24 + 1
+                static_cast<Types::Port>(i % 24 + 1)
             );
         }
         
@@ -189,7 +189,7 @@ static void BM_BasicThroughput(benchmark::State& state) {
             "ff:ee:dd:cc:bb:aa",
             "10.1.1." + std::to_string(100 + i),
             "10.1.1." + std::to_string(1 + i),
-            i % 24 + 1
+            static_cast<Types::Port>(i % 24 + 1)
         );
     }
     

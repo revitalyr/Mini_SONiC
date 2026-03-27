@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini SONiC - Анимация Коммутаторов</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #357abd;
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn.danger {
+            background: #dc3545;
+        }
+        
+        .btn.danger:hover {
+            background: #c82333;
+        }
+        
+        .btn.success {
+            background: #28a745;
+        }
+        
+        .btn.success:hover {
+            background: #218838;
+        }
+        
+        .btn.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .btn.warning:hover {
+            background: #e0a800;
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .slider {
+            width: 150px;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4a90e2;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #4a90e2;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .stats-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .main-content {
+            padding: 20px;
+        }
+        
+        .network-canvas {
+            background: #fafbfc;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .switch {
+            position: absolute;
+            width: 120px;
+            height: 80px;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            border: 2px solid #2c5aa0;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: move;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .switch:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+        
+        .switch.active {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            border-color: #1e7e34;
+        }
+        
+        .switch.processing {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            border-color: #d39e00;
+        }
+        
+        .switch-name {
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .switch-status {
+            font-size: 10px;
+            opacity: 0.8;
+        }
+        
+        .port {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #6c757d;
+            border: 2px solid #495057;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .port:hover {
+            background: #4a90e2;
+            transform: scale(1.2);
+        }
+        
+        .port.active {
+            background: #28a745;
+            border-color: #1e7e34;
+            animation: pulse 1s infinite;
+        }
+        
+        .port.left {
+            left: -6px;
+        }
+        
+        .port.right {
+            right: -6px;
+        }
+        
+        .port.top {
+            top: -6px;
+        }
+        
+        .port.bottom {
+            bottom: -6px;
+        }
+        
+        .connection {
+            position: absolute;
+            background: #6c757d;
+            height: 2px;
+            transform-origin: left center;
+            z-index: -1;
+        }
+        
+        .connection.active {
+            background: #28a745;
+            height: 3px;
+            animation: flow 2s linear infinite;
+        }
+        
+        .packet {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ffc107;
+            border: 2px solid #e0a800;
+            border-radius: 50%;
+            z-index: 10;
+            transition: all 0.1s linear;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+        }
+        
+        .packet.lost {
+            background: #dc3545;
+            border-color: #c82333;
+            animation: fadeOut 1s ease-out forwards;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        @keyframes flow {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+        
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+        
+        .info-panel {
+            background: #e3f2fd;
+            border-left: 4px solid #4a90e2;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .info-panel h3 {
+            margin: 0 0 10px 0;
+            color: #4a90e2;
+        }
+        
+        .log-panel {
+            background: #212529;
+            color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 150px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-entry.info {
+            color: #17a2b8;
+        }
+        
+        .log-entry.success {
+            color: #28a745;
+        }
+        
+        .log-entry.warning {
+            color: #ffc107;
+        }
+        
+        .log-entry.error {
+            color: #dc3545;
+        }
+        
+        .scenario-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .scenario-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        
+        .scenario-description {
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Mini SONiC - Демонстрация Сети</h1>
+            <p>Интерактивная анимация коммутаторов и обработки пакетов</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button class="btn success" onclick="startAnimation()">▶️ Запустить</button>
+                <button class="btn danger" onclick="stopAnimation()">⏸️ Пауза</button>
+                <button class="btn warning" onclick="resetAnimation()">🔄 Сброс</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Скорость:</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="speedSlider" min="1" max="10" value="5">
+                    <span id="speedValue">5</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Нагрузка:</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="loadSlider" min="1" max="10" value="3">
+                    <span id="loadValue">3</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <button class="btn" onclick="addSwitch()">➕ Добавить коммутатор</button>
+                <button class="btn" onclick="removeSwitch()">➖ Удалить коммутатор</button>
+            </div>
+        </div>
+        
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-value" id="packetCount">0</div>
+                <div class="stat-label">Пакетов обработано</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="switchCount">3</div>
+                <div class="stat-label">Коммутаторов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="connectionCount">4</div>
+                <div class="stat-label">Соединений</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="throughput">0</div>
+                <div class="stat-label">Пропускная способность (пак/с)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="latency">0</div>
+                <div class="stat-label">Задержка (мс)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="packetLoss">0%</div>
+                <div class="stat-label">Потери пакетов</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="scenario-panel">
+                <div class="scenario-title">📋 Сценарий демонстрации</div>
+                <div class="scenario-description">
+                    Эта демонстрация показывает работу сети коммутаторов Mini SONiC в реальном времени. 
+                    Пакеты генерируются и проходят через коммутаторы, демонстрируя L2/L3 обработку, 
+                    MAC learning, IP routing и балансировку нагрузки.
+                </div>
+                <div class="control-group">
+                    <button class="btn" onclick="loadScenario('basic')">🔀 Базовая коммутация</button>
+                    <button class="btn" onclick="loadScenario('load')">⚖️ Балансировка нагрузки</button>
+                    <button class="btn" onclick="loadScenario('failure')">❌ Отказ узла</button>
+                    <button class="btn" onclick="loadScenario('recovery')">✅ Восстановление</button>
+                </div>
+            </div>
+            
+            <div class="info-panel">
+                <h3>📊 Информация о системе</h3>
+                <p>Mini SONiC использует высокопроизводительную архитектуру с разделением плоскостей управления и данных. 
+                Каждый коммутатор обрабатывает пакеты через конвейер L2/L3 сервисов с использованием SAI абстракции.</p>
+            </div>
+            
+            <div class="network-canvas" id="networkCanvas">
+                <!-- Коммутаторы и соединения будут добавлены динамически -->
+            </div>
+            
+            <div class="log-panel" id="logPanel">
+                <div class="log-entry info">🚀 Система инициализирована</div>
+                <div class="log-entry success">✓ Коммутаторы созданы</div>
+                <div class="log-entry info">⏳ Ожидание запуска анимации...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let animationRunning = false;
+        let animationId = null;
+        let switches = [];
+        let connections = [];
+        let packets = [];
+        let packetId = 0;
+        let stats = {
+            packetsProcessed: 0,
+            packetsLost: 0,
+            startTime: Date.now(),
+            throughput: 0,
+            latency: 0
+        };
+        
+        // Класс коммутатора
+        class Switch {
+            constructor(id, name, x, y) {
+                this.id = id;
+                this.name = name;
+                this.x = x;
+                this.y = y;
+                this.element = null;
+                this.ports = [];
+                this.active = false;
+                this.processing = false;
+                this.macTable = new Map();
+                this.routingTable = new Map();
+                this.packetQueue = [];
+                this.processedPackets = 0;
+            }
+            
+            render() {
+                const switchEl = document.createElement('div');
+                switchEl.className = 'switch';
+                switchEl.id = `switch-${this.id}`;
+                switchEl.style.left = `${this.x}px`;
+                switchEl.style.top = `${this.y}px`;
+                switchEl.innerHTML = `
+                    <div class="switch-name">${this.name}</div>
+                    <div class="switch-status">Ожидание</div>
+                `;
+                
+                // Добавляем порты
+                this.addPorts(switchEl);
+                
+                document.getElementById('networkCanvas').appendChild(switchEl);
+                this.element = switchEl;
+            }
+            
+            addPorts(switchEl) {
+                const portPositions = [
+                    { side: 'left', count: 3 },
+                    { side: 'right', count: 3 },
+                    { side: 'top', count: 2 },
+                    { side: 'bottom', count: 2 }
+                ];
+                
+                portPositions.forEach(({ side, count }) => {
+                    for (let i = 0; i < count; i++) {
+                        const port = document.createElement('div');
+                        port.className = `port ${side}`;
+                        port.dataset.switchId = this.id;
+                        port.dataset.portId = `${side}-${i}`;
+                        
+                        if (side === 'left' || side === 'right') {
+                            port.style.top = `${20 + (i * 20)}px`;
+                        } else {
+                            port.style.left = `${30 + (i * 30)}px`;
+                        }
+                        
+                        switchEl.appendChild(port);
+                        this.ports.push(port);
+                    }
+                });
+            }
+            
+            updateStatus(status) {
+                if (!this.element) return;
+                
+                const statusEl = this.element.querySelector('.switch-status');
+                statusEl.textContent = status;
+                
+                this.element.classList.remove('active', 'processing');
+                if (status === 'Активен') {
+                    this.element.classList.add('active');
+                } else if (status === 'Обработка') {
+                    this.element.classList.add('processing');
+                }
+            }
+            
+            processPacket(packet) {
+                this.processing = true;
+                this.updateStatus('Обработка');
+                
+                // Симуляция обработки пакета
+                setTimeout(() => {
+                    // MAC learning
+                    this.macTable.set(packet.srcMac, packet.ingressPort);
+                    
+                    // L2 lookup
+                    const egressPort = this.macTable.get(packet.dstMac);
+                    
+                    if (egressPort) {
+                        // Найден MAC в таблице
+                        packet.egressPort = egressPort;
+                        this.processedPackets++;
+                        stats.packetsProcessed++;
+                        addLog(`✓ ${this.name}: пакет перенаправлен на порт ${egressPort}`, 'success');
+                    } else {
+                        // Flooding
+                        packet.egressPort = 'flood';
+                        addLog(`🌊 ${this.name}: пакет разослан (flooding)`, 'warning');
+                    }
+                    
+                    this.processing = false;
+                    this.updateStatus('Активен');
+                    updateStats();
+                }, 100);
+            }
+        }
+        
+        // Класс соединения
+        class Connection {
+            constructor(switch1, switch2, port1, port2) {
+                this.switch1 = switch1;
+                this.switch2 = switch2;
+                this.port1 = port1;
+                this.port2 = port2;
+                this.element = null;
+                this.active = false;
+                this.packetsTransferred = 0;
+            }
+            
+            render() {
+                const line = document.createElement('div');
+                line.className = 'connection';
+                
+                const x1 = this.switch1.x + 120;
+                const y1 = this.switch1.y + 40;
+                const x2 = this.switch2.x;
+                const y2 = this.switch2.y + 40;
+                
+                const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                
+                line.style.width = `${length}px`;
+                line.style.left = `${x1}px`;
+                line.style.top = `${y1}px`;
+                line.style.transform = `rotate(${angle}deg)`;
+                
+                document.getElementById('networkCanvas').appendChild(line);
+                this.element = line;
+            }
+            
+            activate() {
+                this.active = true;
+                if (this.element) {
+                    this.element.classList.add('active');
+                }
+            }
+            
+            deactivate() {
+                this.active = false;
+                if (this.element) {
+                    this.element.classList.remove('active');
+                }
+            }
+        }
+        
+        // Класс пакета
+        class Packet {
+            constructor(srcSwitch, dstSwitch, srcMac, dstMac) {
+                this.id = packetId++;
+                this.srcSwitch = srcSwitch;
+                this.dstSwitch = dstSwitch;
+                this.srcMac = srcMac;
+                this.dstMac = dstMac;
+                this.ingressPort = null;
+                this.egressPort = null;
+                this.element = null;
+                this.currentSwitch = srcSwitch;
+                this.lost = false;
+                this.startTime = Date.now();
+            }
+            
+            render() {
+                const packetEl = document.createElement('div');
+                packetEl.className = 'packet';
+                packetEl.id = `packet-${this.id}`;
+                
+                document.getElementById('networkCanvas').appendChild(packetEl);
+                this.element = packetEl;
+                
+                this.moveToSwitch(this.srcSwitch);
+            }
+            
+            moveToSwitch(switchObj) {
+                if (!this.element) return;
+                
+                this.currentSwitch = switchObj;
+                this.element.style.left = `${switchObj.x + 60}px`;
+                this.element.style.top = `${switchObj.y + 40}px`;
+                
+                // Активируем порт коммутатора
+                switchObj.processPacket(this);
+            }
+            
+            markAsLost() {
+                this.lost = true;
+                if (this.element) {
+                    this.element.classList.add('lost');
+                }
+                stats.packetsLost++;
+                addLog(`❌ Пакет ${this.id} потерян`, 'error');
+            }
+            
+            destroy() {
+                if (this.element) {
+                    this.element.remove();
+                }
+            }
+        }
+        
+        // Инициализация сети
+        function initializeNetwork() {
+            const canvas = document.getElementById('networkCanvas');
+            canvas.innerHTML = '';
+            
+            switches = [];
+            connections = [];
+            packets = [];
+            
+            // Создаем коммутаторы
+            const switchConfigs = [
+                { id: 1, name: 'SW1-Core', x: 100, y: 250 },
+                { id: 2, name: 'SW2-Edge', x: 400, y: 150 },
+                { id: 3, name: 'SW3-Edge', x: 400, y: 350 }
+            ];
+            
+            switchConfigs.forEach(config => {
+                const sw = new Switch(config.id, config.name, config.x, config.y);
+                sw.render();
+                switches.push(sw);
+            });
+            
+            // Создаем соединения
+            const connectionConfigs = [
+                { sw1: 0, sw2: 1 },
+                { sw1: 0, sw2: 2 },
+                { sw1: 1, sw2: 2 }
+            ];
+            
+            connectionConfigs.forEach(config => {
+                const conn = new Connection(
+                    switches[config.sw1], 
+                    switches[config.sw2],
+                    null, null
+                );
+                conn.render();
+                connections.push(conn);
+            });
+            
+            updateStats();
+            addLog('🔧 Сеть инициализирована', 'success');
+        }
+        
+        // Генерация пакетов
+        function generatePacket() {
+            if (!animationRunning || switches.length < 2) return;
+            
+            const srcSwitch = switches[Math.floor(Math.random() * switches.length)];
+            let dstSwitch = switches[Math.floor(Math.random() * switches.length)];
+            
+            while (dstSwitch === srcSwitch) {
+                dstSwitch = switches[Math.floor(Math.random() * switches.length)];
+            }
+            
+            const srcMac = `00:11:22:33:44:${Math.floor(Math.random() * 99).toString().padStart(2, '0')}`;
+            const dstMac = `00:11:22:33:55:${Math.floor(Math.random() * 99).toString().padStart(2, '0')}`;
+            
+            const packet = new Packet(srcSwitch, dstSwitch, srcMac, dstMac);
+            packet.render();
+            packets.push(packet);
+            
+            // Активируем соединение
+            const connection = connections.find(conn => 
+                (conn.switch1 === srcSwitch && conn.switch2 === dstSwitch) ||
+                (conn.switch1 === dstSwitch && conn.switch2 === srcSwitch)
+            );
+            
+            if (connection) {
+                connection.activate();
+                setTimeout(() => connection.deactivate(), 1000);
+            }
+            
+            // Удаляем пакет после обработки
+            setTimeout(() => {
+                if (!packet.lost) {
+                    packet.destroy();
+                    const index = packets.indexOf(packet);
+                    if (index > -1) {
+                        packets.splice(index, 1);
+                    }
+                }
+            }, 2000);
+        }
+        
+        // Управление анимацией
+        function startAnimation() {
+            if (animationRunning) return;
+            
+            animationRunning = true;
+            stats.startTime = Date.now();
+            
+            // Активируем все коммутаторы
+            switches.forEach(sw => {
+                sw.active = true;
+                sw.updateStatus('Активен');
+            });
+            
+            addLog('▶️ Анимация запущена', 'success');
+            
+            // Запускаем генерацию пакетов
+            const load = parseInt(document.getElementById('loadSlider').value);
+            const interval = 1000 / load;
+            
+            function generatePackets() {
+                if (!animationRunning) return;
+                
+                generatePacket();
+                
+                // Случайно теряем некоторые пакеты для симуляции
+                if (Math.random() < 0.05) {
+                    const packet = packets[packets.length - 1];
+                    if (packet) {
+                        packet.markAsLost();
+                    }
+                }
+                
+                setTimeout(generatePackets, interval);
+            }
+            
+            generatePackets();
+            
+            // Обновляем статистику
+            function updateStatsLoop() {
+                if (!animationRunning) return;
+                
+                updateStats();
+                requestAnimationFrame(updateStatsLoop);
+            }
+            
+            updateStatsLoop();
+        }
+        
+        function stopAnimation() {
+            animationRunning = false;
+            
+            switches.forEach(sw => {
+                sw.active = false;
+                sw.updateStatus('Остановлен');
+            });
+            
+            connections.forEach(conn => conn.deactivate());
+            
+            addLog('⏸️ Анимация остановлена', 'warning');
+        }
+        
+        function resetAnimation() {
+            stopAnimation();
+            
+            // Очищаем пакеты
+            packets.forEach(packet => packet.destroy());
+            packets = [];
+            
+            // Сбрасываем статистику
+            stats = {
+                packetsProcessed: 0,
+                packetsLost: 0,
+                startTime: Date.now(),
+                throughput: 0,
+                latency: 0
+            };
+            
+            // Сбрасываем коммутаторы
+            switches.forEach(sw => {
+                sw.macTable.clear();
+                sw.routingTable.clear();
+                sw.processedPackets = 0;
+                sw.updateStatus('Ожидание');
+            });
+            
+            updateStats();
+            addLog('🔄 Анимация сброшена', 'info');
+        }
+        
+        // Обновление статистики
+        function updateStats() {
+            const now = Date.now();
+            const elapsed = (now - stats.startTime) / 1000; // в секундах
+            
+            stats.throughput = elapsed > 0 ? Math.round(stats.packetsProcessed / elapsed) : 0;
+            stats.latency = Math.round(Math.random() * 10 + 5); // Симуляция задержки
+            
+            document.getElementById('packetCount').textContent = stats.packetsProcessed;
+            document.getElementById('switchCount').textContent = switches.length;
+            document.getElementById('connectionCount').textContent = connections.length;
+            document.getElementById('throughput').textContent = stats.throughput;
+            document.getElementById('latency').textContent = stats.latency;
+            
+            const lossRate = stats.packetsProcessed > 0 ? 
+                ((stats.packetsLost / (stats.packetsProcessed + stats.packetsLost)) * 100).toFixed(1) : 0;
+            document.getElementById('packetLoss').textContent = `${lossRate}%`;
+        }
+        
+        // Добавление/удаление коммутаторов
+        function addSwitch() {
+            const id = switches.length + 1;
+            const x = 100 + Math.random() * 500;
+            const y = 100 + Math.random() * 300;
+            const name = `SW${id}-New`;
+            
+            const sw = new Switch(id, name, x, y);
+            sw.render();
+            switches.push(sw);
+            
+            // Добавляем случайные соединения
+            if (switches.length > 1) {
+                const randomSwitch = switches[Math.floor(Math.random() * (switches.length - 1))];
+                const conn = new Connection(randomSwitch, sw, null, null);
+                conn.render();
+                connections.push(conn);
+            }
+            
+            updateStats();
+            addLog(`➕ Коммутатор ${name} добавлен`, 'success');
+        }
+        
+        function removeSwitch() {
+            if (switches.length <= 2) {
+                addLog('❌ Нельзя удалить коммутатор (минимум 2)', 'error');
+                return;
+            }
+            
+            const removedSwitch = switches.pop();
+            
+            // Удаляем связанные соединения
+            connections = connections.filter(conn => 
+                conn.switch1 !== removedSwitch && conn.switch2 !== removedSwitch
+            );
+            
+            // Удаляем элемент
+            if (removedSwitch.element) {
+                removedSwitch.element.remove();
+            }
+            
+            // Перерисовываем соединения
+            connections.forEach(conn => conn.render());
+            
+            updateStats();
+            addLog(`➖ Коммутатор ${removedSwitch.name} удален`, 'warning');
+        }
+        
+        // Загрузка сценариев
+        function loadScenario(scenario) {
+            resetAnimation();
+            
+            switch(scenario) {
+                case 'basic':
+                    addLog('🔀 Загружен сценарий: Базовая коммутация', 'info');
+                    document.getElementById('loadSlider').value = 3;
+                    document.getElementById('speedSlider').value = 5;
+                    break;
+                    
+                case 'load':
+                    addLog('⚖️ Загружен сценарий: Балансировка нагрузки', 'info');
+                    document.getElementById('loadSlider').value = 8;
+                    document.getElementById('speedSlider').value = 7;
+                    break;
+                    
+                case 'failure':
+                    addLog('❌ Загружен сценарий: Отказ узла', 'info');
+                    // Симулируем отказ одного из коммутаторов
+                    setTimeout(() => {
+                        if (switches.length > 2) {
+                            const failedSwitch = switches[1];
+                            failedSwitch.updateStatus('Отказ');
+                            failedSwitch.element.style.opacity = '0.5';
+                            addLog(`💥 Коммутатор ${failedSwitch.name} отказал`, 'error');
+                        }
+                    }, 2000);
+                    break;
+                    
+                case 'recovery':
+                    addLog('✅ Загружен сценарий: Восстановление', 'info');
+                    // Симулируем восстановление после отказа
+                    setTimeout(() => {
+                        switches.forEach(sw => {
+                            sw.element.style.opacity = '1';
+                            sw.updateStatus('Активен');
+                        });
+                        addLog('🔄 Все коммутаторы восстановлены', 'success');
+                    }, 3000);
+                    break;
+            }
+            
+            updateSliderValues();
+            setTimeout(startAnimation, 1000);
+        }
+        
+        // Логирование
+        function addLog(message, type = 'info') {
+            const logPanel = document.getElementById('logPanel');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logPanel.appendChild(entry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            
+            // Ограничиваем количество записей
+            while (logPanel.children.length > 50) {
+                logPanel.removeChild(logPanel.firstChild);
+            }
+        }
+        
+        // Обновление значений слайдеров
+        function updateSliderValues() {
+            document.getElementById('speedValue').textContent = document.getElementById('speedSlider').value;
+            document.getElementById('loadValue').textContent = document.getElementById('loadSlider').value;
+        }
+        
+        // Обработчики событий
+        document.getElementById('speedSlider').addEventListener('input', updateSliderValues);
+        document.getElementById('loadSlider').addEventListener('input', updateSliderValues);
+        
+        // Перетаскивание коммутаторов
+        let draggedSwitch = null;
+        let dragOffset = { x: 0, y: 0 };
+        
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('switch')) {
+                draggedSwitch = switches.find(sw => sw.element === e.target);
+                if (draggedSwitch) {
+                    const rect = draggedSwitch.element.getBoundingClientRect();
+                    const canvasRect = document.getElementById('networkCanvas').getBoundingClientRect();
+                    dragOffset.x = e.clientX - rect.left;
+                    dragOffset.y = e.clientY - rect.top;
+                    draggedSwitch.element.style.zIndex = '1000';
+                }
+            }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (draggedSwitch) {
+                const canvasRect = document.getElementById('networkCanvas').getBoundingClientRect();
+                const x = e.clientX - canvasRect.left - dragOffset.x;
+                const y = e.clientY - canvasRect.top - dragOffset.y;
+                
+                draggedSwitch.x = Math.max(0, Math.min(x, canvasRect.width - 120));
+                draggedSwitch.y = Math.max(0, Math.min(y, canvasRect.height - 80));
+                
+                draggedSwitch.element.style.left = `${draggedSwitch.x}px`;
+                draggedSwitch.element.style.top = `${draggedSwitch.y}px`;
+                
+                // Перерисовываем соединения
+                connections.forEach(conn => conn.render());
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (draggedSwitch) {
+                draggedSwitch.element.style.zIndex = '';
+                draggedSwitch = null;
+            }
+        });
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeNetwork();
+            updateSliderValues();
+            addLog('🎉 Демонстрация готова к запуску', 'success');
+        });
+    </script>
+</body>
+</html>

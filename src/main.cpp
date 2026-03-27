@@ -1,4 +1,8 @@
+#ifdef BOOST_FOUND
 #include "core/app.h"
+#else
+#include "core/app_basic.h"
+#endif
 #include "common/types.hpp"
 #include <iostream>
 #include <string_view>
@@ -50,7 +54,9 @@ int main(int argc, char* argv[]) {
         
         // Create and run application
         auto app = std::make_shared<MiniSonic::Core::App>(listen_port, peer_ip, peer_port);
+#ifdef BOOST_FOUND
         app->setupHandler();
+#endif
         app->run();
         
         return 0;
