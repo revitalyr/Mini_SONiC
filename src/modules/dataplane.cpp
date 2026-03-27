@@ -40,8 +40,8 @@ void PipelineThread::start() {
     m_running.store(true);
     m_thread = std::thread(&PipelineThread::run, this);
     
-    std::cout << "[PIPELINE] Started pipeline thread with batch size " 
-              << m_batch_size << "\n";
+    // std::cout << "[PIPELINE] Started pipeline thread with batch size " 
+    //           << m_batch_size << "\n";
 }
 
 void PipelineThread::stop() {
@@ -55,7 +55,7 @@ void PipelineThread::stop() {
         m_thread.join();
     }
     
-    std::cout << "[PIPELINE] Stopped pipeline thread\n";
+    // std::cout << "[PIPELINE] Stopped pipeline thread\n";
 }
 
 bool PipelineThread::isRunning() const noexcept {

@@ -30,12 +30,12 @@ public:
     
     // Public interface
     bool handle(Packet& pkt);
-    void learn(const Types::MacAddress& mac, Types::Port port);
     std::string getStats() const;
 
 private:
     struct MacEntry {
         Types::Port port;
+        // Note: `mutable` allows modification in const methods if needed for stats
         std::chrono::steady_clock::time_point learned_at;
         std::chrono::steady_clock::time_point last_seen;
     };
@@ -46,6 +46,7 @@ private:
     
     static constexpr std::chrono::seconds MAC_AGE_TIMEOUT{300}; // 5 minutes
     
+    void learn(const Types::MacAddress& mac, Types::Port port);
     void cleanupOldEntries();
     bool forwardPacket(Packet& pkt);
 };

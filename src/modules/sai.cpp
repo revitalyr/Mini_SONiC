@@ -1,13 +1,13 @@
 module;
 
 #include <memory>
-#include <string>
 #include <vector>
 #include <unordered_map>
 #include <atomic>
 #include <iostream>
 #include <sstream>
 #include <mutex>
+#include <string>
 #include <chrono>
 
 module MiniSonic.SAI;
@@ -40,7 +40,7 @@ bool SimulatedSai::createPort(Types::Port port_id) {
     
     m_ports[port_id] = port_info;
     
-    std::cout << "[SAI] Created port " << port_id << "\n";
+    // std::cout << "[SAI] Created port " << port_id << "\n";
     return true;
 }
 
@@ -54,7 +54,7 @@ bool SimulatedSai::deletePort(Types::Port port_id) {
     }
     
     m_ports.erase(it);
-    std::cout << "[SAI] Deleted port " << port_id << "\n";
+    // std::cout << "[SAI] Deleted port " << port_id << "\n";
     return true;
 }
 
@@ -70,8 +70,8 @@ bool SimulatedSai::setPortState(Types::Port port_id, bool admin_state) {
     it->second.admin_state = admin_state;
     updateOperState(port_id);
     
-    std::cout << "[SAI] Set port " << port_id << " admin state to " 
-              << (admin_state ? "up" : "down") << "\n";
+    // std::cout << "[SAI] Set port " << port_id << " admin state to " 
+    //           << (admin_state ? "up" : "down") << "\n";
     return true;
 }
 

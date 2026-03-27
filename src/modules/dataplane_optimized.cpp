@@ -1,5 +1,4 @@
-module;
-
+// Standard C++ header inclusions
 #include <memory>
 #include <string>
 #include <vector>
@@ -10,16 +9,146 @@ module;
 #include <sstream>
 #include <algorithm>
 #include <cstring>
+#include <array>
 #include <bit>
+#include <iomanip>
+#include <numa.h>      // For NUMA API (numa_available, etc.)
 #include <immintrin.h> // For SIMD instructions
-#include <sched.h>      // For NUMA
+#include <sched.h>      // For sched_getcpu
 #include <sys/mman.h>    // For memory mapping
 #include <fcntl.h>        // For file operations
 #include <unistd.h>       // For system calls
 
-module MiniSonic.DataPlane.Optimized;
-
 namespace MiniSonic::DataPlane::Optimized {
+
+/** 
+ * Definitions for classes referenced in implementation
+ */
+
+class OptimizedPacket {
+public:
+    OptimizedPacket(const std::string& src_mac, const std::string& dst_mac,
+                   const std::string& src_ip, const std::string& dst_ip,
+                   uint32_t ingress_port);
+    const uint8_t* srcMac() const { return m_src_mac; }
+    uint32_t srcIp() const { return m_src_ip; }
+    uint32_t dstIp() const { return m_dst_ip; }
+    static constexpr size_t size() { return sizeof(OptimizedPacket); }
+private:
+    uint8_t m_src_mac[6], m_dst_mac[6];
+    uint32_t m_src_ip, m_dst_ip, m_ingress_port;
+    uint64_t m_timestamp;
+};
+
+template<typename T, size_t Size>
+class LockFreeRingBuffer {
+public:
+    static constexpr size_t BUFFER_MASK = Size - 1;
+    bool tryPush(const T& item) noexcept {
+        size_t head = m_head.load(std::memory_order_acquire);
+        size_t next = (head + 1) & BUFFER_MASK;
+        if (next == m_tail.load(std::memory_order_acquire)) return false;
+        m_buffer[head] = item;
+        m_head.store(next, std::memory_order_release);
+        return true;
+    }
+    bool tryPush(T&& item) noexcept {
+        size_t head = m_head.load(std::memory_order_acquire);
+        size_t next = (head + 1) & BUFFER_MASK;
+        if (next == m_tail.load(std::memory_order_acquire)) return false;
+        m_buffer[head] = std::move(item);
+        m_head.store(next, std::memory_order_release);
+        return true;
+    }
+    bool tryPop(T& item) noexcept {
+        size_t tail = m_tail.load(std::memory_order_acquire);
+        if (tail == m_head.load(std::memory_order_acquire)) return false;
+        item = std::move(m_buffer[tail]);
+        m_tail.store((tail + 1) & BUFFER_MASK, std::memory_order_release);
+        return true;
+    }
+    size_t tryPopBatch(T* buffer, size_t max_count) noexcept {
+        size_t count = 0;
+        while (count < max_count && tryPop(buffer[count])) count++;
+        return count;
+    }
+    size_t size() const noexcept { return (m_head.load() - m_tail.load()) & BUFFER_MASK; }
+    bool empty() const noexcept { return m_head.load() == m_tail.load(); }
+    bool full() const noexcept { return ((m_head.load() + 1) & BUFFER_MASK) == m_tail.load(); }
+    size_t capacity() const noexcept { return Size; }
+private:
+    std::array<T, Size> m_buffer;
+    std::atomic<size_t> m_head{0}, m_tail{0};
+};
+
+struct PoolBlock {
+    std::unique_ptr<uint8_t[]> memory;
+    std::atomic<void*> next_free{nullptr};
+    std::atomic<size_t> allocated_count{0}, free_count{0};
+};
+
+class PacketPool {
+public:
+    PacketPool(size_t pool_size, size_t packet_size);
+    void* acquire() noexcept;
+    void release(void* packet) noexcept;
+    size_t size() const noexcept;
+    size_t capacity() const noexcept;
+    size_t allocated() const noexcept;
+    std::string getStats() const;
+private:
+    size_t m_pool_size, m_packet_size;
+    std::vector<std::unique_ptr<PoolBlock>> m_pools;
+    std::atomic<size_t> m_next_pool{0}, m_total_allocated{0}, m_total_freed{0};
+};
+
+class MemoryMappedIO {
+public:
+    MemoryMappedIO(const std::string& filename, size_t size);
+    ~MemoryMappedIO();
+    void* data() noexcept;
+    const void* data() const noexcept;
+    size_t size() const noexcept;
+    bool sync() noexcept;
+    bool isValid() const noexcept;
+private:
+    int m_file_descriptor;
+    void* m_mapped_data;
+    size_t m_mapped_size;
+    bool m_is_valid;
+};
+
+class OptimizedProcessor {
+public:
+    OptimizedProcessor(size_t batch_size);
+    void processBatch(OptimizedPacket* packets, size_t count) noexcept;
+    void processPacketSIMD(OptimizedPacket& packet) noexcept;
+    void processPacketScalar(OptimizedPacket& packet) noexcept;
+    void prefetchBatch(OptimizedPacket* packets, size_t count) noexcept;
+    uint64_t getPacketsProcessed() const noexcept;
+    uint64_t getBytesProcessed() const noexcept;
+    double getProcessingRate() const noexcept;
+    std::string getStats() const;
+private:
+    size_t m_batch_size;
+    uint8_t m_l2_table[256][6];
+    uint32_t m_l3_table[1024];
+    std::atomic<uint64_t> m_packets_processed{0}, m_bytes_processed{0}, m_start_time{0};
+    std::atomic<size_t> m_l2_entries{0}, m_l3_entries{0};
+};
+
+class NumaAllocator {
+public:
+    NumaAllocator();
+    void* allocate(size_t size, int numa_node) noexcept;
+    void deallocate(void* ptr) noexcept;
+    int getNodeCount() noexcept;
+    int getCurrentNode() noexcept;
+    bool isNumaAvailable() noexcept;
+    void* allocateNumaAware(size_t size, int numa_node) noexcept;
+    void* allocateStandard(size_t size) noexcept;
+};
+
 // PacketPool Implementation
 PacketPool::PacketPool(size_t pool_size, size_t packet_size)
     : m_pool_size(pool_size), m_packet_size(packet_size) {
@@ -34,19 +163,19 @@ PacketPool::PacketPool(size_t pool_size, size_t packet_size)
     m_pools.reserve(pools_count);
     
     for (size_t i = 0; i < pools_count; ++i) {
-        PoolBlock block;
-        block.memory = std::make_unique<uint8_t[]>(packets_per_pool * packet_size);
-        block.next_free.store(nullptr, std::memory_order_relaxed);
-        block.allocated_count.store(0, std::memory_order_relaxed);
-        block.free_count.store(0, std::memory_order_relaxed);
+        auto block = std::make_unique<PoolBlock>();
+        block->memory = std::make_unique<uint8_t[]>(packets_per_pool * packet_size);
+        block->next_free.store(nullptr, std::memory_order_relaxed);
+        block->allocated_count.store(0, std::memory_order_relaxed);
+        block->free_count.store(0, std::memory_order_relaxed);
         
         // Initialize free list for this pool
         for (size_t j = 0; j < packets_per_pool; ++j) {
-            void* packet_ptr = block.memory.get() + (j * packet_size);
+            void* packet_ptr = block->memory.get() + (j * packet_size);
             
-            void* current_head = block.next_free.load(std::memory_order_relaxed);
+            void* current_head = block->next_free.load(std::memory_order_relaxed);
             *static_cast<void**>(packet_ptr) = current_head;
-            block.next_free.store(packet_ptr, std::memory_order_relaxed);
+            block->next_free.store(packet_ptr, std::memory_order_relaxed);
         }
         
         m_pools.push_back(std::move(block));
@@ -56,7 +185,7 @@ PacketPool::PacketPool(size_t pool_size, size_t packet_size)
 void* PacketPool::acquire() noexcept {
     // Round-robin pool selection for better load balancing
     const size_t pool_index = m_next_pool.fetch_add(1, std::memory_order_relaxed) % m_pools.size();
-    auto& pool = m_pools[pool_index];
+    auto& pool = *m_pools[pool_index];
     
     void* packet = pool.next_free.load(std::memory_order_acquire);
     if (packet) {
@@ -80,19 +209,28 @@ void* PacketPool::acquire() noexcept {
 void PacketPool::release(void* packet) noexcept {
     if (!packet) return;
     
+    bool returned_to_pool = false;
+    const size_t packets_per_pool = m_pool_size / m_pools.size();
+    const size_t pool_capacity_bytes = packets_per_pool * m_packet_size;
+
     // Find which pool this packet belongs to
-    for (auto& pool : m_pools) {
-        uint8_t* pool_start = pool.memory.get();
-        uint8_t* pool_end = pool_start + (pool.allocated_count.load() * m_packet_size);
+    for (auto& pool_ptr : m_pools) {
+        uint8_t* pool_start = pool_ptr->memory.get();
+        uint8_t* pool_end = pool_start + pool_capacity_bytes;
         
         if (packet >= pool_start && packet < pool_end) {
             // Return to pool's free list
-            void* current_head = pool.next_free.load(std::memory_order_relaxed);
+            void* current_head = pool_ptr->next_free.load(std::memory_order_relaxed);
             *static_cast<void**>(packet) = current_head;
-            pool.next_free.store(packet, std::memory_order_release);
-            pool.free_count.fetch_add(1, std::memory_order_relaxed);
+            pool_ptr->next_free.store(packet, std::memory_order_release);
+            pool_ptr->free_count.fetch_add(1, std::memory_order_relaxed);
+            returned_to_pool = true;
             break;
         }
+    }
+    
+    if (!returned_to_pool) {
+        std::free(packet);
     }
     
     m_total_freed.fetch_add(1, std::memory_order_relaxed);
@@ -120,108 +258,12 @@ std::string PacketPool::getStats() const {
          << "  Pools: " << m_pools.size() << "\n";
     
     for (size_t i = 0; i < m_pools.size(); ++i) {
-        const auto& pool = m_pools[i];
+        const auto& pool = *m_pools[i];
         oss << "  Pool " << i << ": allocated=" << pool.allocated_count.load()
              << ", free=" << pool.free_count.load() << "\n";
     }
     
     return oss.str();
-}
-
-// LockFreeRingBuffer Implementation
-template<typename T, size_t Size>
-bool LockFreeRingBuffer<T, Size>::tryPush(const T& item) noexcept {
-    const size_t current_head = m_head.load(std::memory_order_acquire);
-    const size_t next_head = (current_head + 1) & BUFFER_MASK;
-    
-    // Check if buffer is full
-    if (next_head == m_tail.load(std::memory_order_acquire)) {
-        return false;
-    }
-    
-    // Copy item to buffer
-    m_buffer[current_head] = item;
-    
-    // Update head atomically
-    m_head.store(next_head, std::memory_order_release);
-    return true;
-}
-
-template<typename T, size_t Size>
-bool LockFreeRingBuffer<T, Size>::tryPush(T&& item) noexcept {
-    const size_t current_head = m_head.load(std::memory_order_acquire);
-    const size_t next_head = (current_head + 1) & BUFFER_MASK;
-    
-    // Check if buffer is full
-    if (next_head == m_tail.load(std::memory_order_acquire)) {
-        return false;
-    }
-    
-    // Move item to buffer
-    m_buffer[current_head] = std::move(item);
-    
-    // Update head atomically
-    m_head.store(next_head, std::memory_order_release);
-    return true;
-}
-
-template<typename T, size_t Size>
-bool LockFreeRingBuffer<T, Size>::tryPop(T& item) noexcept {
-    const size_t current_tail = m_tail.load(std::memory_order_acquire);
-    const size_t current_head = m_head.load(std::memory_order_acquire);
-    
-    // Check if buffer is empty
-    if (current_tail == current_head) {
-        return false;
-    }
-    
-    // Copy item from buffer
-    item = m_buffer[current_tail];
-    
-    // Update tail atomically
-    const size_t next_tail = (current_tail + 1) & BUFFER_MASK;
-    m_tail.store(next_tail, std::memory_order_release);
-    return true;
-}
-
-template<typename T, size_t Size>
-size_t LockFreeRingBuffer<T, Size>::tryPopBatch(T* buffer, size_t max_count) noexcept {
-    size_t popped = 0;
-    
-    while (popped < max_count && tryPop(buffer[popped])) {
-        ++popped;
-    }
-    
-    return popped;
-}
-
-template<typename T, size_t Size>
-size_t LockFreeRingBuffer<T, Size>::size() const noexcept {
-    const size_t head = m_head.load(std::memory_order_acquire);
-    const size_t tail = m_tail.load(std::memory_order_acquire);
-    
-    if (head >= tail) {
-        return head - tail;
-    } else {
-        return Size - (tail - head);
-    }
-}
-
-template<typename T, size_t Size>
-bool LockFreeRingBuffer<T, Size>::empty() const noexcept {
-    return m_head.load(std::memory_order_acquire) == 
-           m_tail.load(std::memory_order_acquire);
-}
-
-template<typename T, size_t Size>
-bool LockFreeRingBuffer<T, Size>::full() const noexcept {
-    const size_t next_head = (m_head.load(std::memory_order_acquire) + 1) & BUFFER_MASK;
-    return next_head == m_tail.load(std::memory_order_acquire);
-}
-
-template<typename T, size_t Size>
-size_t LockFreeRingBuffer<T, Size>::capacity() const noexcept {
-    return Size;
 }
 
 // OptimizedPacket Implementation
@@ -287,11 +329,7 @@ OptimizedProcessor::OptimizedProcessor(size_t batch_size)
 
 void OptimizedProcessor::processBatch(OptimizedPacket* packets, size_t count) noexcept {
     if (count == 0) return;
-    
-    // Prefetch batch for better cache performance
     prefetchBatch(packets, count);
-    
-    const auto start_time = std::chrono::high_resolution_clock::now();
     
     // Process packets
     for (size_t i = 0; i < count; ++i) {
@@ -305,14 +343,6 @@ void OptimizedProcessor::processBatch(OptimizedPacket* packets, size_t count) no
         m_packets_processed.fetch_add(1, std::memory_order_relaxed);
         m_bytes_processed.fetch_add(OptimizedPacket::size(), std::memory_order_relaxed);
     }
-    
-    const auto end_time = std::chrono::high_resolution_clock::now();
-    const auto processing_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        end_time - start_time
-    ).count();
-    
-    // Update statistics
-    // Note: In real implementation, this would use metrics module
 }
 
 void OptimizedProcessor::processPacketSIMD(OptimizedPacket& packet) noexcept {
@@ -320,8 +350,8 @@ void OptimizedProcessor::processPacketSIMD(OptimizedPacket& packet) noexcept {
     const uint8_t* src_mac = packet.srcMac();
     
     // Use SIMD for fast MAC comparison (simplified example)
-    __m128i mac_vec = _mm_loadu_si128(src_mac);
-    __m128i result = _mm_cmpeq_epi8(mac_vec, _mm_setzero_si128());
+    __m128i mac_vec = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src_mac));
+    [[maybe_unused]] __m128i result = _mm_cmpeq_epi8(mac_vec, _mm_setzero_si128());
     
     // Extract first byte for quick lookup
     int mac_hash = src_mac[0] ^ src_mac[1] ^ src_mac[2] ^ src_mac[3];
@@ -456,8 +486,8 @@ MemoryMappedIO::MemoryMappedIO(const std::string& filename, size_t size)
         return;
     }
     
-    // Map file into memory
-    m_mapped_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, m_file_descriptor);
+    // Map file into memory (added missing offset argument)
+    m_mapped_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, m_file_descriptor, 0);
     if (m_mapped_data == MAP_FAILED) {
         std::cerr << "[MMAP] Failed to map file\n";
         close(m_file_descriptor);
@@ -522,11 +552,8 @@ void* NumaAllocator::allocate(size_t size, int numa_node) noexcept {
 void NumaAllocator::deallocate(void* ptr) noexcept {
     if (!ptr) return;
     
-    if (isNumaAvailable()) {
-        numa_free(ptr);
-    } else {
-        std::free(ptr);
-    }
+    // Always use std::free because we don't track size for numa_free
+    std::free(ptr);
 }
 
 int NumaAllocator::getNodeCount() noexcept {
@@ -549,9 +576,11 @@ bool NumaAllocator::isNumaAvailable() noexcept {
     return numa_available() != -1;
 }
 
-void* NumaAllocator::allocateNumaAware(size_t size, int numa_node) noexcept {
+void* NumaAllocator::allocateNumaAware(size_t size, [[maybe_unused]] int numa_node) noexcept {
     // NUMA-aware allocation
-    return numa_alloc_onnode(size, numa_node);
+    // Fallback to standard allocation to ensure we can free it safely without size tracking
+    // return numa_alloc_onnode(size, numa_node); 
+    return allocateStandard(size);
 }
 
 void* NumaAllocator::allocateStandard(size_t size) noexcept {
@@ -560,4 +589,4 @@ void* NumaAllocator::allocateStandard(size_t size) noexcept {
     return ptr;
 }
 
-} // export namespace MiniSonic::DataPlane::Optimized
+} // namespace MiniSonic::DataPlane::Optimized

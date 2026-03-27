@@ -14,6 +14,14 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
+# Find NUMA library (required for dataplane_optimized)
+find_library(NUMA_LIB numa)
+if(NUMA_LIB)
+    message(STATUS "Found NUMA library: ${NUMA_LIB}")
+else()
+    message(FATAL_ERROR "NUMA library (libnuma) not found. Please install libnuma-dev (sudo apt install libnuma-dev) or numactl-devel.")
+endif()
+
 # Find Boost (optional for basic functionality)
 find_package(Boost 1.81 QUIET COMPONENTS system thread)
 if(Boost_FOUND)
@@ -61,6 +69,7 @@ add_executable(mini_sonic
     src/l2/l2_service.cpp
     src/l3/l3_service.cpp
     src/l3/lpm_trie.cpp
+    src/modules/dataplane_optimized.cpp
     src/sai/simulated_sai.cpp
 )
 
@@ -81,6 +90,7 @@ endif()
 find_package(Threads REQUIRED)
 target_link_libraries(mini_sonic
     Threads::Threads
+    ${NUMA_LIB}
 )
 if(Boost_FOUND)
     target_link_libraries(mini_sonic ${Boost_LIBRARIES})
@@ -95,6 +105,7 @@ add_library(mini_sonic_lib STATIC
     src/l2/l2_service.cpp
     src/l3/l3_service.cpp
     src/l3/lpm_trie.cpp
+    src/modules/dataplane_optimized.cpp
     src/sai/simulated_sai.cpp
 )
 
@@ -107,7 +118,10 @@ if(Boost_FOUND)
     target_compile_definitions(mini_sonic_lib PRIVATE BOOST_FOUND)
 endif()
 
-target_link_libraries(mini_sonic_lib Threads::Threads)
+target_link_libraries(mini_sonic_lib 
+    Threads::Threads
+    ${NUMA_LIB}
+)
 if(Boost_FOUND)
     target_link_libraries(mini_sonic_lib ${Boost_LIBRARIES})
 endif()
@@ -115,7 +129,7 @@ endif()
 # Test executable
 add_executable(mini_sonic_tests
     tests/main_test.cpp
-    # tests/unit/test_lpm_trie.cpp
+    # tests/unit/test_lpm_trie.cpp # This test is for the legacy build and fails with modular code
     # tests/unit/test_l2_service.cpp
     # tests/unit/test_l3_service.cpp
     # tests/unit/test_sai.cpp

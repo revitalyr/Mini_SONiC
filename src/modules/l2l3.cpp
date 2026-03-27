@@ -44,7 +44,7 @@ void L2Service::learn(const Types::MacAddress& mac, Types::Port port) {
         entry.last_seen = now;
         
         m_fdb[mac] = entry;
-        std::cout << "[L2] Learned MAC " << mac << " on port " << port << "\n";
+        // std::cout << "[L2] Learned MAC " << mac << " on port " << port << "\n";
     }
 }
 
@@ -87,7 +87,8 @@ void L2Service::cleanupOldEntries() {
 bool L2Service::forwardPacket(Packet& pkt) {
     std::lock_guard<std::mutex> lock(m_fdb_mutex);
     
-    auto it = m_fdb.find(pkt.dstMac());
+    const auto dst_mac = pkt.dstMac();
+    auto it = m_fdb.find(dst_mac);
     
     if (it != m_fdb.end()) {
         // Found in FDB - forward to specific port
@@ -95,15 +96,15 @@ bool L2Service::forwardPacket(Packet& pkt) {
         
         // Check if port is up
         if (m_sai.getPortState(out_port)) {
-            std::cout << "[L2] Forwarding to port " << out_port << "\n";
+            // std::cout << "[L2] Forwarding " << dst_mac << " to port " << out_port << "\n";
             return true;
         } else {
-            std::cerr << "[L2] Output port " << out_port << " is down\n";
+            // std::cerr << "[L2] Output port " << out_port << " is down\n";
             return false;
         }
     } else {
         // Not found - flood to all ports except ingress
-        std::cout << "[L2] Flooding packet (unknown destination MAC)\n";
+        // std::cout << "[L2] Flooding packet to " << dst_mac << " (unknown destination)\n";
         return true;
     }
 }
@@ -134,8 +135,8 @@ void LpmTrie::insert(const std::string& network, int prefix_len, const std::stri
     node->next_hop = next_hop;
     node->is_route = true;
     
-    std::cout << "[L3] Added route " << network << "/" << prefix_len 
-              << " -> " << next_hop << "\n";
+    // std::cout << "[L3] Added route " << network << "/" << prefix_len 
+    //           << " -> " << next_hop << "\n";
 }
 
 void LpmTrie::remove(const std::string& network, int prefix_len) {
@@ -157,7 +158,7 @@ void LpmTrie::remove(const std::string& network, int prefix_len) {
     node->is_route = false;
     node->next_hop.clear();
     
-    std::cout << "[L3] Removed route " << network << "/" << prefix_len << "\n";
+    // std::cout << "[L3] Removed route " << network << "/" << prefix_len << "\n";
 }
 
 std::string LpmTrie::lookup(const std::string& ip) const {
@@ -232,7 +233,7 @@ L3Service::L3Service(SAI::SaiInterface& sai) : m_sai(sai) {
 bool L3Service::handle(Packet& pkt) {
     // Check if packet is for local processing
     if (isLocalIp(pkt.dstIp())) {
-        std::cout << "[L3] Packet for local IP " << pkt.dstIp() << "\n";
+        // std::cout << "[L3] Packet for local IP " << pkt.dstIp() << "\n";
         return true;
     }
     
@@ -283,8 +284,8 @@ bool L3Service::forwardPacket(Packet& pkt) {
         return false;
     }
     
-    std::cout << "[L3] Forwarding to next-hop " << next_hop << "\n";
+    // std::cout << "[L3] Forwarding to next-hop " << next_hop << "\n";
     return true;
 }
 
-} // export namespace MiniSonic::L3
+} // namespace MiniSonic::L3
