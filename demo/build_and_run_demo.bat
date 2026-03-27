@@ -49,30 +49,39 @@ if not exist "mini_sonic_real_demo.exe" (
 )
 
 echo Available demo configurations:
-echo   1. Basic Demo (3 switches, 50 pps, 15 sec)
-echo   2. Stress Test (5 switches, 200 pps, 60 sec)
-echo   3. Extended Demo (8 switches, 100 pps, 120 sec)
-echo   4. Custom configuration
-echo   5. Run with help
+echo   1. Clean Visual Demo (recommended) - Clean output with animation
+echo   2. Real Demo (verbose) - Detailed logging output
+echo   3. Clean Demo - Custom configuration
+echo   4. Real Demo - Custom configuration
+echo   5. Show help
 echo.
 
 set /p choice="Select demo configuration (1-5): "
 
 if "%choice%"=="1" (
     echo.
-    echo [INFO] Running Basic Demo...
+    echo [INFO] Running Clean Visual Demo...
     echo ========================================
-    mini_sonic_real_demo.exe --switches 3 --rate 50 --duration 15
+    mini_sonic_clean_demo.exe --switches 3 --rate 100 --duration 30
 ) else if "%choice%"=="2" (
     echo.
-    echo [INFO] Running Stress Test...
+    echo [INFO] Running Real Demo (verbose)...
     echo ========================================
-    mini_sonic_real_demo.exe --switches 5 --rate 200 --duration 60
+    mini_sonic_real_demo.exe --switches 3 --rate 50 --duration 15
 ) else if "%choice%"=="3" (
     echo.
-    echo [INFO] Running Extended Demo...
+    set /p switches="Number of switches (default 3): "
+    set /p rate="Packets per second (default 100): "
+    set /p duration="Duration in seconds (default 30): "
+    
+    if "%switches%"=="" set switches=3
+    if "%rate%"=="" set rate=100
+    if "%duration%"=="" set duration=30
+    
+    echo.
+    echo [INFO] Running Clean Custom Demo...
     echo ========================================
-    mini_sonic_real_demo.exe --switches 8 --rate 100 --duration 120
+    mini_sonic_clean_demo.exe --switches %switches% --rate %rate% --duration %duration%
 ) else if "%choice%"=="4" (
     echo.
     set /p switches="Number of switches (default 3): "
@@ -84,20 +93,25 @@ if "%choice%"=="1" (
     if "%duration%"=="" set duration=30
     
     echo.
-    echo [INFO] Running Custom Demo...
+    echo [INFO] Running Real Custom Demo...
     echo ========================================
     mini_sonic_real_demo.exe --switches %switches% --rate %rate% --duration %duration%
 ) else if "%choice%"=="5" (
     echo.
-    echo [INFO] Showing help...
+    echo [INFO] Showing help for both demos...
     echo ========================================
+    echo.
+    echo Clean Visual Demo:
+    mini_sonic_clean_demo.exe --help
+    echo.
+    echo Real Demo (verbose):
     mini_sonic_real_demo.exe --help
 ) else (
-    echo [WARNING] Invalid choice, running default demo...
+    echo [WARNING] Invalid choice, running clean demo...
     echo.
-    echo [INFO] Running Default Demo...
+    echo [INFO] Running Clean Visual Demo...
     echo ========================================
-    mini_sonic_real_demo.exe
+    mini_sonic_clean_demo.exe
 )
 
 echo.
