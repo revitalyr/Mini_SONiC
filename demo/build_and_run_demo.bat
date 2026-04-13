@@ -49,64 +49,109 @@ if not exist "mini_sonic_real_demo.exe" (
 )
 
 echo Available demo configurations:
-echo   1. Clean Animated Demo (BEST) - Real components, ZERO debug output
-echo   2. Silent Animated Demo - Real components, minimal logging
-echo   3. Animated Real Demo - Real components with live animation
-echo   4. Clean Visual Demo - Clean output with basic animation
-echo   5. Real Demo (verbose) - Detailed logging output
-echo   6. Custom Clean Demo - Zero debug, custom settings
-echo   7. Show help
+echo   1. Windows Visual Demo (BEST) - Pure ASCII, Windows compatible
+echo   2. Enhanced Visual Demo - Real network visualization, ASCII compatible
+echo   3. Visual TUI Demo - Real network visualization with Unicode
+echo   4. Pure TUI Demo - Easy to see TUI, no dependencies
+echo   5. Basic TUI Demo - Easy to see TUI animation
+echo   6. Clean Animated Demo (REAL) - Real components, ZERO debug output
+echo   7. Silent Animated Demo - Real components, minimal logging
+echo   8. Animated Real Demo - Real components with live animation
+echo   9. Clean Visual Demo - Clean output with basic animation
+echo   10. Real Demo (verbose) - Detailed logging output
+echo   11. Custom Windows Visual Demo - Windows visual, custom settings
+echo   12. Show help
 echo.
 
-set /p choice="Select demo configuration (1-7): "
+set /p choice="Select demo configuration (1-12): "
 
 if "%choice%"=="1" (
     echo.
-    echo [INFO] Running Clean Animated Demo (BEST - ZERO Debug Output)...
+    echo [INFO] Running Windows Visual Demo (BEST - Pure ASCII, Windows compatible)...
+    echo ========================================
+    mini_sonic_windows_visual_demo.exe --switches 3 --rate 2 --duration 30
+) else if "%choice%"=="2" (
+    echo.
+    echo [INFO] Running Enhanced Visual Demo (ASCII compatible)...
+    echo ========================================
+    mini_sonic_enhanced_visual_demo.exe --switches 3 --rate 2 --duration 30
+) else if "%choice%"=="3" (
+    echo.
+    echo [INFO] Running Visual TUI Demo (Unicode visualization)...
+    echo ========================================
+    mini_sonic_visual_tui_demo.exe --switches 3 --rate 2 --duration 30
+) else if "%choice%"=="4" (
+    echo.
+    echo [INFO] Running Pure TUI Demo (Easy to see, no deps)...
+    echo ========================================
+    mini_sonic_pure_tui_demo.exe --switches 3 --rate 1 --duration 30
+) else if "%choice%"=="5" (
+    echo.
+    echo [INFO] Running Basic TUI Demo (Easy to see animation)...
+    echo ========================================
+    mini_sonic_basic_tui_demo.exe --switches 3 --rate 1 --duration 30
+) else if "%choice%"=="6" (
+    echo.
+    echo [INFO] Running Clean Animated Demo (REAL - ZERO Debug Output)...
     echo ========================================
     mini_sonic_clean_anim_demo.exe --switches 3 --rate 15 --duration 25
-) else if "%choice%"=="2" (
+) else if "%choice%"=="7" (
     echo.
     echo [INFO] Running Silent Animated Demo...
     echo ========================================
     mini_sonic_silent_demo.exe --switches 3 --rate 30 --duration 30
-) else if "%choice%"=="3" (
+) else if "%choice%"=="8" (
     echo.
     echo [INFO] Running Animated Real Demo...
     echo ========================================
     mini_sonic_animated_demo.exe --switches 3 --rate 100 --duration 30
-) else if "%choice%"=="4" (
+) else if "%choice%"=="9" (
     echo.
     echo [INFO] Running Clean Visual Demo...
     echo ========================================
     mini_sonic_clean_demo.exe --switches 3 --rate 100 --duration 30
-) else if "%choice%"=="5" (
+) else if "%choice%"=="10" (
     echo.
     echo [INFO] Running Real Demo (verbose)...
     echo ========================================
     mini_sonic_real_demo.exe --switches 3 --rate 50 --duration 15
-) else if "%choice%"=="6" (
+) else if "%choice%"=="11" (
     echo.
     set /p switches="Number of switches (default 3): "
-    set /p rate="Packets per second (default 15): "
-    set /p duration="Duration in seconds (default 25): "
-    set /p refresh="Refresh interval in ms (default 800): "
+    set /p rate="Packets per second (default 2): "
+    set /p duration="Duration in seconds (default 30): "
+    set /p refresh="Refresh interval in ms (default 1500): "
     
     if "%switches%"=="" set switches=3
-    if "%rate%"=="" set rate=15
-    if "%duration%"=="" set duration=25
-    if "%refresh%"=="" set refresh=800
+    if "%rate%"=="" set rate=2
+    if "%duration%"=="" set duration=30
+    if "%refresh%"=="" set refresh=1500
     
     echo.
-    echo [INFO] Running Custom Clean Demo...
+    echo [INFO] Running Custom Windows Visual Demo...
     echo ========================================
-    mini_sonic_clean_anim_demo.exe --switches %switches% --rate %rate% --duration %duration% --refresh %refresh%
-) else if "%choice%"=="7" (
+    mini_sonic_windows_visual_demo.exe --switches %switches% --rate %rate% --duration %duration% --refresh %refresh%
+) else if "%choice%"=="12" (
     echo.
     echo [INFO] Showing help for all demos...
     echo ========================================
     echo.
-    echo Clean Animated Demo (BEST):
+    echo Windows Visual Demo:
+    mini_sonic_windows_visual_demo.exe --help
+    echo.
+    echo Enhanced Visual Demo:
+    mini_sonic_enhanced_visual_demo.exe --help
+    echo.
+    echo Visual TUI Demo:
+    mini_sonic_visual_tui_demo.exe --help
+    echo.
+    echo Pure TUI Demo:
+    mini_sonic_pure_tui_demo.exe --help
+    echo.
+    echo Basic TUI Demo:
+    mini_sonic_basic_tui_demo.exe --help
+    echo.
+    echo Clean Animated Demo:
     mini_sonic_clean_anim_demo.exe --help
     echo.
     echo Silent Animated Demo:
@@ -121,11 +166,11 @@ if "%choice%"=="1" (
     echo Real Demo (verbose):
     mini_sonic_real_demo.exe --help
 ) else (
-    echo [WARNING] Invalid choice, running clean demo...
+    echo [WARNING] Invalid choice, running Windows visual demo...
     echo.
-    echo [INFO] Running Clean Animated Demo...
+    echo [INFO] Running Windows Visual Demo...
     echo ========================================
-    mini_sonic_clean_anim_demo.exe
+    mini_sonic_windows_visual_demo.exe
 )
 
 echo.

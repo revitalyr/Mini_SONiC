@@ -55,6 +55,31 @@ add_executable(mini_sonic_clean_anim_demo
     clean_animated_demo.cpp
 )
 
+# Create basic TUI demo executable
+add_executable(mini_sonic_basic_tui_demo
+    basic_tui_demo.cpp
+)
+
+# Create pure TUI demo executable
+add_executable(mini_sonic_pure_tui_demo
+    pure_tui_demo.cpp
+)
+
+# Create visual TUI demo executable
+add_executable(mini_sonic_visual_tui_demo
+    visual_tui_demo.cpp
+)
+
+# Create enhanced visual demo executable
+add_executable(mini_sonic_enhanced_visual_demo
+    enhanced_visual_demo.cpp
+)
+
+# Create windows visual demo executable
+add_executable(mini_sonic_windows_visual_demo
+    windows_visual_demo.cpp
+)
+
 # Link with Mini SONiC library
 target_link_libraries(mini_sonic_real_demo
     PRIVATE
@@ -87,7 +112,36 @@ target_link_libraries(mini_sonic_silent_demo
 target_link_libraries(mini_sonic_clean_anim_demo
     PRIVATE
     Threads::Threads
-    ${MINI_SONIC_BUILD_DIR}/mini_sonic_lib
+)
+
+# Link with Mini SONiC library for basic TUI demo
+target_link_libraries(mini_sonic_basic_tui_demo
+    PRIVATE
+    Threads::Threads
+)
+
+# Link with Mini SONiC library for pure TUI demo
+target_link_libraries(mini_sonic_pure_tui_demo
+    PRIVATE
+    Threads::Threads
+)
+
+# Link with Mini SONiC library for visual TUI demo
+target_link_libraries(mini_sonic_visual_tui_demo
+    PRIVATE
+    Threads::Threads
+)
+
+# Link with Mini SONiC library for enhanced visual demo
+target_link_libraries(mini_sonic_enhanced_visual_demo
+    PRIVATE
+    Threads::Threads
+)
+
+# Link with Mini SONiC library for windows visual demo
+target_link_libraries(mini_sonic_windows_visual_demo
+    PRIVATE
+    Threads::Threads
 )
 
 # Set target properties
@@ -116,6 +170,36 @@ set_target_properties(mini_sonic_silent_demo PROPERTIES
 )
 
 set_target_properties(mini_sonic_clean_anim_demo PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(mini_sonic_basic_tui_demo PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(mini_sonic_pure_tui_demo PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(mini_sonic_visual_tui_demo PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(mini_sonic_enhanced_visual_demo PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(mini_sonic_windows_visual_demo PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
