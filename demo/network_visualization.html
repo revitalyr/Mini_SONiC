@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini SONiC Real Network Demo - Interactive Visualization</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #c9d1d9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #58a6ff;
+            margin-bottom: 8px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .network-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 60px;
+            margin-bottom: 30px;
+            position: relative;
+            padding: 20px;
+        }
+
+        .switch-card {
+            background: linear-gradient(145deg, #21262d 0%, #1c2128 100%);
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            width: 180px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        .switch-header {
+            background: linear-gradient(90deg, #1f6feb 0%, #388bfd 100%);
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .component-row {
+            padding: 10px 12px;
+            border-bottom: 1px solid #30363d;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 11px;
+            color: #8b949e;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .component-row:last-child {
+            border-bottom: none;
+        }
+
+        .component-row.pipeline {
+            position: relative;
+        }
+
+        .component-row.pipeline.processing {
+            background-color: rgba(255, 179, 0, 0.25);
+            animation: processing-flash 0.3s ease;
+        }
+
+        @keyframes processing-flash {
+            0% { background-color: rgba(255, 179, 0, 0.5); }
+            100% { background-color: rgba(255, 179, 0, 0.15); }
+        }
+
+        .component-row.simulated-sai.mac-learn {
+            animation: mac-learn-flash 0.5s ease;
+        }
+
+        @keyframes mac-learn-flash {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(0, 200, 83, 0.4); }
+        }
+
+        .mac-learn-label {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #00c853;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .component-row.simulated-sai.mac-learn .mac-learn-label {
+            opacity: 1;
+        }
+
+        .component-row.pipeline-thread {
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { box-shadow: inset 0 0 0 1px transparent; }
+            50% { box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.4); }
+        }
+
+        .queue-depth-bar {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 4px;
+            background: #30363d;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .queue-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #58a6ff, #388bfd);
+            border-radius: 2px;
+            transition: width 0.1s ease;
+        }
+
+        .packet-flow-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .packet {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #00e5ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            font-weight: bold;
+            color: #000;
+            box-shadow: 0 0 8px rgba(0, 229, 255, 0.8), 0 0 16px rgba(0, 229, 255, 0.4);
+            will-change: transform;
+            z-index: 100;
+        }
+
+        .packet::before {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle, rgba(0, 229, 255, 0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: packet-pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes packet-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 0.3; }
+        }
+
+        .packet.dropped {
+            animation: drop-flash 0.3s ease forwards;
+        }
+
+        @keyframes drop-flash {
+            0% { transform: scale(1); opacity: 1; }
+            50% { background: #ff4444; box-shadow: 0 0 20px #ff4444; transform: scale(1.5); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .flow-arrow {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, #30363d 0%, #58a6ff 50%, #30363d 100%);
+            opacity: 0.5;
+        }
+
+        .stats-panel {
+            background: linear-gradient(145deg, #21262d 0%, #1c2128 100%);
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats-title {
+            font-size: 14px;
+            color: #8b949e;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #8b949e;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #f0f6fc;
+        }
+
+        .stat-value.red {
+            color: #ff4444;
+        }
+
+        .stat-value.green {
+            color: #00c853;
+        }
+
+        .log-panel {
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 12px;
+            padding: 15px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 12px;
+        }
+
+        .log-title {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .log-entries {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .log-entry {
+            color: #7d8590;
+            padding: 4px 0;
+            border-left: 2px solid #30363d;
+            padding-left: 10px;
+            animation: log-fade-in 0.3s ease;
+        }
+
+        .log-entry.new {
+            color: #c9d1d9;
+            border-left-color: #58a6ff;
+        }
+
+        .log-entry.drop {
+            color: #ff7b72;
+            border-left-color: #ff4444;
+        }
+
+        .log-entry.mac {
+            color: #7ee787;
+            border-left-color: #00c853;
+        }
+
+        @keyframes log-fade-in {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: linear-gradient(145deg, #21262d 0%, #1c2128 100%);
+            border: 2px solid #30363d;
+            border-radius: 12px;
+        }
+
+        .control-btn {
+            background: linear-gradient(90deg, #238636 0%, #2ea043 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 160, 67, 0.4);
+        }
+
+        .control-btn.pause {
+            background: linear-gradient(90deg, #da3633 0%, #f85149 100%);
+        }
+
+        .control-btn.pause:hover {
+            box-shadow: 0 4px 12px rgba(248, 81, 73, 0.4);
+        }
+
+        .rate-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rate-label {
+            font-size: 12px;
+            color: #8b949e;
+        }
+
+        .rate-slider {
+            width: 150px;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #30363d;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .rate-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #58a6ff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .rate-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
+        }
+
+        .rate-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #58a6ff;
+            min-width: 60px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .packet, .packet::before, .component-row.pipeline.processing,
+            .component-row.simulated-sai.mac-learn, .component-row.pipeline-thread,
+            .log-entry {
+                animation: none !important;
+            }
+        }
+
+        .connection-line {
+            position: absolute;
+            top: 50%;
+            left: 180px;
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, #58a6ff, #58a6ff);
+            opacity: 0.3;
+            transform: translateY(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mini SONiC Real Network Demo</h1>
+        <p class="subtitle">Live Packet Processing Visualization</p>
+
+        <div class="controls">
+            <button class="control-btn" id="toggleBtn">
+                <span id="toggleIcon">▶</span>
+                <span id="toggleText">Start</span>
+            </button>
+            <div class="rate-control">
+                <span class="rate-label">Rate:</span>
+                <input type="range" class="rate-slider" id="rateSlider" min="50" max="200" value="125">
+                <span class="rate-value" id="rateValue">125 pps</span>
+            </div>
+        </div>
+
+        <div class="network-container" id="networkContainer">
+            <div class="packet-flow-container" id="packetContainer"></div>
+            
+            <div class="switch-card" id="sw1" data-switch="1">
+                <div class="switch-header">RealSW1</div>
+                <div class="component-row simulated-sai">
+                    SimulatedSai
+                    <span class="mac-learn-label">MAC learned</span>
+                </div>
+                <div class="component-row pipeline">
+                    Pipeline
+                </div>
+                <div class="component-row spsc-queue">
+                    SPSCQueue
+                    <div class="queue-depth-bar">
+                        <div class="queue-fill" id="queue1" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="component-row pipeline-thread">
+                    PipelineThread
+                </div>
+            </div>
+
+            <div class="switch-card" id="sw2" data-switch="2">
+                <div class="switch-header">RealSW2</div>
+                <div class="component-row simulated-sai">
+                    SimulatedSai
+                    <span class="mac-learn-label">MAC learned</span>
+                </div>
+                <div class="component-row pipeline">
+                    Pipeline
+                </div>
+                <div class="component-row spsc-queue">
+                    SPSCQueue
+                    <div class="queue-depth-bar">
+                        <div class="queue-fill" id="queue2" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="component-row pipeline-thread">
+                    PipelineThread
+                </div>
+            </div>
+
+            <div class="switch-card" id="sw3" data-switch="3">
+                <div class="switch-header">RealSW3</div>
+                <div class="component-row simulated-sai">
+                    SimulatedSai
+                    <span class="mac-learn-label">MAC learned</span>
+                </div>
+                <div class="component-row pipeline">
+                    Pipeline
+                </div>
+                <div class="component-row spsc-queue">
+                    SPSCQueue
+                    <div class="queue-depth-bar">
+                        <div class="queue-fill" id="queue3" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="component-row pipeline-thread">
+                    PipelineThread
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-panel">
+            <div class="stats-title">Live Statistics</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Packets Generated</div>
+                    <div class="stat-value" id="statGenerated">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Packets Processed</div>
+                    <div class="stat-value" id="statProcessed">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Packets Dropped</div>
+                    <div class="stat-value" id="statDropped">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">MAC Learning Events</div>
+                    <div class="stat-value green" id="statMacLearn">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Throughput</div>
+                    <div class="stat-value" id="statThroughput">0.0 pps</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Latency</div>
+                    <div class="stat-value" id="statLatency">0.0 μs</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-panel">
+            <div class="log-title">Event Log</div>
+            <div class="log-entries" id="logEntries">
+                <div class="log-entry">Waiting to start...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let isRunning = false;
+        let packetId = 0;
+        let packets = [];
+        let stats = {
+            generated: 0,
+            processed: 0,
+            dropped: 0,
+            macLearn: 0,
+            latencies: []
+        };
+        let lastStatsTime = Date.now();
+        let lastStatsGenerated = 0;
+        let generationInterval = null;
+        let animationFrame = null;
+
+        // Configuration
+        const PACKET_GENERATION_INTERVAL = 800; // ms
+        const DROP_CHANCE = 0.05;
+        const MAC_LEARN_CHANCE = 0.15;
+        const QUEUE_UPDATE_INTERVAL = 100;
+        const LOG_MAX_ENTRIES = 6;
+
+        // DOM Elements
+        const toggleBtn = document.getElementById('toggleBtn');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const toggleText = document.getElementById('toggleText');
+        const rateSlider = document.getElementById('rateSlider');
+        const rateValue = document.getElementById('rateValue');
+        const packetContainer = document.getElementById('packetContainer');
+        const logEntries = document.getElementById('logEntries');
+        const networkContainer = document.getElementById('networkContainer');
+
+        // Get switch positions
+        function getSwitchPositions() {
+            const sw1 = document.getElementById('sw1');
+            const sw2 = document.getElementById('sw2');
+            const sw3 = document.getElementById('sw3');
+            const containerRect = networkContainer.getBoundingClientRect();
+            
+            return {
+                sw1: {
+                    left: sw1.getBoundingClientRect().left - containerRect.left,
+                    centerY: sw1.getBoundingClientRect().top - containerRect.top + sw1.offsetHeight / 2,
+                    width: sw1.offsetWidth,
+                    pipelineY: sw1.querySelector('.pipeline').getBoundingClientRect().top - containerRect.top + 15,
+                    queueY: sw1.querySelector('.spsc-queue').getBoundingClientRect().top - containerRect.top + 15
+                },
+                sw2: {
+                    left: sw2.getBoundingClientRect().left - containerRect.left,
+                    centerY: sw2.getBoundingClientRect().top - containerRect.top + sw2.offsetHeight / 2,
+                    width: sw2.offsetWidth,
+                    pipelineY: sw2.querySelector('.pipeline').getBoundingClientRect().top - containerRect.top + 15,
+                    queueY: sw2.querySelector('.spsc-queue').getBoundingClientRect().top - containerRect.top + 15
+                },
+                sw3: {
+                    left: sw3.getBoundingClientRect().left - containerRect.left,
+                    centerY: sw3.getBoundingClientRect().top - containerRect.top + sw3.offsetHeight / 2,
+                    width: sw3.offsetWidth,
+                    pipelineY: sw3.querySelector('.pipeline').getBoundingClientRect().top - containerRect.top + 15,
+                    queueY: sw3.querySelector('.spsc-queue').getBoundingClientRect().top - containerRect.top + 15
+                }
+            };
+        }
+
+        // Create packet element
+        function createPacketElement(id) {
+            const packet = document.createElement('div');
+            packet.className = 'packet';
+            packet.id = `pkt-${id}`;
+            packet.textContent = 'PKT';
+            return packet;
+        }
+
+        // Log entry
+        function addLogEntry(message, type = '') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type} new`;
+            entry.textContent = `[${packetId.toString().padStart(5, '0')}] ${message}`;
+            
+            logEntries.insertBefore(entry, logEntries.firstChild);
+            
+            while (logEntries.children.length > LOG_MAX_ENTRIES) {
+                logEntries.removeChild(logEntries.lastChild);
+            }
+            
+            setTimeout(() => entry.classList.remove('new'), 300);
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('statGenerated').textContent = stats.generated;
+            document.getElementById('statProcessed').textContent = stats.processed;
+            
+            const droppedEl = document.getElementById('statDropped');
+            droppedEl.textContent = stats.dropped;
+            droppedEl.classList.toggle('red', stats.dropped > 0);
+            
+            document.getElementById('statMacLearn').textContent = stats.macLearn;
+            
+            const now = Date.now();
+            const elapsed = (now - lastStatsTime) / 1000;
+            if (elapsed >= 1) {
+                const pps = ((stats.generated - lastStatsGenerated) / elapsed).toFixed(1);
+                document.getElementById('statThroughput').textContent = `${pps} pps`;
+                lastStatsTime = now;
+                lastStatsGenerated = stats.generated;
+            }
+            
+            const avgLatency = stats.latencies.length > 0
+                ? (stats.latencies.reduce((a, b) => a + b, 0) / stats.latencies.length).toFixed(1)
+                : '0.0';
+            document.getElementById('statLatency').textContent = `${avgLatency} μs`;
+            
+            if (stats.latencies.length > 100) {
+                stats.latencies = stats.latencies.slice(-50);
+            }
+        }
+
+        // Flash component
+        function flashComponent(switchId, component) {
+            const sw = document.getElementById(`sw${switchId}`);
+            const el = sw.querySelector(`.${component}`);
+            if (component === 'pipeline') {
+                el.classList.add('processing');
+                setTimeout(() => el.classList.remove('processing'), 300);
+            } else if (component === 'simulated-sai') {
+                el.classList.add('mac-learn');
+                setTimeout(() => el.classList.remove('mac-learn'), 500);
+            }
+        }
+
+        // Update queue depth
+        function updateQueueDepth(switchId, depth) {
+            const fill = document.getElementById(`queue${switchId}`);
+            fill.style.width = `${depth}%`;
+        }
+
+        // Generate packet
+        function generatePacket() {
+            const positions = getSwitchPositions();
+            const id = packetId++;
+            const willDrop = Math.random() < DROP_CHANCE;
+            const willMacLearn = !willDrop && Math.random() < MAC_LEARN_CHANCE;
+            
+            stats.generated++;
+            
+            const packet = {
+                id,
+                element: createPacketElement(id),
+                x: positions.sw1.left - 30,
+                y: positions.sw1.queueY,
+                targetX: positions.sw3.left + positions.sw3.width + 30,
+                phase: 'sw1_entry',
+                startTime: Date.now(),
+                willDrop,
+                dropPhase: willDrop ? ['sw1_exit', 'sw2_entry', 'sw2_exit', 'sw3_entry'][Math.floor(Math.random() * 4)] : null,
+                processedPhases: new Set()
+            };
+            
+            packetContainer.appendChild(packet.element);
+            packets.push(packet);
+            
+            if (willMacLearn) {
+                flashComponent(1, 'simulated-sai');
+                stats.macLearn++;
+                addLogEntry(`RealSW1: MAC Learning — Learned MAC 00:11:22:33:44:${(id % 256).toString(16).padStart(2, '0')}`, 'mac');
+            }
+            
+            addLogEntry(`PKT${id}: Generated at RealSW1 ingress`);
+        }
+
+        // Animate packets
+        function animatePackets() {
+            if (!isRunning) return;
+            
+            const positions = getSwitchPositions();
+            const speed = 3; // pixels per frame
+            
+            packets = packets.filter(packet => {
+                const positions = getSwitchPositions();
+                let shouldRemove = false;
+                
+                // Determine target based on phase
+                let targetX = packet.x;
+                let processing = false;
+                
+                switch (packet.phase) {
+                    case 'sw1_entry':
+                        targetX = positions.sw1.left + 20;
+                        if (packet.x >= targetX - 5) {
+                            packet.phase = 'sw1_pipeline';
+                        }
+                        break;
+                        
+                    case 'sw1_pipeline':
+                        targetX = positions.sw1.left + 40;
+                        processing = true;
+                        if (!packet.processedPhases.has('sw1')) {
+                            packet.processedPhases.add('sw1');
+                            flashComponent(1, 'pipeline');
+                            const latency = 30 + Math.random() * 40;
+                            stats.latencies.push(latency);
+                            updateQueueDepth(1, Math.min(100, 20 + Math.random() * 60));
+                        }
+                        if (packet.x >= targetX - 5) {
+                            packet.phase = 'sw1_exit';
+                            addLogEntry(`PKT${packet.id}: RealSW1 → EGRESS (Processed in ${stats.latencies[stats.latencies.length - 1].toFixed(0)}μs)`);
+                            updateQueueDepth(1, Math.max(0, parseInt(document.getElementById('queue1').style.width) - 30));
+                        }
+                        break;
+                        
+                    case 'sw1_exit':
+                        targetX = positions.sw1.left + positions.sw1.width + 30;
+                        if (packet.willDrop && packet.dropPhase === 'sw1_exit') {
+                            shouldRemove = true;
+                            packet.element.classList.add('dropped');
+                            stats.dropped++;
+                            addLogEntry(`PKT${packet.id}: DROPPED at RealSW1 egress`, 'drop');
+                            break;
+                        }
+                        if (packet.x >= targetX - 5) {
+                            packet.phase = 'sw2_entry';
+                        }
+                        break;
+                        
+                    case 'sw2_entry':
+                        targetX = positions.sw2.left + 20;
+                        if (packet.willDrop && packet.dropPhase === 'sw2_entry') {
+                            shouldRemove = true;
+                            packet.element.classList.add('dropped');
+                            stats.dropped++;
+                            addLogEntry(`PKT${packet.id}: DROPPED at RealSW2 ingress`, 'drop');
+                            break;
+                        }
+                        if (packet.x >= targetX - 5) {
+                            packet.phase = 'sw2_pipeline';
+                        }
+                        break;
+                        
+                    case 'sw2_pipeline':
+                        targetX = positions.sw2.left + 40;
+                        processing = true;
+                        if (!packet.processedPhases.has('sw2')) {
+                            packet.processedPhases.add('sw2');
+                            flashComponent(2, 'pipeline');
+                            const latency = 35 + Math.random() * 35;
+                            stats.latencies.push(latency);
+                            updateQueueDepth(2, Math.min(100, 15 + Math.random() * 50));
+                        }
+                        if (packet.x >= targetX - 5) {
+                            packet.phase = 'sw2_exit';
+                            addLogEntry(`PKT${packet.id}: RealSW2 → EGRESS (Processed in ${stats.latencies[stats.latencies.length - 1].toFixed(0)}μs)`);
+                            updateQueueDepth(2, Math.max(0, parseInt(document.getElementById('queue2').style.width) - 25));
+                        }
+                        break;
+                        
+                    case 'sw2_exit':
+                        targetX = positions.sw2.left + positions.sw2.width + 30;
+                        if (packet.willDrop && packet.dropPhase === 'sw2_exit') {
+                            shouldRemove = true;
+                            packet.element.classList.add('dropped');
+                            stats.dropped++;
+                            addLogEntry(`PKT${packet.id}: DROPPED at RealSW2 egress`, 'drop');
+                            break;
+                        }
+                        if (packet.x >= targetX - 5) {
+                            packet.phase = 'sw3_entry';
+                        }
+                        break;
+                        
+                    case 'sw3_entry':
+                        targetX = positions.sw3.left + 20;
+                        if (packet.willDrop && packet.dropPhase === 'sw3_entry') {
+                            shouldRemove = true;
+                            packet.element.classList.add('dropped');
+                            stats.dropped++;
+                            addLogEntry(`PKT${packet.id}: DROPPED at RealSW3 ingress`, 'drop');
+                            break;
+                        }
+                        if (packet.x >= targetX - 5) {
+                            packet.phase = 'sw3_pipeline';
+                        }
+                        break;
+                        
+                    case 'sw3_pipeline':
+                        targetX = positions.sw3.left + 40;
+                        processing = true;
+                        if (!packet.processedPhases.has('sw3')) {
+                            packet.processedPhases.add('sw3');
+                            flashComponent(3, 'pipeline');
+                            const latency = 32 + Math.random() * 38;
+                            stats.latencies.push(latency);
+                            updateQueueDepth(3, Math.min(100, 10 + Math.random() * 40));
+                        }
+                        if (packet.x >= targetX - 5) {
+                            packet.phase = 'sw3_exit';
+                            stats.processed++;
+                            addLogEntry(`PKT${packet.id}: RealSW3 → EGRESS (Processed in ${stats.latencies[stats.latencies.length - 1].toFixed(0)}μs)`);
+                            updateQueueDepth(3, Math.max(0, parseInt(document.getElementById('queue3').style.width) - 20));
+                        }
+                        break;
+                        
+                    case 'sw3_exit':
+                        targetX = positions.sw3.left + positions.sw3.width + 50;
+                        if (packet.x >= targetX - 5) {
+                            shouldRemove = true;
+                        }
+                        break;
+                }
+                
+                // Move packet
+                if (targetX > packet.x) {
+                    packet.x = Math.min(packet.x + speed, targetX);
+                }
+                
+                // Update element position
+                packet.element.style.transform = `translate(${packet.x}px, ${packet.y}px)`;
+                
+                if (shouldRemove) {
+                    setTimeout(() => {
+                        if (packet.element.parentNode) {
+                            packet.element.parentNode.removeChild(packet.element);
+                        }
+                    }, packet.willDrop ? 300 : 0);
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            updateStats();
+            animationFrame = requestAnimationFrame(animatePackets);
+        }
+
+        // Toggle simulation
+        function toggleSimulation() {
+            isRunning = !isRunning;
+            
+            if (isRunning) {
+                toggleBtn.classList.add('pause');
+                toggleIcon.textContent = '⏸';
+                toggleText.textContent = 'Pause';
+                
+                // Start generation
+                const rate = parseInt(rateSlider.value);
+                const interval = 1000 / (rate / 60 * 1000 / 800);
+                generationInterval = setInterval(generatePacket, 1000 / rate * 8);
+                
+                // Start animation
+                animatePackets();
+                
+                // Queue fluctuation
+                window.queueInterval = setInterval(() => {
+                    if (!isRunning) return;
+                    updateQueueDepth(1, Math.max(0, Math.min(100, parseInt(document.getElementById('queue1').style.width) + (Math.random() - 0.5) * 20)));
+                    updateQueueDepth(2, Math.max(0, Math.min(100, parseInt(document.getElementById('queue2').style.width) + (Math.random() - 0.5) * 15)));
+                    updateQueueDepth(3, Math.max(0, Math.min(100, parseInt(document.getElementById('queue3').style.width) + (Math.random() - 0.5) * 10)));
+                }, QUEUE_UPDATE_INTERVAL);
+                
+                addLogEntry('Simulation started');
+            } else {
+                toggleBtn.classList.remove('pause');
+                toggleIcon.textContent = '▶';
+                toggleText.textContent = 'Start';
+                
+                clearInterval(generationInterval);
+                clearInterval(window.queueInterval);
+                cancelAnimationFrame(animationFrame);
+                
+                addLogEntry('Simulation paused');
+            }
+        }
+
+        // Rate slider change
+        rateSlider.addEventListener('input', () => {
+            const rate = rateSlider.value;
+            rateValue.textContent = `${rate} pps`;
+            
+            if (isRunning) {
+                clearInterval(generationInterval);
+                generationInterval = setInterval(generatePacket, 1000 / rate * 8);
+            }
+        });
+
+        // Toggle button
+        toggleBtn.addEventListener('click', toggleSimulation);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Recalculate positions on next frame
+        });
+
+        // Initial log
+        addLogEntry('Ready to start simulation');
+    </script>
+</body>
+</html>
