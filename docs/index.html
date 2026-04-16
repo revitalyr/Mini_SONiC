@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini SONiC - Technical Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: white;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            overflow-x: auto;
+            padding: 0 10px;
+        }
+
+        .nav-tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1em;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-radius: 8px 8px 0 0;
+            margin: 5px 2px 0;
+        }
+
+        .nav-tab:hover {
+            transform: translateY(-2px);
+            background: #e9ecef;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .diagram-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+            overflow-y: auto;
+            position: relative;
+            min-height: 400px;
+        }
+
+        .scale-controls {
+            position: sticky;
+            top: 10px;
+            right: 10px;
+            background: white;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .scale-btn {
+            width: 35px;
+            height: 35px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .scale-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .scale-display {
+            font-weight: bold;
+            color: #333;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .feature-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .feature-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 500;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-direction: column;
+            }
+
+            .nav-tab {
+                width: 100%;
+                margin: 2px 0;
+                border-radius: 8px;
+            }
+
+            .scale-controls {
+                position: sticky;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mini SONiC</h1>
+            <p>A simplified Network Operating System inspired by SONiC with C++20 modules</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-tab="overview">📊 Overview</button>
+            <button class="nav-tab" data-tab="architecture">🏗️ Architecture</button>
+            <button class="nav-tab" data-tab="modules">🧩 Modules</button>
+            <button class="nav-tab" data-tab="dataflow">🔄 Data Flow</button>
+            <button class="nav-tab" data-tab="crossplatform">💻 Cross-Platform</button>
+            <button class="nav-tab" data-tab="build">🚀 Build</button>
+        </div>
+
+        <div class="content">
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="overview">
+                <div class="feature-section">
+                    <h3>System Overview</h3>
+                    <p>Mini SONiC is a production-grade demonstration project implementing core networking concepts with modern C++20 modules. It demonstrates understanding of networking stacks, control/data plane separation, and SAI abstraction.</p>
+                </div>
+
+                <div class="feature-section">
+                    <h3>Key Features</h3>
+                    <ul class="feature-list">
+                        <li>✅ Control Plane / Data Plane Separation</li>
+                        <li>✅ SAI (Switch Abstraction Interface) Layer</li>
+                        <li>✅ L2 Switching with MAC learning</li>
+                        <li>✅ L3 Routing with Longest Prefix Match (LPM)</li>
+                        <li>✅ C++20 Modules for modular architecture</li>
+                        <li>✅ Cross-platform support (Windows/Unix)</li>
+                        <li>✅ Visual dashboard with ncurses</li>
+                    </ul>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="scale-controls">
+                        <button class="scale-btn" data-scale-delta="-10">−</button>
+                        <span class="scale-display">100%</span>
+                        <button class="scale-btn" data-scale-delta="10">+</button>
+                        <button class="scale-btn" data-reset-scale>⟲</button>
+                    </div>
+                    <div class="mermaid" id="overview-diagram">
+graph TD
+    A[Mini SONiC] --> B[Control Plane]
+    A --> C[Data Plane]
+    A --> D[SAI Layer]
+    B --> E[L2 Service]
+    B --> F[L3 Service]
+    C --> G[Packet Pipeline]
+    D --> H[ASIC Abstraction]
+    E --> I[MAC Learning]
+    F --> J[LPM Routing]
+    G --> K[Queue Processing]
+    
+    style A fill:#667eea
+    style B fill:#764ba2
+    style C fill:#764ba2
+    style D fill:#764ba2
+    style E fill:#28a745
+    style F fill:#28a745
+    style G fill:#ffc107
+    style H fill:#6c757d
+    style I fill:#17a2b8
+    style J fill:#17a2b8
+    style K fill:#17a2b8
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3>Technology Stack</h3>
+                    <table>
+                        <tr>
+                            <th>Category</th>
+                            <th>Technology</th>
+                        </tr>
+                        <tr>
+                            <td>Language</td>
+                            <td>C++20, C17/C23</td>
+                        </tr>
+                        <tr>
+                            <td>Build System</td>
+                            <td>CMake 3.16+</td>
+                        </tr>
+                        <tr>
+                            <td>Compilers</td>
+                            <td>MSVC 19.5+, GCC 11+, Clang 13+</td>
+                        </tr>
+                        <tr>
+                            <td>UI Library</td>
+                            <td>ncurses/PDCurses (optional)</td>
+                        </tr>
+                        <tr>
+                            <td>Platform</td>
+                            <td>Windows, Linux, Unix</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Architecture Tab -->
+            <div class="tab-content" id="architecture">
+                <div class="feature-section">
+                    <h3>Component Architecture</h3>
+                    <p>The system is designed with clear separation between control plane (decision making) and data plane (packet processing), connected through the SAI abstraction layer.</p>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="scale-controls">
+                        <button class="scale-btn" data-scale-delta="-10">−</button>
+                        <span class="scale-display">100%</span>
+                        <button class="scale-btn" data-scale-delta="10">+</button>
+                        <button class="scale-btn" data-reset-scale>⟲</button>
+                    </div>
+                    <div class="mermaid" id="architecture-diagram">
+sequenceDiagram
+    participant CLI as CLI/Dashboard
+    participant CM as Config Manager
+    participant L2 as L2 Service
+    participant L3 as L3 Service
+    participant SAI as SAI Abstraction
+    participant DP as Data Plane
+
+    CLI->>CM: Send Configuration
+    CM->>L2: Update MAC Table
+    CM->>L3: Update Routing Table
+    
+    DP->>DP: Receive Packet
+    DP->>L2: Process L2
+    L2->>L2: MAC Learning
+    L2->>L3: Route Lookup
+    L3->>L3: LPM Trie Search
+    L3->>SAI: Forward Decision
+    SAI->>DP: Execute Forward
+    DP->>DP: Transmit Packet
+    
+    CLI->>L2: Query MAC Table
+    L2-->>CLI: Return MAC Entries
+    CLI->>L3: Query Routing Table
+    L3-->>CLI: Return Routes
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3>Module Dependencies</h3>
+                    <ul class="feature-list">
+                        <li>✅ <strong>MiniSonic.Utils</strong> - Base utilities and types</li>
+                        <li>✅ <strong>MiniSonic.Networking</strong> - Network communication layer</li>
+                        <li>✅ <strong>MiniSonic.SAI</strong> - Switch Abstraction Interface</li>
+                        <li>✅ <strong>MiniSonic.DataPlane</strong> - Packet processing pipeline</li>
+                        <li>✅ <strong>MiniSonic.L2L3</strong> - L2/L3 forwarding services</li>
+                        <li>✅ <strong>MiniSonic.App</strong> - Main application orchestration</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Modules Tab -->
+            <div class="tab-content" id="modules">
+                <div class="feature-section">
+                    <h3>C++20 Module Structure</h3>
+                    <p>The project uses C++20 modules for clean separation and faster compilation times.</p>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="scale-controls">
+                        <button class="scale-btn" data-scale-delta="-10">−</button>
+                        <span class="scale-display">100%</span>
+                        <button class="scale-btn" data-scale-delta="10">+</button>
+                        <button class="scale-btn" data-reset-scale>⟲</button>
+                    </div>
+                    <div class="mermaid" id="modules-diagram">
+graph TD
+    Utils[MiniSonic.Utils]
+    Networking[MiniSonic.Networking]
+    SAI[MiniSonic.SAI]
+    DataPlane[MiniSonic.DataPlane]
+    L2L3[MiniSonic.L2L3]
+    App[MiniSonic.App]
+    
+    Networking --> Utils
+    SAI --> Utils
+    DataPlane --> Networking
+    DataPlane --> SAI
+    DataPlane --> Utils
+    L2L3 --> DataPlane
+    L2L3 --> SAI
+    L2L3 --> Utils
+    App --> DataPlane
+    App --> Networking
+    App --> SAI
+    App --> L2L3
+    App --> Utils
+    
+    style Utils fill:#667eea
+    style Networking fill:#764ba2
+    style SAI fill:#764ba2
+    style DataPlane fill:#28a745
+    style L2L3 fill:#ffc107
+    style App fill:#dc3545
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3>Module Descriptions</h3>
+                    <table>
+                        <tr>
+                            <th>Module</th>
+                            <th>Purpose</th>
+                            <th>Exports</th>
+                        </tr>
+                        <tr>
+                            <td>Utils</td>
+                            <td>Base utilities, types, metrics</td>
+                            <td>Types namespace, Metrics class</td>
+                        </tr>
+                        <tr>
+                            <td>Networking</td>
+                            <td>Network communication</td>
+                            <td>INetworkProvider, NetworkLink</td>
+                        </tr>
+                        <tr>
+                            <td>SAI</td>
+                            <td>Switch abstraction</td>
+                            <td>SaiInterface, SimulatedSai</td>
+                        </tr>
+                        <tr>
+                            <td>DataPlane</td>
+                            <td>Packet processing</td>
+                            <td>Packet, Pipeline, SPSCQueue</td>
+                        </tr>
+                        <tr>
+                            <td>L2L3</td>
+                            <td>L2/L3 forwarding</td>
+                            <td>L2Service, L3Service, LpmTrie</td>
+                        </tr>
+                        <tr>
+                            <td>App</td>
+                            <td>Application orchestration</td>
+                            <td>App, EventLoop</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Data Flow Tab -->
+            <div class="tab-content" id="dataflow">
+                <div class="feature-section">
+                    <h3>Packet Processing Flow</h3>
+                    <p>Packets flow through the system with L2 and L3 processing stages.</p>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="scale-controls">
+                        <button class="scale-btn" data-scale-delta="-10">−</button>
+                        <span class="scale-display">100%</span>
+                        <button class="scale-btn" data-scale-delta="10">+</button>
+                        <button class="scale-btn" data-reset-scale>⟲</button>
+                    </div>
+                    <div class="mermaid" id="dataflow-diagram">
+flowchart TD
+    A[Packet Ingress] --> B{Packet Type}
+    B -->|L2| C[L2 Processing]
+    B -->|L3| D[L3 Processing]
+    B -->|ARP| E[ARP Processing]
+    
+    C --> F[MAC Learning]
+    F --> G{MAC Known?}
+    G -->|Yes| H[Forward to Port]
+    G -->|No| I[Flood to All Ports]
+    
+    D --> J[Route Lookup]
+    J --> K[LPM Trie Search]
+    K --> L{Route Found?}
+    L -->|Yes| M[Forward to Next Hop]
+    L -->|No| N[Drop Packet]
+    
+    E --> O[ARP Cache Update]
+    O --> P[Send ARP Reply]
+    
+    H --> Q[SAI Operations]
+    I --> Q
+    M --> Q
+    N --> Q
+    P --> Q
+    
+    Q --> R[Packet Egress]
+    
+    style A fill:#667eea
+    style B fill:#ffc107
+    style C fill:#28a745
+    style D fill:#28a745
+    style E fill:#28a745
+    style F fill:#17a2b8
+    style G fill:#ffc107
+    style H fill:#28a745
+    style I fill:#dc3545
+    style J fill:#17a2b8
+    style K fill:#17a2b8
+    style L fill:#ffc107
+    style M fill:#28a745
+    style N fill:#dc3545
+    style O fill:#17a2b8
+    style P fill:#28a745
+    style Q fill:#6c757d
+    style R fill:#667eea
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3>LPM Trie Implementation</h3>
+                    <ul class="feature-list">
+                        <li>✅ <strong>Insert:</strong> O(prefix_length) time complexity</li>
+                        <li>✅ <strong>Lookup:</strong> O(32) worst case, typically much less</li>
+                        <li>✅ <strong>Memory:</strong> Efficient prefix compression</li>
+                        <li>✅ <strong>Supports:</strong> IPv4 addresses with variable prefix lengths</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Cross-Platform Tab -->
+            <div class="tab-content" id="crossplatform">
+                <div class="feature-section">
+                    <h3>Platform Support</h3>
+                    <p>Mini SONiC is designed to work across multiple platforms with appropriate abstractions.</p>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="scale-controls">
+                        <button class="scale-btn" data-scale-delta="-10">−</button>
+                        <span class="scale-display">100%</span>
+                        <button class="scale-btn" data-scale-delta="10">+</button>
+                        <button class="scale-btn" data-reset-scale>⟲</button>
+                    </div>
+                    <div class="mermaid" id="crossplatform-diagram">
+flowchart TD
+    A[Mini SONiC] --> B{Platform}
+    B -->|Windows| C[MSVC Compiler]
+    B -->|Linux| D[GCC/Clang]
+    B -->|Unix| D
+    
+    C --> E[FreeRTOS Simulation]
+    D --> F[Native FreeRTOS]
+    
+    E --> G[cross_platform.h]
+    F --> G
+    
+    G --> H[Platform Abstraction]
+    H --> I[Atomic Operations]
+    H --> I[Thread Primitives]
+    H --> I[File I/O]
+    H --> I[Terminal UI]
+    
+    I --> J[Core Application]
+    
+    style A fill:#667eea
+    style B fill:#ffc107
+    style C fill:#28a745
+    style D fill:#28a745
+    style E fill:#17a2b8
+    style F fill:#17a2b8
+    style G fill:#764ba2
+    style H fill:#764ba2
+    style I fill:#6c757d
+    style J fill:#667eea
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3>Platform-Specific Features</h3>
+                    <table>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Windows</th>
+                            <th>Linux/Unix</th>
+                        </tr>
+                        <tr>
+                            <td>FreeRTOS</td>
+                            <td>Simulation stubs</td>
+                            <td>Native support</td>
+                        </tr>
+                        <tr>
+                            <td>Atomic Operations</td>
+                            <td>_InterlockedExchangeAdd</td>
+                            <td>__sync_fetch_and_add</td>
+                        </tr>
+                        <tr>
+                            <td>Terminal UI</td>
+                            <td>PDCurses</td>
+                            <td>ncurses</td>
+                        </tr>
+                        <tr>
+                            <td>IO Control</td>
+                            <td>Stub implementation</td>
+                            <td>ioctl system call</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Build Tab -->
+            <div class="tab-content" id="build">
+                <div class="feature-section">
+                    <h3>Build Process</h3>
+                    <p>The project uses CMake for cross-platform building with multiple targets.</p>
+                </div>
+
+                <div class="diagram-container">
+                    <div class="scale-controls">
+                        <button class="scale-btn" data-scale-delta="-10">−</button>
+                        <span class="scale-display">100%</span>
+                        <button class="scale-btn" data-scale-delta="10">+</button>
+                        <button class="scale-btn" data-reset-scale>⟲</button>
+                    </div>
+                    <div class="mermaid" id="build-diagram">
+flowchart TD
+    A[Source Code] --> B[CMake Configure]
+    B --> C[Build C++ Modules]
+    B --> D[Build C Code]
+    
+    C --> E[MiniSonic.Utils]
+    C --> F[MiniSonic.Networking]
+    C --> G[MiniSonic.SAI]
+    C --> H[MiniSonic.DataPlane]
+    C --> I[MiniSonic.L2L3]
+    C --> J[MiniSonic.App]
+    
+    D --> K[mini_switch_core]
+    D --> L[mini_sonic_c]
+    D --> M[mini_sonic_windows]
+    
+    E --> N[Link Executables]
+    F --> N
+    G --> N
+    H --> N
+    I --> N
+    J --> N
+    K --> N
+    L --> N
+    M --> N
+    
+    N --> O[mini_sonic_modular]
+    N --> P[mini_sonic_demo]
+    N --> Q[mini_sonic_benchmarks]
+    
+    style A fill:#667eea
+    style B fill:#ffc107
+    style C fill:#764ba2
+    style D fill:#764ba2
+    style E fill:#28a745
+    style F fill:#28a745
+    style G fill:#28a745
+    style H fill:#28a745
+    style I fill:#28a745
+    style J fill:#28a745
+    style K fill:#17a2b8
+    style L fill:#17a2b8
+    style M fill:#17a2b8
+    style N fill:#ffc107
+    style O fill:#667eea
+    style P fill:#667eea
+    style Q fill:#667eea
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3>Build Targets</h3>
+                    <table>
+                        <tr>
+                            <th>Target</th>
+                            <th>Description</th>
+                            <th>Language</th>
+                        </tr>
+                        <tr>
+                            <td>mini_sonic_modular</td>
+                            <td>C++20 modular application</td>
+                            <td>C++20</td>
+                        </tr>
+                        <tr>
+                            <td>mini_sonic_c</td>
+                            <td>C implementation</td>
+                            <td>C17/C23</td>
+                        </tr>
+                        <tr>
+                            <td>mini_sonic_windows</td>
+                            <td>Windows-specific C build</td>
+                            <td>C</td>
+                        </tr>
+                        <tr>
+                            <td>mini_sonic_demo</td>
+                            <td>Real-time demo</td>
+                            <td>C</td>
+                        </tr>
+                        <tr>
+                            <td>mini_sonic_benchmarks</td>
+                            <td>Performance benchmarks</td>
+                            <td>C++</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="feature-section">
+                    <h3>Build Commands</h3>
+                    <pre style="background: #f8f9fa; padding: 15px; border-radius: 8px; overflow-x: auto;">
+# Configure
+cmake -B build
+
+# Build all targets
+cmake --build build
+
+# Build specific target
+cmake --build build --target mini_sonic_modular
+
+# Clean build
+cmake --build build --clean
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script src="mermaid-height-util.js"></script>
+</body>
+</html>

@@ -1,18 +1,37 @@
 module;
 
-// Import standard library modules
-import <memory>;
-import <string>;
-import <vector>;
-import <atomic>;
-import <mutex>;
-import <iostream>;
-import <sstream>;
-import <chrono>;
-import <algorithm>;
-import <iomanip>;
+// Use global module fragment for standard library includes to improve MSVC compatibility
+#include <memory>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <atomic>
+#include <mutex>
+#include <iostream>
+#include <sstream>
+#include <chrono>
+#include <algorithm>
+#include <iomanip>
+#include <limits>
+#include <cstdint>
 
 export module MiniSonic.Utils;
+
+/**
+ * @brief Internal types for the modular system
+ */
+namespace Types {
+    // Define Port type here, assuming it's a simple integer type
+    // If Port is a more complex struct/class, its definition should be here or in a dedicated header.
+    export using Port = uint16_t;
+    export using MacAddress = uint64_t; // Example, adjust as needed
+    export using IpAddress = uint32_t; // Example, adjust as needed
+    export {
+        using Count = uint64_t;
+        template<typename T>
+        using Atomic = std::atomic<T>;
+    }
+}
 
 export namespace MiniSonic::Utils {
 

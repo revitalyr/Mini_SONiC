@@ -108,7 +108,7 @@ private:
 export class EventLoop {
 public:
     explicit EventLoop(DataPlane::Pipeline& pipeline);
-    ~EventLoop() = default;
+    ~EventLoop();
 
     // Rule of five
     EventLoop(const EventLoop& other) = delete;

@@ -1,0 +1,41 @@
+CC = gcc
+CFLAGS = -O2 -Wall -Wextra -pthread -Iinclude -g
+LDFLAGS = -pthread -lncurses
+
+SRCDIR = src
+INCDIR = include
+OBJDIR = obj
+BINDIR = bin
+
+# Source files for simple dashboard - exclude problematic files
+SIMPLE_SRCS = src/main_simple.c src/simple_dashboard.c src/arp.c src/ethernet.c src/ip.c src/mac_table.c src/port.c src/ring_buffer.c src/vlan.c src/visual_simple.c src/forwarding.c src/tx_simple.c
+SIMPLE_OBJECTS = $(SIMPLE_SRCS:src/%.c=$(OBJDIR)/%.o)
+SIMPLE_TARGET = $(BINDIR)/mini_switch_simple
+
+.PHONY: all clean
+
+all: $(SIMPLE_TARGET)
+
+$(SIMPLE_TARGET): $(SIMPLE_OBJECTS) | $(BINDIR)
+	$(CC) $(CFLAGS) $(SIMPLE_OBJECTS) -o $@ $(LDFLAGS)
+	@echo "Built: $@"
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+clean:
+	rm -rf $(OBJDIR) $(BINDIR)
+	@echo "Clean complete"
+
+help:
+	@echo "Simple Mini Switch Dashboard"
+	@echo "========================="
+	@echo "all     - Build mini_switch with simple dashboard"
+	@echo "clean   - Remove build artifacts"
+	@echo "help    - Show this help"

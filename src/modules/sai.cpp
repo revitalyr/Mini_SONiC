@@ -9,6 +9,7 @@ module;
 #include <mutex>
 #include <string>
 #include <chrono>
+#include <algorithm>
 
 module MiniSonic.SAI;
 
@@ -105,10 +106,10 @@ std::string SimulatedSai::getStats() const {
     std::ostringstream oss;
     oss << "SAI Statistics:\n"
          << "  Total Ports: " << m_ports.size() << "\n"
-         << "  Active Ports: " << std::count_if(
+         << "  Active Ports: " << static_cast<size_t>(std::count_if(
                 m_ports.begin(), m_ports.end(),
                 [](const auto& pair) { return pair.second.oper_state; }
-            ) << "\n";
+            )) << "\n";
     
     Types::Count total_in = 0;
     Types::Count total_out = 0;
@@ -118,8 +119,8 @@ std::string SimulatedSai::getStats() const {
         total_out += info.packets_out;
     }
     
-    oss << "  Total Packets In: " << total_in << "\n"
-         << "  Total Packets Out: " << total_out << "\n";
+    oss << "  Total Packets In: " << static_cast<uint64_t>(total_in) << "\n"
+         << "  Total Packets Out: " << static_cast<uint64_t>(total_out) << "\n";
     
     return oss.str();
 }

@@ -1,14 +1,18 @@
 module;
 
-// Import standard library modules
-import <memory>;
-import <string>;
-import <vector>;
-import <unordered_map>;
-import <atomic>;
-import <iostream>;
-import <sstream>;
-import <algorithm>;
+// Use global module fragment for standard library includes to improve MSVC compatibility
+#include <memory>
+#include "cross_platform.h"
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <atomic>
+#include <mutex>
+#include <iostream>
+#include <sstream>
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
 
 export module MiniSonic.L2L3;
 
@@ -16,7 +20,17 @@ export module MiniSonic.L2L3;
 import MiniSonic.DataPlane;
 import MiniSonic.SAI;
 
+// Import Utils module for Types namespace
+import MiniSonic.Utils;
+
 export namespace MiniSonic::L2 {
+
+// Using declarations for standard library types
+using std::vector;
+using std::unordered_map;
+using std::mutex;
+using std::chrono::steady_clock;
+using std::chrono::seconds;
 
 /**
  * @brief L2 switching service
@@ -29,7 +43,7 @@ public:
     ~L2Service() = default;
     
     // Public interface
-    bool handle(Packet& pkt);
+    bool handle(MiniSonic::DataPlane::Packet& pkt);
     std::string getStats() const;
 
 private:
@@ -48,7 +62,7 @@ private:
     
     void learn(const Types::MacAddress& mac, Types::Port port);
     void cleanupOldEntries();
-    bool forwardPacket(Packet& pkt);
+    bool forwardPacket(MiniSonic::DataPlane::Packet& pkt);
 };
 
 } // export namespace MiniSonic::L2
@@ -99,7 +113,7 @@ public:
     ~L3Service() = default;
     
     // Public interface
-    bool handle(Packet& pkt);
+    bool handle(MiniSonic::DataPlane::Packet& pkt);
     bool addRoute(const std::string& network, int prefix_len, const std::string& next_hop);
     bool removeRoute(const std::string& network, int prefix_len);
     std::string getStats() const;
@@ -111,7 +125,7 @@ private:
     mutable std::mutex m_routes_mutex;
     
     bool isLocalIp(const std::string& ip) const;
-    bool forwardPacket(Packet& pkt);
+    bool forwardPacket(MiniSonic::DataPlane::Packet& pkt);
 };
 
 } // export namespace MiniSonic::L3

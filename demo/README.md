@@ -1,16 +1,16 @@
 # Mini SONiC Real Network Demo
 
-Это демонстрация использует **реальные** компоненты скомпилированного проекта Mini SONiC для показа работоспособности системы, а не имитацию.
+This demonstration uses compiled Mini SONiC components to validate system functionality, not simulation.
 
-## Что делает демо
+## Demo Description
 
-Демо создает реальную сеть коммутаторов используя:
-- **Реальные** классы Mini SONiC (`SimulatedSai`, `Pipeline`, `PipelineThread`, `SPSCQueue`)
-- **Настоящие** пакеты в формате Mini SONiC (`DataPlane::Packet`)
-- **Реальные** процедуры обработки L2/L3 сервисов
-- **Настоящие** потоки обработки пакетов
+The demo creates a real switch network using:
+- Real Mini SONiC classes (`SimulatedSai`, `Pipeline`, `PipelineThread`, `SPSCQueue`)
+- Real packets in Mini SONiC format (`DataPlane::Packet`)
+- Real L2/L3 service processing procedures
+- Real packet processing threads
 
-## Архитектура демо
+## Demo Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -31,19 +31,19 @@
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## Сборка и запуск
+## Build and Run
 
-### Предварительные требования
+### Prerequisites
 
-1. Скомпилировать основной проект Mini SONiC:
+1. Compile the main Mini SONiC project:
    ```bash
    cd ..
    cmake --build build --config Release
    ```
 
-2. Убедиться что `build/mini_sonic_lib.lib` существует
+2. Verify that `build/mini_sonic_lib.lib` exists
 
-### Быстрый запуск
+### Quick Start
 
 Windows:
 ```cmd
@@ -51,7 +51,7 @@ cd demo
 build_and_run_demo.bat
 ```
 
-### Ручная сборка
+### Manual Build
 
 ```bash
 cd demo
@@ -60,54 +60,54 @@ cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DMINI_SONIC_BUILD_DIR=../../build .
 cmake --build . --config Release
 ```
 
-### Запуск демо
+### Run Demo
 
 ```bash
-# Базовая конфигурация
+# Basic configuration
 ./mini_sonic_real_demo --switches 3 --rate 100 --duration 30
 
-# Стресс-тест
+# Stress test
 ./mini_sonic_real_demo --switches 5 --rate 200 --duration 60
 
-# Расширенная конфигурация
+# Extended configuration
 ./mini_sonic_real_demo --switches 8 --rate 100 --duration 120
 ```
 
-## Параметры командной строки
+## Command Line Parameters
 
-- `--switches <n>`: Количество коммутаторов (по умолчанию: 3)
-- `--rate <n>`: Пакетов в секунду (по умолчанию: 100)
-- `--duration <n>`: Длительность в секундах (по умолчанию: 30)
-- `--no-viz`: Отключить визуализацию
-- `--help`: Показать справку
+- `--switches <n>`: Number of switches (default: 3)
+- `--rate <n>`: Packets per second (default: 100)
+- `--duration <n>`: Duration in seconds (default: 30)
+- `--no-viz`: Disable visualization
+- `--help`: Show help
 
-## Что демонстрирует демо
+## Demo Features
 
-### 1. Реальная обработка пакетов
-- Генерируются настоящие пакеты `DataPlane::Packet`
-- Пакеты обрабатываются через реальный `Pipeline`
-- Используется настоящая очередь `SPSCQueue`
-- Обработка в реальных потоках `PipelineThread`
+### 1. Real Packet Processing
+- Generates actual `DataPlane::Packet` objects
+- Processes packets through real `Pipeline`
+- Uses actual `SPSCQueue` queue
+- Processing in real `PipelineThread` threads
 
-### 2. L2/L3 функциональность
-- **MAC Learning**: Коммутаторы изучают MAC-адреса
-- **L2 Forwarding**: Пересылка на основе MAC-таблиц
-- **IP Routing**: L3 маршрутизация (если доступно)
-- **SAI Abstraction**: Работа через SAI интерфейс
+### 2. L2/L3 Functionality
+- MAC Learning: Switches learn MAC addresses
+- L2 Forwarding: Forwarding based on MAC tables
+- IP Routing: L3 routing (if available)
+- SAI Abstraction: Operation through SAI interface
 
-### 3. Производительность
-- **Throughput**: Измерение реальной пропускной способности
-- **Latency**: Измерение задержки обработки
-- **Queue Depth**: Мониторинг глубины очередей
-- **Packet Loss**: Отслеживание потерь пакетов
+### 3. Performance
+- Throughput: Measurement of actual throughput
+- Latency: Measurement of processing delay
+- Queue Depth: Monitoring queue depth
+- Packet Loss: Tracking packet loss
 
-### 4. Масштабируемость
-- **Multi-threading**: Реальная многопоточная обработка
-- **Lock-free Queues**: Безблокировочные очереди
-- **Memory Management**: Управление памятью пакетов
-- **Resource Usage**: Мониторинг использования ресурсов
+### 4. Scalability
+- Multi-threading: Real multi-threaded processing
+- Lock-free Queues: Lock-free queue implementation
+- Memory Management: Packet memory management
+- Resource Usage: Resource usage monitoring
 
-## Пример вывода
+## Example Output
 
 ```
 === Mini SONiC REAL Network Demo ===
@@ -141,33 +141,33 @@ Average Latency: 47.23 μs
 ============================
 ```
 
-## Логирование
+## Logging
 
-Демо создает детальный лог-файл `demo_output.log` с:
-- Временными метками всех событий
-- Потоком пакетов через систему
-- Статистикой производительности
-- Событиями MAC learning
-- Ошибками и потерями пакетов
+The demo creates a detailed log file `demo_output.log` with:
+- Timestamps of all events
+- Packet flow through the system
+- Performance statistics
+- MAC learning events
+- Errors and packet losses
 
-## Валидация работоспособности
+## Validation
 
-Демо доказывает работоспособность проекта путем:
+The demo validates project functionality by:
 
-1. **Компиляции**: Успешная сборка с реальными компонентами
-2. **Исполнения**: Запуск реальных процедур обработки
-3. **Интеграции**: Взаимодействие всех компонентов системы
-4. **Производительности**: Измерение реальных метрик
-5. **Масштабируемости**: Работа под нагрузкой
+1. Compilation: Successful build with real components
+2. Execution: Running real processing procedures
+3. Integration: Interaction of all system components
+4. Performance: Measurement of actual metrics
+5. Scalability: Operation under load
 
-## Отличие от имитации
+## Comparison with Simulation
 
-| Имитация (HTML) | Реальное демо |
-|----------------|---------------|
-| Визуальная анимация | Настоящая обработка пакетов |
-| Симуляция алгоритмов | Вызов реальных функций |
-| Фейковые метрики | Реальные измерения |
-| JavaScript код | Скомпилированный C++ |
-| Браузерное демо | Standalone приложение |
+| Simulation (HTML) | Real Demo |
+|-------------------|-----------|
+| Visual animation | Actual packet processing |
+| Algorithm simulation | Real function calls |
+| Fake metrics | Real measurements |
+| JavaScript code | Compiled C++ |
+| Browser demo | Standalone application |
 
-Это демо - **доказательство** того, что Mini SONiC действительно работает, а не просто красивая визуализация.
+This demo validates that Mini SONiC operates correctly with actual compiled components.

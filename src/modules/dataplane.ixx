@@ -1,23 +1,40 @@
 module;
 
-// Import standard library modules
-import <memory>;
-import <string>;
-import <vector>;
-import <atomic>;
-import <thread>;
-import <chrono>;
-import <functional>;
-import <iostream>;
-import <sstream>;
-import <algorithm>;
+// Use global module fragment for standard library includes to improve MSVC compatibility
+#include <memory>
+#include "cross_platform.h"
+#include <string>
+#include <vector>
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <functional>
+#include <utility>
+#include <iostream>
+#include <sstream>
+#include <algorithm>
+#include <mutex>
 
 export module MiniSonic.DataPlane;
 
 // Import networking module
 import MiniSonic.Networking;
 
+// Import SAI module for SaiInterface
+import MiniSonic.SAI;
+
+// Import Utils module for Types namespace
+import MiniSonic.Utils;
+
 export namespace MiniSonic::DataPlane {
+
+// Using declarations for standard library types
+using std::vector;
+using std::string;
+using std::thread;
+using std::atomic;
+using std::chrono::high_resolution_clock;
+using std::move;
 
 // Forward declarations
 class Packet;
@@ -90,6 +107,31 @@ public:
     void updateTimestamp() noexcept {
         timestamp = std::chrono::high_resolution_clock::now();
     }
+};
+
+/**
+ * @brief Packet processing pipeline
+ * 
+ * Orchestrates the processing of packets through various stages.
+ */
+export class Pipeline {
+public:
+    explicit Pipeline(SAI::SaiInterface& sai);
+    ~Pipeline() = default;
+    
+    /**
+     * @brief Process a single packet
+     * @param pkt Packet to process
+     */
+    void process(Packet& pkt);
+    
+    /**
+     * @brief Get pipeline statistics
+     */
+    [[nodiscard]] std::string getStats() const;
+
+private:
+    SAI::SaiInterface& m_sai;
 };
 
 /**

@@ -1,215 +1,403 @@
-cmake_minimum_required(VERSION 3.20)
-project(mini_sonic VERSION 1.0.0 LANGUAGES CXX)
+# =============================================================================
+# SONiC Mini Switch - Full Modular Build System
+# =============================================================================
+# Complete build with C++20 modules and C components
 
-# Set C++20 standard
+cmake_minimum_required(VERSION 3.28)
+project(SONiC_Mini_Switch
+    VERSION 1.0.0
+    DESCRIPTION "SONiC Mini Switch - Full Modular System with C++20 Modules and C"
+    LANGUAGES C CXX
+)
+
+# =============================================================================
+# OPTIONS
+# =============================================================================
+
+option(SONIC_ENABLE_DEBUG "Enable debug features" OFF)
+option(SONIC_ENABLE_ASAN "Enable AddressSanitizer" OFF)
+option(SONIC_STATIC_ANALYSIS "Enable static analysis tools" OFF)
+
+# =============================================================================
+# COMPILER FLAGS
+# =============================================================================
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Compiler-specific options
-if(MSVC)
-    add_compile_options(/W4 /permissive- /Zc:__cplusplus)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-else()
-    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+    
+    # Enable AddressSanitizer if requested
+    if(SONIC_ENABLE_ASAN)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+        message(STATUS "AddressSanitizer enabled")
+    endif()
+    
+    # Enable debug features if requested
+    if(SONIC_ENABLE_DEBUG)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG -g3")
+        message(STATUS "Debug features enabled")
+    endif()
+    
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /wd4251 /Zc:__cplusplus /Zc:preprocessor")
+    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
+    
+    # Enable AddressSanitizer if requested (MSVC version)
+    if(SONIC_ENABLE_ASAN)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
+        message(STATUS "AddressSanitizer enabled")
+    endif()
+    
+    # Enable debug features if requested
+    if(SONIC_ENABLE_DEBUG)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DDEBUG /Zi")
+        message(STATUS "Debug features enabled")
+    endif()
+    
+    # Define Windows version
+    add_definitions(-D_WIN32_WINNT=0x0601)
+
+    # Force include portability header for MSVC to handle GCC-specific attributes and Linux constants
+    add_compile_options("/FI" "${CMAKE_SOURCE_DIR}/mini_switch/include/cross_platform.h")
 endif()
 
-# Find NUMA library (required for dataplane_optimized)
-if(WIN32)
-    message(STATUS "Windows build - NUMA not required")
-    set(NUMA_LIB "")
-else()
-    find_library(NUMA_LIB numa)
-    if(NUMA_LIB)
-        message(STATUS "Found NUMA library: ${NUMA_LIB}")
-    else()
-        message(FATAL_ERROR "NUMA library (libnuma) not found. Please install libnuma-dev (sudo apt install libnuma-dev) or numactl-devel.")
+# Add FreeRTOS include directory if it exists (assuming it's in mini_switch/include/FreeRTOS/Source/include)
+if(EXISTS "${CMAKE_SOURCE_DIR}/mini_switch/include/FreeRTOS/Source/include")
+    include_directories("${CMAKE_SOURCE_DIR}/mini_switch/include/FreeRTOS/Source/include")
+endif()
+
+# Static analysis tools
+if(SONIC_STATIC_ANALYSIS)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fanalyzer")
+        message(STATUS "Static analysis enabled")
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /analyze")
+        message(STATUS "Static analysis enabled")
     endif()
 endif()
 
-# Find Boost (optional for basic functionality)
-find_package(Boost 1.81 QUIET COMPONENTS system thread)
-if(Boost_FOUND)
-    message(STATUS "Found Boost ${Boost_VERSION}")
-    message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
-    message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
-else()
-    message(STATUS "Boost not found - using basic benchmarks only")
-    set(Boost_INCLUDE_DIR "")
-    set(Boost_LIBRARIES "")
-endif()
+# =============================================================================
+# FIND PACKAGES
+# =============================================================================
 
-# Include directories
-include_directories(src)
-if(Boost_FOUND)
-    include_directories(src ${Boost_INCLUDE_DIRS})
-endif()
-
-# Enable testing
-enable_testing()
-
-# Fetch Google Test
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(googletest)
-
-# Fetch Google Benchmark
-FetchContent_Declare(
-    googlebenchmark
-    URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(googlebenchmark)
-
-# Main executable
-add_executable(mini_sonic
-    src/main.cpp
-    src/core/event_loop.cpp
-    src/dataplane/pipeline.cpp
-    src/dataplane/pipeline_thread.cpp
-    src/l2/l2_service.cpp
-    src/l3/l3_service.cpp
-    src/l3/lpm_trie.cpp
-    src/modules/dataplane_optimized.cpp
-    src/sai/simulated_sai.cpp
-)
-
-# Add app implementation based on Boost availability
-if(Boost_FOUND)
-    target_sources(mini_sonic PRIVATE
-        src/core/app.cpp
-        src/link/tcp_link_async.cpp
-    )
-    target_compile_definitions(mini_sonic PRIVATE BOOST_FOUND)
-else()
-    target_sources(mini_sonic PRIVATE
-        src/core/app_basic.cpp
-    )
-endif()
-
-# Find and link threads
 find_package(Threads REQUIRED)
-target_link_libraries(mini_sonic
-    Threads::Threads
-    ${NUMA_LIB}
-)
-if(Boost_FOUND)
-    target_link_libraries(mini_sonic ${Boost_LIBRARIES})
+
+# Find Curses/ncurses for the dashboard components
+find_package(Curses QUIET)
+if(CURSES_FOUND)
+    message(STATUS "Curses found: ${CURSES_LIBRARIES}")
+else()
+    message(WARNING "Curses/ncurses not found. Dashboard features will be limited.")
 endif()
 
-# Create static library for core components
-add_library(mini_sonic_lib STATIC
-    src/core/app_basic.cpp
-    src/core/event_loop.cpp
-    src/dataplane/pipeline.cpp
-    src/dataplane/pipeline_thread.cpp
-    src/l2/l2_service.cpp
-    src/l3/l3_service.cpp
-    src/l3/lpm_trie.cpp
-    src/modules/dataplane_optimized.cpp
-    src/sai/simulated_sai.cpp
+# Find Celero for benchmarking
+include(FetchContent)
+
+FetchContent_Declare(
+    Celero
+    GIT_REPOSITORY https://github.com/DigitalInBlue/Celero.git
+    GIT_TAG        v2.9.0
 )
 
-# Add Boost-dependent components only if Boost is found
-if(Boost_FOUND)
-    target_sources(mini_sonic_lib PRIVATE
-        src/core/app.cpp
-        src/link/tcp_link_async.cpp
+find_package(Celero QUIET)
+
+if(NOT Celero_FOUND)
+    message(STATUS "Celero not found - will download via FetchContent")
+    FetchContent_MakeAvailable(Celero)
+    message(STATUS "Celero downloaded via FetchContent")
+    
+    if(TARGET celero AND NOT TARGET Celero::Celero)
+        add_library(Celero::Celero ALIAS celero)
+        message(STATUS "Created Celero::Celero alias for downloaded Celero")
+    endif()
+endif()
+
+# =============================================================================
+# INCLUDE DIRECTORIES
+# =============================================================================
+
+include_directories(src)
+
+# =============================================================================
+# C++20 MODULES (MiniSonic Modular System)
+# =============================================================================
+
+# Module: MiniSonic.Utils
+add_library(MiniSonic.Utils STATIC)
+target_sources(MiniSonic.Utils
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/utils.ixx
+    PRIVATE
+        src/modules/utils.cpp
+)
+target_include_directories(MiniSonic.Utils PUBLIC src)
+set_target_properties(MiniSonic.Utils PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.SAI
+add_library(MiniSonic.SAI STATIC)
+target_sources(MiniSonic.SAI
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/sai.ixx
+    PRIVATE
+        src/modules/sai.cpp
+)
+target_include_directories(MiniSonic.SAI PUBLIC src)
+target_link_libraries(MiniSonic.SAI MiniSonic.Utils)
+set_target_properties(MiniSonic.SAI PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.DataPlane
+add_library(MiniSonic.DataPlane STATIC)
+target_sources(MiniSonic.DataPlane
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/dataplane.ixx
+    PRIVATE
+        src/modules/dataplane.cpp
+)
+target_include_directories(MiniSonic.DataPlane PUBLIC src)
+target_link_libraries(MiniSonic.DataPlane MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking)
+set_target_properties(MiniSonic.DataPlane PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.L2L3
+add_library(MiniSonic.L2L3 STATIC)
+target_sources(MiniSonic.L2L3
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/l2l3.ixx
+    PRIVATE
+        src/modules/l2l3.cpp
+)
+target_include_directories(MiniSonic.L2L3 PUBLIC src)
+target_link_libraries(MiniSonic.L2L3 MiniSonic.DataPlane MiniSonic.Utils)
+set_target_properties(MiniSonic.L2L3 PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.Networking
+add_library(MiniSonic.Networking STATIC)
+target_sources(MiniSonic.Networking
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/networking.ixx
+    PRIVATE
+        src/modules/networking.cpp
+)
+target_include_directories(MiniSonic.Networking PUBLIC src)
+target_link_libraries(MiniSonic.Networking MiniSonic.Utils)
+set_target_properties(MiniSonic.Networking PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.App
+add_library(MiniSonic.App STATIC)
+target_sources(MiniSonic.App
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/app.ixx
+    PRIVATE
+        src/modules/app.cpp
+)
+target_include_directories(MiniSonic.App PUBLIC src)
+target_link_libraries(MiniSonic.App 
+    MiniSonic.Networking 
+    MiniSonic.DataPlane 
+    MiniSonic.SAI 
+    MiniSonic.L2L3 
+    MiniSonic.Utils
+)
+set_target_properties(MiniSonic.App PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# =============================================================================
+# C CODE (mini_switch Core)
+# =============================================================================
+
+# Include directories for C code
+include_directories(
+    mini_switch/include
+    mini_switch/src
+)
+
+# C Library for mini_switch core
+set(MINISWITCH_C_SOURCES
+    mini_switch/src/sonic_types.c
+    mini_switch/src/switch_core.c
+    mini_switch/src/switch_hal.c
+    mini_switch/src/port.c
+    mini_switch/src/vlan.c
+    mini_switch/src/mac_table.c
+    mini_switch/src/fdb_orch.c
+    mini_switch/src/orchagent.c
+    mini_switch/src/ethernet.c
+    mini_switch/src/arp.c
+    mini_switch/src/ip.c
+    mini_switch/src/forwarding.c
+    mini_switch/src/hash_table.c
+    mini_switch/src/list.c
+    mini_switch/src/memory.c
+    mini_switch/src/ring_buffer.c
+    mini_switch/src/timer.c
+    mini_switch/src/utils.c
+    mini_switch/src/logging.c
+    mini_switch/src/tx_simple.c
+    mini_switch/src/net_utils.c
+)
+
+add_library(mini_switch_core STATIC ${MINISWITCH_C_SOURCES})
+if(CURSES_FOUND)
+    target_sources(mini_switch_core PRIVATE 
+        mini_switch/src/dashboard.c 
+        mini_switch/src/visual.c
     )
-    target_compile_definitions(mini_sonic_lib PRIVATE BOOST_FOUND)
+    target_link_libraries(mini_switch_core PRIVATE ${CURSES_LIBRARIES})
+    target_include_directories(mini_switch_core PRIVATE ${CURSES_INCLUDE_DIRS})
+    target_compile_definitions(mini_switch_core PRIVATE HAS_CURSES)
 endif()
+target_include_directories(mini_switch_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/mini_switch/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/mini_switch/src
+)
+set_target_properties(mini_switch_core PROPERTIES
+    C_STANDARD 99
+    C_STANDARD_REQUIRED ON
+    C_EXTENSIONS OFF
+)
 
-target_link_libraries(mini_sonic_lib 
+# =============================================================================
+# EXECUTABLES
+# =============================================================================
+
+# 1. C++ Modular SONiC (Main Application)
+add_executable(mini_sonic_modular)
+target_sources(mini_sonic_modular PRIVATE src/main.cpp)
+target_link_libraries(mini_sonic_modular 
+    MiniSonic.App
+    MiniSonic.Networking
+    MiniSonic.DataPlane
+    MiniSonic.SAI
+    MiniSonic.L2L3
+    MiniSonic.Utils
     Threads::Threads
-    ${NUMA_LIB}
 )
-if(Boost_FOUND)
-    target_link_libraries(mini_sonic_lib ${Boost_LIBRARIES})
-endif()
-
-# Test executable
-add_executable(mini_sonic_tests
-    tests/main_test.cpp
-    # tests/unit/test_lpm_trie.cpp # This test is for the legacy build and fails with modular code
-    # tests/unit/test_l2_service.cpp
-    # tests/unit/test_l3_service.cpp
-    # tests/unit/test_sai.cpp
-    # tests/integration/test_pipeline.cpp
-    # tests/integration/test_end_to_end.cpp
+set_target_properties(mini_sonic_modular PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
 )
 
-target_link_libraries(mini_sonic_tests
-    gtest_main
-    gmock
-    mini_sonic_lib
-    Threads::Threads
-)
-if(Boost_FOUND)
-    target_link_libraries(mini_sonic_tests ${Boost_LIBRARIES})
-endif()
-
-# Benchmark executable
-add_executable(mini_sonic_benchmarks
-    benchmarks/main_benchmark.cpp
-    benchmarks/benchmark_basic.cpp
+# 2. C-based SONiC Core
+add_executable(mini_sonic_c mini_switch/src/main.c)
+target_link_libraries(mini_sonic_c mini_switch_core Threads::Threads)
+set_target_properties(mini_sonic_c PROPERTIES
+    C_STANDARD 99
+    C_STANDARD_REQUIRED ON
+    C_EXTENSIONS OFF
 )
 
-# Add Boost-dependent benchmarks only if Boost is found
-if(Boost_FOUND)
-    target_sources(mini_sonic_benchmarks PRIVATE
-        benchmarks/benchmark_packet_processing.cpp
-        benchmarks/benchmark_latency.cpp
-        benchmarks/benchmark_throughput.cpp
-        benchmarks/benchmark_memory.cpp
-        benchmarks/benchmark_multithreading.cpp
+# 3. C Windows Demo
+if(WIN32)
+    add_executable(mini_sonic_windows mini_switch/src/main_windows.c)
+    target_link_libraries(mini_sonic_windows mini_switch_core Threads::Threads)
+    set_target_properties(mini_sonic_windows PROPERTIES
+        C_STANDARD 99
+        C_STANDARD_REQUIRED ON
+        C_EXTENSIONS OFF
     )
 endif()
 
+# 4. Benchmarks (Celero only)
+set(BENCHMARK_SOURCES
+    benchmarks/benchmark_celero_simple_working.cpp
+)
+
+add_executable(mini_sonic_benchmarks ${BENCHMARK_SOURCES})
 target_link_libraries(mini_sonic_benchmarks
-    benchmark
-    benchmark_main
-    mini_sonic_lib
     Threads::Threads
 )
-if(Boost_FOUND)
-    target_link_libraries(mini_sonic_benchmarks ${Boost_LIBRARIES})
-    target_compile_definitions(mini_sonic_benchmarks PRIVATE BOOST_FOUND)
+
+if(TARGET Celero::Celero)
+    target_link_libraries(mini_sonic_benchmarks Celero::Celero)
+    message(STATUS "Linking benchmarks with Celero::Celero")
 endif()
-
-# Add include directories for benchmarks
-target_include_directories(mini_sonic_benchmarks PRIVATE src)
-
-# Add include directories for tests
-target_include_directories(mini_sonic_tests PRIVATE src)
-
-# Add tests
-add_test(NAME AllTests COMMAND mini_sonic_tests)
-
-# Set target properties
-set_target_properties(mini_sonic PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
-
-set_target_properties(mini_sonic_lib PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
-
-set_target_properties(mini_sonic_tests PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 
 set_target_properties(mini_sonic_benchmarks PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
+
+# 5. Real-time Demo (C)
+add_executable(mini_sonic_demo src/realtime_demo.c)
+target_link_libraries(mini_sonic_demo Threads::Threads)
+set_target_properties(mini_sonic_demo PROPERTIES
+    C_STANDARD 99
+    C_STANDARD_REQUIRED ON
+    C_EXTENSIONS OFF
+)
+
+# =============================================================================
+# INFORMATION
+# =============================================================================
+
+message(STATUS "")
+message(STATUS "╔════════════════════════════════════════════════════════════════════╗")
+message(STATUS "║      SONiC Mini Switch - Full Modular Build System               ║")
+message(STATUS "╚════════════════════════════════════════════════════════════════════╝")
+message(STATUS "")
+message(STATUS "Configuration:")
+message(STATUS "  Version:     ${PROJECT_VERSION}")
+message(STATUS "  Build Type:  ${CMAKE_BUILD_TYPE}")
+message(STATUS "  Compiler:    ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "  C Standard:  99")
+message(STATUS "")
+message(STATUS "C++20 Modules Built:")
+message(STATUS "  ✓ MiniSonic.App        - Main application orchestration")
+message(STATUS "  ✓ MiniSonic.Networking - Network communication abstraction")
+message(STATUS "  ✓ MiniSonic.DataPlane  - High-performance packet processing")
+message(STATUS "  ✓ MiniSonic.SAI        - Switch Abstraction Interface")
+message(STATUS "  ✓ MiniSonic.L2L3       - Layer 2/3 packet processing")
+message(STATUS "  ✓ MiniSonic.Utils      - Utility functions and metrics")
+message(STATUS "")
+message(STATUS "C Core Library:")
+message(STATUS "  ✓ mini_switch_core     - C-based SONiC core")
+message(STATUS "")
+message(STATUS "Executables:")
+message(STATUS "  → mini_sonic_modular   - C++20 Modular SONiC")
+message(STATUS "  → mini_sonic_c         - C-based SONiC Core")
+if(WIN32)
+message(STATUS "  → mini_sonic_windows   - Windows-specific C demo")
+endif()
+message(STATUS "  → mini_sonic_benchmarks - Performance benchmarks")
+message(STATUS "  → mini_sonic_demo      - Real-time data flow demo")
+message(STATUS "")
+message(STATUS "Build Options:")
+message(STATUS "  Threads:     ${Threads_FOUND}")
+message(STATUS "  Celero:      ${Celero_FOUND}")
+message(STATUS "  Debug:       ${SONIC_ENABLE_DEBUG}")
+message(STATUS "  ASan:        ${SONIC_ENABLE_ASAN}")
+message(STATUS "  Static Analysis: ${SONIC_STATIC_ANALYSIS}")
+message(STATUS "")

@@ -10,8 +10,12 @@ module;
 #include <algorithm>
 #include <mutex>
 #include <chrono>
+#include <functional>
 
 module MiniSonic.L2L3;
+
+// Import Packet type from DataPlane module
+using MiniSonic::DataPlane::Packet;
 
 namespace MiniSonic::L2 {
 // L2Service Implementation
@@ -231,9 +235,18 @@ L3Service::L3Service(SAI::SaiInterface& sai) : m_sai(sai) {
 }
 
 bool L3Service::handle(Packet& pkt) {
+    // Convert uint32_t IP to string format
+    uint32_t ip = pkt.dstIp();
+    std::ostringstream ip_stream;
+    ip_stream << ((ip >> 24) & 0xFF) << "."
+              << ((ip >> 16) & 0xFF) << "."
+              << ((ip >> 8) & 0xFF) << "."
+              << (ip & 0xFF);
+    std::string ip_str = ip_stream.str();
+    
     // Check if packet is for local processing
-    if (isLocalIp(pkt.dstIp())) {
-        // std::cout << "[L3] Packet for local IP " << pkt.dstIp() << "\n";
+    if (isLocalIp(ip_str)) {
+        // std::cout << "[L3] Packet for local IP " << ip_str << "\n";
         return true;
     }
     
@@ -277,10 +290,19 @@ bool L3Service::isLocalIp(const std::string& ip) const {
 }
 
 bool L3Service::forwardPacket(Packet& pkt) {
-    std::string next_hop = m_routing_table.lookup(pkt.dstIp());
+    // Convert uint32_t IP to string format (e.g., "10.0.0.1")
+    uint32_t ip = pkt.dstIp();
+    std::ostringstream ip_stream;
+    ip_stream << ((ip >> 24) & 0xFF) << "."
+              << ((ip >> 16) & 0xFF) << "."
+              << ((ip >> 8) & 0xFF) << "."
+              << (ip & 0xFF);
+    std::string ip_str = ip_stream.str();
+    
+    std::string next_hop = m_routing_table.lookup(ip_str);
     
     if (next_hop.empty()) {
-        std::cerr << "[L3] No route found for " << pkt.dstIp() << "\n";
+        std::cerr << "[L3] No route found for " << ip_str << "\n";
         return false;
     }
     

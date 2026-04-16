@@ -1,16 +1,33 @@
 module;
 
-// Import standard library modules
-import <memory>;
-import <string>;
-import <functional>;
-import <array>;
-import <atomic>;
-import <thread>;
-import <chrono>;
-import <iostream>;
+// MSVC: use traditional includes in global module fragment
+#include <memory>
+#include <string>
+#include <functional>
+#include <array>
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <cstdint>
+#include <vector>
+#include <map>
 
 export module MiniSonic.Networking;
+
+// Import Utils module for Types namespace
+import MiniSonic.Utils;
+
+// Re-export common standard library types
+using std::string;
+using std::function;
+using std::unique_ptr;
+using std::shared_ptr;
+using std::vector;
+using std::map;
+using std::thread;
+using std::atomic;
+using std::chrono::milliseconds;
 
 // Conditional compilation for Boost
 #ifdef BOOST_FOUND

@@ -1,0 +1,237 @@
+# ── STM32 + FreeRTOS Mini Switch Makefile ─────────────────────
+
+# ── Project Configuration ─────────────────────────────────
+PROJECT_NAME = mini_switch_stm32
+TARGET_MCU = STM32F407xx
+TARGET_CORE = cortex-m4
+
+# ── Toolchain Configuration ───────────────────────────────
+CC = arm-none-eabi-gcc
+OBJCOPY = arm-none-eabi-objcopy
+OBJDUMP = arm-none-eabi-objdump
+SIZE = arm-none-eabi-size
+GDB = arm-none-eabi-gdb
+
+# ── Directories ───────────────────────────────────────────
+BUILD_DIR = build_stm32
+SRC_DIR = src
+INC_DIR = include
+HAL_DIR = Drivers/STM32F4xx_HAL_Driver
+CMSIS_DIR = Drivers/CMSIS
+FREERTOS_DIR = Middlewares/FreeRTOS
+
+# ── Source Files ───────────────────────────────────────────
+C_SOURCES = \
+$(SRC_DIR)/main_stm32.c \
+$(SRC_DIR)/switch_hal.c \
+$(SRC_DIR)/switch_core.c \
+$(SRC_DIR)/switch_tasks.c \
+$(SRC_DIR)/system_stm32f4xx.c \
+$(HAL_DIR)/Src/stm32f4xx_hal.c \
+$(HAL_DIR)/Src/stm32f4xx_hal_cortex.c \
+$(HAL_DIR)/Src/stm32f4xx_hal_eth.c \
+$(HAL_DIR)/Src/stm32f4xx_hal_gpio.c \
+$(HAL_DIR)/Src/stm32f4xx_hal_rcc.c \
+$(HAL_DIR)/Src/stm32f4xx_hal_uart.c \
+$(FREERTOS_DIR)/Source/croutine.c \
+$(FREERTOS_DIR)/Source/event_groups.c \
+$(FREERTOS_DIR)/Source/list.c \
+$(FREERTOS_DIR)/Source/queue.c \
+$(FREERTOS_DIR)/Source/tasks.c \
+$(FREERTOS_DIR)/Source/timers.c \
+$(FREERTOS_DIR)/Source/portable/GCC/ARM_CM4F/port.c \
+$(FREERTOS_DIR)/Source/portable/MemMang/heap_4.c
+
+# ── Include Directories ───────────────────────────────────
+INCLUDES = \
+-I$(INC_DIR) \
+-I$(HAL_DIR)/Inc \
+-I$(CMSIS_DIR)/Device/ST/STM32F4xx/Include \
+-I$(CMSIS_DIR)/Include \
+-I$(FREERTOS_DIR)/Source/include \
+-I$(FREERTOS_DIR)/Source/portable/GCC/ARM_CM4F
+
+# ── Compiler Flags ───────────────────────────────────────
+CFLAGS = \
+-mcpu=cortex-m4 \
+-mthumb \
+-mfpu=fpv4-sp-d16 \
+-mfloat-abi=hard \
+-DUSE_HAL_DRIVER \
+-DSTM32F407xx \
+-DARM_MATH_CM4 \
+-std=c17 \
+-Wall -Wextra -Werror \
+-Wno-unused-parameter \
+-Wno-unused-function \
+-fno-common \
+-ffunction-sections \
+-fdata-sections \
+-fno-strict-aliasing \
+-fno-builtin \
+-fno-exceptions \
+-fno-rtti \
+-fno-threadsafe-statics \
+-fno-use-cxa-atexit \
+-fno-unwind-tables \
+-fno-asynchronous-unwind-tables \
+-fno-pic \
+-fno-pie \
+-ffreestanding \
+-fno-stack-protector \
+-fomit-frame-pointer \
+-fno-omit-frame-pointer \
+-mlong-calls \
+-Wdouble-promotion \
+-Wno-format \
+-Wno-format-zero-length \
+-Wno-address-of-packed-member
+
+# ── Linker Flags ─────────────────────────────────────────
+LDFLAGS = \
+-mcpu=cortex-m4 \
+-mthumb \
+-mfpu=fpv4-sp-d16 \
+-mfloat-abi=hard \
+-specs=nano.specs \
+-TSTM32F407VGTx_FLASH.ld \
+-Wl,-Map=$(BUILD_DIR)/$(PROJECT_NAME).map \
+-Wl,--gc-sections \
+-Wl,--print-memory-usage \
+-static \
+--specs=nosys.specs \
+--specs=nano.specs \
+-Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+
+# ── LTO Flags ───────────────────────────────────────────
+LTO_FLAGS = \
+-flto \
+-fno-fat-lto-objects
+
+# ── Debug/Release Configuration ───────────────────────────
+ifdef DEBUG
+CFLAGS += -g3 -O0 -DDEBUG
+LDFLAGS += -g3
+else
+CFLAGS += -Os -DNDEBUG
+LDFLAGS += -Os
+endif
+
+# Add LTO flags
+CFLAGS += $(LTO_FLAGS)
+LDFLAGS += $(LTO_FLAGS)
+
+# ── Object Files ─────────────────────────────────────────
+OBJECTS = $(C_SOURCES:%.c=$(BUILD_DIR)/%.o)
+
+# ── Build Targets ─────────────────────────────────────────
+
+.PHONY: all clean flash debug release size help
+
+all: $(BUILD_DIR)/$(PROJECT_NAME).elf
+
+$(BUILD_DIR)/$(PROJECT_NAME).elf: $(OBJECTS)
+	@echo "Linking $@"
+	@mkdir -p $(dir $@)
+	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+	$(SIZE) $@
+
+$(BUILD_DIR)/%.o: %.c
+	@echo "Compiling $<"
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+# ── Additional Build Targets ─────────────────────────────
+
+$(BUILD_DIR)/$(PROJECT_NAME).hex: $(BUILD_DIR)/$(PROJECT_NAME).elf
+	@echo "Creating hex file"
+	$(OBJCOPY) -O ihex $< $@
+
+$(BUILD_DIR)/$(PROJECT_NAME).bin: $(BUILD_DIR)/$(PROJECT_NAME).elf
+	@echo "Creating binary file"
+	$(OBJCOPY) -O binary $< $@
+
+$(BUILD_DIR)/$(PROJECT_NAME).dis: $(BUILD_DIR)/$(PROJECT_NAME).elf
+	@echo "Creating disassembly"
+	$(OBJDUMP) -d $< > $@
+
+# ── Flash and Debug Targets ─────────────────────────────
+
+flash: $(BUILD_DIR)/$(PROJECT_NAME).hex
+	@echo "Flashing firmware"
+	st-flash --reset write $< 0x8000000
+
+debug: $(BUILD_DIR)/$(PROJECT_NAME).elf
+	@echo "Starting GDB debug session"
+	$(GDB) $< -ex "target remote localhost:3333" -ex "monitor reset halt"
+
+# ── Configuration Targets ─────────────────────────────────
+
+debug:
+	$(MAKE) DEBUG=1
+
+release:
+	$(MAKE) DEBUG=0
+
+size: $(BUILD_DIR)/$(PROJECT_NAME).elf
+	@echo "Memory usage:"
+	$(SIZE) $<
+
+# ── Analysis Targets ─────────────────────────────────────
+
+analyze: $(OBJECTS)
+	@echo "Analyzing code..."
+	cppcheck --enable=all --std=c17 $(SRC_DIR)/*.c
+
+format:
+	@echo "Formatting code..."
+	clang-format -i $(SRC_DIR)/*.c $(INC_DIR)/*.h
+
+# ── Documentation ───────────────────────────────────────
+
+docs:
+	@echo "Generating documentation..."
+	doxygen Doxyfile
+
+# ── Clean Target ─────────────────────────────────────────
+
+clean:
+	@echo "Cleaning build files"
+	rm -rf $(BUILD_DIR)
+
+# ── Help Target ─────────────────────────────────────────
+
+help:
+	@echo "Available targets:"
+	@echo "  all      - Build firmware (default)"
+	@echo "  debug    - Build debug version"
+	@echo "  release  - Build release version"
+	@echo "  flash    - Flash firmware to device"
+	@echo "  debug    - Start GDB debug session"
+	@echo "  size     - Show memory usage"
+	@echo "  analyze  - Run static analysis"
+	@echo "  format   - Format source code"
+	@echo "  docs     - Generate documentation"
+	@echo "  clean    - Remove build files"
+	@echo "  help     - Show this help"
+	@echo ""
+	@echo "Configuration:"
+	@echo "  MCU:      $(TARGET_MCU)"
+	@echo "  Core:     $(TARGET_CORE)"
+	@echo "  Toolchain: $(CC)"
+
+# ── Phony Targets ───────────────────────────────────────
+
+.PHONY: all clean flash debug release size help analyze format docs
+
+# ── Dependency Tracking ─────────────────────────────────
+
+-include $(OBJECTS:.o=.d)
+
+$(BUILD_DIR)/%.d: %.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(INCLUDES) -MM -MT $(@:.d=.o) $< > $@
+
+# ── Default Target ───────────────────────────────────────
+
+.DEFAULT_GOAL := all

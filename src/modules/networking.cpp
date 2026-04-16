@@ -16,7 +16,6 @@ module;
 module MiniSonic.Networking;
 
 // Import local modules
-import MiniSonic.DataPlane;
 import MiniSonic.Utils;
 
 namespace MiniSonic::Networking {

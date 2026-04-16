@@ -1,0 +1,77 @@
+{
+  "switch": {
+    "name": "Mini SONiC Switch",
+    "version": "@PROJECT_VERSION@",
+    "description": "@PROJECT_DESCRIPTION@",
+    "ports": 24,
+    "vlans": 4094,
+    "fdb_size": 4096,
+    "route_size": 1024,
+    "neighbor_size": 256,
+    "acl_size": 1024
+  },
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "databases": [
+      "APP_DB",
+      "ASIC_DB", 
+      "CONFIG_DB",
+      "COUNTERS_DB",
+      "STATE_DB"
+    ],
+    "connection_timeout": 30,
+    "command_timeout": 10
+  },
+  "sai": {
+    "vendor": "demo",
+    "profile": "asic_profile.json",
+    "api_version": "1.0",
+    "hardware_id": "demo_asic_001"
+  },
+  "orchagent": {
+    "enable": true,
+    "thread_pool_size": 4,
+    "event_queue_size": 1000,
+    "sync_interval": 1000
+  },
+  "fdb_orch": {
+    "enable": true,
+    "aging_time": 600,
+    "max_entries": 4096,
+    "learning_mode": "hardware",
+    "static_entries": []
+  },
+  "route_orch": {
+    "enable": true,
+    "max_routes": 1024,
+    "ecmp_enable": true,
+    "ecmp_max_paths": 16,
+    "protocols": ["static", "bgp", "ospf"]
+  },
+  "syncd": {
+    "enable": true,
+    "sync_interval": 100,
+    "hardware_timeout": 5000,
+    "retry_count": 3
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "/var/log/sonic/mini_switch.log",
+    "max_size": "10MB",
+    "backup_count": 5,
+    "enable_console": true
+  },
+  "performance": {
+    "enable_counters": true,
+    "counter_interval": 1000,
+    "enable_profiling": false,
+    "profile_interval": 5000
+  },
+  "debug": {
+    "enable": @SONIC_ENABLE_DEBUG@,
+    "trace_packets": false,
+    "trace_redis": false,
+    "trace_sai": false
+  }
+}

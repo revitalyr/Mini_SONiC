@@ -1,15 +1,21 @@
 module;
 
-// Import standard library modules
-import <memory>;
-import <string>;
-import <vector>;
-import <unordered_map>;
-import <atomic>;
-import <iostream>;
-import <sstream>;
+// Use global module fragment for standard library includes to improve MSVC compatibility
+#include <memory>
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <atomic>
+#include <mutex>
+#include <iostream>
+#include <sstream>
+#include <chrono>
+#include <cstdint>
 
 export module MiniSonic.SAI;
+
+// Import Utils module for Types namespace
+import MiniSonic.Utils;
 
 export namespace MiniSonic::SAI {
 
@@ -30,6 +36,13 @@ public:
     virtual std::vector<Types::Port> getPortList() const = 0;
     virtual std::string getStats() const = 0;
 };
+
+// Using declarations for standard library types
+using std::vector;
+using std::string;
+using std::unordered_map;
+using std::mutex;
+using std::chrono::steady_clock;
 
 /**
  * @brief Simulated SAI implementation for testing

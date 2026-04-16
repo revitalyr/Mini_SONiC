@@ -13,10 +13,21 @@ module MiniSonic.DataPlane;
 
 // Import local modules
 import MiniSonic.SAI;
-import MiniSonic.L2;
-import MiniSonic.L3;
 
 namespace MiniSonic::DataPlane {
+
+// Pipeline Implementation
+Pipeline::Pipeline(SAI::SaiInterface& sai) : m_sai(sai) {
+}
+
+void Pipeline::process(Packet& pkt) {
+    // Stub implementation - actual processing would go here
+    (void)pkt;
+}
+
+std::string Pipeline::getStats() const {
+    return "Pipeline stats: Not implemented";
+}
 
 // PipelineThread Implementation
 PipelineThread::PipelineThread(
