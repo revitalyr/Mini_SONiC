@@ -209,6 +209,74 @@ set_target_properties(MiniSonic.Networking PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
+# Module: MiniSonic.Protocol
+add_library(MiniSonic.Protocol STATIC)
+target_sources(MiniSonic.Protocol
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/protocol.ixx
+    PRIVATE
+        src/modules/protocol.cpp
+)
+target_include_directories(MiniSonic.Protocol PUBLIC src)
+target_link_libraries(MiniSonic.Protocol MiniSonic.Utils)
+set_target_properties(MiniSonic.Protocol PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.Serialization
+add_library(MiniSonic.Serialization STATIC)
+target_sources(MiniSonic.Serialization
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/serialization.ixx
+)
+target_include_directories(MiniSonic.Serialization PUBLIC src)
+target_link_libraries(MiniSonic.Serialization MiniSonic.Utils)
+set_target_properties(MiniSonic.Serialization PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.WebSocket
+add_library(MiniSonic.WebSocket STATIC)
+target_sources(MiniSonic.WebSocket
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/websocket.ixx
+    PRIVATE
+        src/modules/websocket.cpp
+)
+target_include_directories(MiniSonic.WebSocket PUBLIC src)
+target_link_libraries(MiniSonic.WebSocket MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
+if(WIN32)
+    target_link_libraries(MiniSonic.WebSocket ws2_32)
+endif()
+set_target_properties(MiniSonic.WebSocket PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.Gossip
+add_library(MiniSonic.Gossip STATIC)
+target_sources(MiniSonic.Gossip
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/modules/gossip.ixx
+    PRIVATE
+        src/modules/gossip.cpp
+)
+target_include_directories(MiniSonic.Gossip PUBLIC src)
+target_link_libraries(MiniSonic.Gossip MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
+if(WIN32)
+    target_link_libraries(MiniSonic.Gossip ws2_32)
+endif()
+set_target_properties(MiniSonic.Gossip PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
 # Module: MiniSonic.App
 add_library(MiniSonic.App STATIC)
 target_sources(MiniSonic.App
@@ -224,6 +292,8 @@ target_link_libraries(MiniSonic.App
     MiniSonic.SAI 
     MiniSonic.L2L3 
     MiniSonic.Utils
+    MiniSonic.Protocol
+    MiniSonic.Serialization
 )
 set_target_properties(MiniSonic.App PROPERTIES
     CXX_STANDARD 20
@@ -375,12 +445,16 @@ message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  C Standard:  99")
 message(STATUS "")
 message(STATUS "C++20 Modules Built:")
-message(STATUS "  ✓ MiniSonic.App        - Main application orchestration")
-message(STATUS "  ✓ MiniSonic.Networking - Network communication abstraction")
-message(STATUS "  ✓ MiniSonic.DataPlane  - High-performance packet processing")
-message(STATUS "  ✓ MiniSonic.SAI        - Switch Abstraction Interface")
-message(STATUS "  ✓ MiniSonic.L2L3       - Layer 2/3 packet processing")
-message(STATUS "  ✓ MiniSonic.Utils      - Utility functions and metrics")
+message(STATUS "  ✓ MiniSonic.App         - Main application orchestration")
+message(STATUS "  ✓ MiniSonic.Networking  - Network communication abstraction")
+message(STATUS "  ✓ MiniSonic.DataPlane   - High-performance packet processing")
+message(STATUS "  ✓ MiniSonic.SAI         - Switch Abstraction Interface")
+message(STATUS "  ✓ MiniSonic.L2L3        - Layer 2/3 packet processing")
+message(STATUS "  ✓ MiniSonic.Utils       - Utility functions and metrics")
+message(STATUS "  ✓ MiniSonic.Protocol    - Protocol handler interface (pluggable protocols)")
+message(STATUS "  ✓ MiniSonic.Serialization- FlatBuffers zero-copy serialization")
+message(STATUS "  ✓ MiniSonic.WebSocket   - Native C++ WebSocket gateway")
+message(STATUS "  ✓ MiniSonic.Gossip      - P2P gossip protocol for distributed systems")
 message(STATUS "")
 message(STATUS "C Core Library:")
 message(STATUS "  ✓ mini_switch_core     - C-based SONiC core")

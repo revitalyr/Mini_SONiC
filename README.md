@@ -1,6 +1,6 @@
 # Mini SONiC
 
-A simplified Network Operating System inspired by SONiC, demonstrating understanding of networking stacks, control/data plane separation, and SAI abstraction.
+A protocol-oriented low-level networking stack and protocol-oriented system, demonstrating understanding of networking primitives, pluggable protocols, and zero-copy serialization.
 
 ## 📚 Interactive Documentation
 
@@ -18,8 +18,12 @@ Open `docs/index.html` in your browser to explore the interactive diagrams with 
 
 ## Overview
 
-Mini SONiC is a production-grade demonstration project that implements core networking concepts:
+Mini SONiC is a production-grade protocol-oriented networking stack that implements core networking primitives:
 
+- **Pluggable Protocol Architecture** - Extensible protocol handler interface
+- **Zero-Copy Serialization** - FlatBuffers-based serialization layer
+- **Native WebSocket Gateway** - Real-time bidirectional communication
+- **P2P Gossip Protocol** - Lightweight peer discovery and membership
 - **Control Plane / Data Plane Separation**
 - **SAI (Switch Abstraction Interface) Layer**
 - **L2 Switching with MAC learning**
@@ -32,11 +36,20 @@ Mini SONiC is a production-grade demonstration project that implements core netw
 
 ```
                  +----------------------+
-                 | CLI / Dashboard      |
+                 | Protocol Stack       |
+                 | (Pluggable Handlers)|
                  +----------+-----------+
                             |
+        +-------------------+-------------------+
+        |                   |                   |
++-------v--------+   +-----v------+     +------v-------+
+| WebSocket GW   |   | Gossip P2P  |     | Serialization|
++-------+--------+   +-----+------+     +------v-------+
+        |                   |                   |
+        +-------------------+-------------------+
+                            |
                  +----------v-----------+
-                 | Config Manager       |
+                 | Networking Layer     |
                  +----------+-----------+
                             |
         +-------------------+-------------------+
@@ -67,12 +80,16 @@ Mini_SONiC/
 │   └── freertos_config.h # FreeRTOS simulation stubs
 ├── src/                  # C++ modular source
 │   ├── modules/         # C++20 modules
-│   │   ├── dataplane.ixx  # Data plane module
-│   │   ├── networking.ixx # Networking module
-│   │   ├── l2l3.ixx       # L2/L3 services
-│   │   ├── sai.ixx        # SAI abstraction
-│   │   ├── utils.ixx      # Utilities
-│   │   └── app.ixx        # Application
+│   │   ├── protocol.ixx      # Protocol handler interface (pluggable)
+│   │   ├── serialization.ixx # FlatBuffers zero-copy serialization
+│   │   ├── websocket.ixx     # Native WebSocket gateway
+│   │   ├── gossip.ixx        # P2P gossip protocol
+│   │   ├── dataplane.ixx     # Data plane module
+│   │   ├── networking.ixx    # Networking module
+│   │   ├── l2l3.ixx          # L2/L3 services
+│   │   ├── sai.ixx           # SAI abstraction
+│   │   ├── utils.ixx         # Utilities
+│   │   └── app.ixx           # Application
 │   ├── realtime_demo.c   # Real-time packet processing demo
 │   └── common/          # Common headers
 ├── mini_switch/         # C implementation
@@ -83,6 +100,13 @@ Mini_SONiC/
 ```
 
 ## Features
+
+### Protocol-Oriented Architecture
+- **Pluggable Protocol Handlers**: Extensible IProtocolHandler interface for custom protocols
+- **Protocol Stack Manager**: Unified management of multiple protocol implementations
+- **Zero-Copy Serialization**: FlatBuffers-based serialization for high performance
+- **Native WebSocket Gateway**: C++ implementation replacing Python demo
+- **P2P Gossip Protocol**: Lightweight peer discovery and membership management
 
 ### Core Networking
 - **L2 Switching**: MAC address learning and forwarding
@@ -152,6 +176,50 @@ cmake --build .
 3. Implement in corresponding .ixx and .cpp files
 4. Update CMakeLists.txt if needed
 5. Add Doxygen documentation
+
+### Using the Protocol Stack
+
+```cpp
+#include "protocol.ixx"
+#include "websocket.ixx"
+#include "gossip.ixx"
+
+using namespace MiniSonic::Protocol;
+using namespace MiniSonic::WebSocket;
+using namespace MiniSonic::Gossip;
+
+// Create protocol stack
+ProtocolStack stack;
+
+// Register WebSocket gateway
+auto ws_config = WebSocketFactory::defaultGatewayConfig();
+ws_config.listen_port = 8080;
+auto ws_gateway = WebSocketFactory::createGateway(ws_config);
+stack.registerHandler("websocket", std::move(ws_gateway));
+
+// Register P2P gossip protocol
+auto gossip_config = GossipFactory::defaultConfig();
+auto gossip_protocol = GossipFactory::createProtocol(
+    GossipFactory::generatePeerId(),
+    gossip_config
+);
+stack.registerHandler("gossip", std::move(gossip_protocol));
+
+// Set global message handler
+stack.setGlobalMessageHandler([](const string& protocol, const Message& msg) {
+    std::cout << "Received message from " << protocol << "\n";
+});
+
+// Start all protocols
+stack.startAll();
+
+// Broadcast message through all protocols
+Message message(MessageType::DATA, {0x01, 0x02, 0x03});
+stack.broadcast(message);
+
+// Stop when done
+stack.stopAll();
+```
 
 ## License
 
