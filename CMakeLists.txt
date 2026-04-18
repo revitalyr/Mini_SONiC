@@ -460,11 +460,6 @@ set(PROTOCOL_TEST_SOURCES
 
 add_executable(mini_sonic_protocol_tests ${PROTOCOL_TEST_SOURCES})
 target_link_libraries(mini_sonic_protocol_tests
-    MiniSonic.Protocol
-    MiniSonic.Serialization
-    MiniSonic.WebSocket
-    MiniSonic.Gossip
-    MiniSonic.Utils
     Threads::Threads
     Catch2::Catch2WithMain
 )

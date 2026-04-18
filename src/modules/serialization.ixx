@@ -132,64 +132,56 @@ public:
      * @brief Serialize MAC address to buffer
      */
     static vector<uint8_t> serializeMac(const Types::MacAddress& mac) {
-        vector<uint8_t> buffer(6);
-        // MAC address is typically 6 bytes
-        // In real implementation, extract from MacAddress type
-        for (size_t i = 0; i < 6 && i < mac.size(); ++i) {
-            buffer[i] = static_cast<uint8_t>(mac[i]);
+        // MacAddress is uint64_t, serialize as 8 bytes
+        vector<uint8_t> buffer(8);
+        uint64_t mac_value = mac;
+        for (size_t i = 0; i < 8; ++i) {
+            buffer[i] = static_cast<uint8_t>((mac_value >> (i * 8)) & 0xFF);
         }
         return buffer;
     }
-    
+
     /**
      * @brief Deserialize MAC address from buffer
      */
     static Types::MacAddress deserializeMac(const uint8_t* buffer, size_t size) {
-        if (size < 6) {
-            return Types::MacAddress{};
+        if (size < 8) {
+            return Types::MacAddress{0};
         }
-        
-        Types::MacAddress mac;
-        for (size_t i = 0; i < 6; ++i) {
-            mac[i] = buffer[i];
+
+        uint64_t mac_value = 0;
+        for (size_t i = 0; i < 8; ++i) {
+            mac_value |= (static_cast<uint64_t>(buffer[i]) << (i * 8));
         }
-        return mac;
+        return Types::MacAddress{mac_value};
     }
-    
+
     /**
      * @brief Serialize IP address to buffer
      */
     static vector<uint8_t> serializeIp(const Types::IpAddress& ip) {
-        // IPv4 is 4 bytes, IPv6 is 16 bytes
-        vector<uint8_t> buffer;
-        buffer.reserve(ip.size());
-        
-        for (size_t i = 0; i < ip.size(); ++i) {
-            buffer.push_back(static_cast<uint8_t>(ip[i]));
+        // IpAddress is uint32_t, serialize as 4 bytes (IPv4)
+        vector<uint8_t> buffer(4);
+        uint32_t ip_value = ip;
+        for (size_t i = 0; i < 4; ++i) {
+            buffer[i] = static_cast<uint8_t>((ip_value >> (i * 8)) & 0xFF);
         }
-        
         return buffer;
     }
-    
+
     /**
      * @brief Deserialize IP address from buffer
      */
     static Types::IpAddress deserializeIp(const uint8_t* buffer, size_t size) {
-        Types::IpAddress ip;
-        
-        if (size == 4) {
-            // IPv4
-            for (size_t i = 0; i < 4; ++i) {
-                ip[i] = buffer[i];
-            }
-        } else if (size == 16) {
-            // IPv6
-            for (size_t i = 0; i < 16; ++i) {
-                ip[i] = buffer[i];
-            }
+        if (size < 4) {
+            return Types::IpAddress{0};
         }
-        
-        return ip;
+
+        uint32_t ip_value = 0;
+        for (size_t i = 0; i < 4; ++i) {
+            ip_value |= (static_cast<uint32_t>(buffer[i]) << (i * 8));
+        }
+        return Types::IpAddress{ip_value};
     }
 };
 
