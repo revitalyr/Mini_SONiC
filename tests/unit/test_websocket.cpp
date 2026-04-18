@@ -1,12 +1,12 @@
 /**
  * @file test_websocket.cpp
- * @brief Google Test Tests for WebSocket Gateway
- * 
+ * @brief Catch2 v3 Tests for WebSocket Gateway
+ *
  * This file contains unit tests for the WebSocket gateway
- * using Google Test framework.
+ * using Catch2 v3 framework.
  */
 
-#include <gtest/gtest.h>
+#include <catch2/catch_all.hpp>
 #include <string>
 #include <memory>
 
@@ -14,109 +14,109 @@
 // WEBSOCKET CONNECTION TESTS
 // =============================================================================
 
-TEST(WebSocketConnection, DefaultConstruction) {
+TEST_CASE("WebSocketConnection DefaultConstruction", "[websocket][connection]") {
     // Test default connection construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketConnection, StateManagement) {
+TEST_CASE("WebSocketConnection StateManagement", "[websocket][connection]") {
     // Test connection state management
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketConnection, RemoteAddress) {
+TEST_CASE("WebSocketConnection RemoteAddress", "[websocket][connection]") {
     // Test remote address handling
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketConnection, ActiveState) {
+TEST_CASE("WebSocketConnection ActiveState", "[websocket][connection]") {
     // Test active state detection
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // WEBSOCKET GATEWAY TESTS
 // =============================================================================
 
-TEST(WebSocketGateway, DefaultConstruction) {
+TEST_CASE("WebSocketGateway DefaultConstruction", "[websocket][gateway]") {
     // Test default gateway construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketGateway, StartStop) {
+TEST_CASE("WebSocketGateway StartStop", "[websocket][gateway]") {
     // Test gateway start/stop lifecycle
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketGateway, RunningState) {
+TEST_CASE("WebSocketGateway RunningState", "[websocket][gateway]") {
     // Test running state detection
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketGateway, MessageSending) {
+TEST_CASE("WebSocketGateway MessageSending", "[websocket][gateway]") {
     // Test message sending
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketGateway, Broadcasting) {
+TEST_CASE("WebSocketGateway Broadcasting", "[websocket][gateway]") {
     // Test message broadcasting
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketGateway, ConnectionManagement) {
+TEST_CASE("WebSocketGateway ConnectionManagement", "[websocket][gateway]") {
     // Test connection management
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketGateway, ActiveConnections) {
+TEST_CASE("WebSocketGateway ActiveConnections", "[websocket][gateway]") {
     // Test active connections count
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketGateway, Statistics) {
+TEST_CASE("WebSocketGateway Statistics", "[websocket][gateway]") {
     // Test statistics collection
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // WEBSOCKET CLIENT TESTS
 // =============================================================================
 
-TEST(WebSocketClient, DefaultConstruction) {
+TEST_CASE("WebSocketClient DefaultConstruction", "[websocket][client]") {
     // Test default client construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketClient, ConnectDisconnect) {
+TEST_CASE("WebSocketClient ConnectDisconnect", "[websocket][client]") {
     // Test connect/disconnect lifecycle
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketClient, ConnectionState) {
+TEST_CASE("WebSocketClient ConnectionState", "[websocket][client]") {
     // Test connection state
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketClient, MessageSending) {
+TEST_CASE("WebSocketClient MessageSending", "[websocket][client]") {
     // Test client message sending
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // WEBSOCKET FACTORY TESTS
 // =============================================================================
 
-TEST(WebSocketFactory, GatewayCreation) {
+TEST_CASE("WebSocketFactory GatewayCreation", "[websocket][factory]") {
     // Test gateway creation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketFactory, ClientCreation) {
+TEST_CASE("WebSocketFactory ClientCreation", "[websocket][factory]") {
     // Test client creation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(WebSocketFactory, DefaultConfig) {
+TEST_CASE("WebSocketFactory DefaultConfig", "[websocket][factory]") {
     // Test default configuration
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }

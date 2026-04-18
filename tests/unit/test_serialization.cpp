@@ -1,12 +1,12 @@
 /**
  * @file test_serialization.cpp
- * @brief Google Test Tests for Serialization Module
- * 
+ * @brief Catch2 v3 Tests for Serialization Module
+ *
  * This file contains unit tests for the FlatBuffers serialization module
- * using Google Test framework.
+ * using Catch2 v3 framework.
  */
 
-#include <gtest/gtest.h>
+#include <catch2/catch_all.hpp>
 #include <vector>
 #include <cstdint>
 #include <cstring>
@@ -15,108 +15,108 @@
 // SERIALIZED DATA TESTS
 // =============================================================================
 
-TEST(SerializedData, DefaultConstruction) {
+TEST_CASE("SerializedData DefaultConstruction", "[serialization][data]") {
     // Test default serialized data construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(SerializedData, Validation) {
+TEST_CASE("SerializedData Validation", "[serialization][data]") {
     // Test serialized data validation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(SerializedData, DataAccess) {
+TEST_CASE("SerializedData DataAccess", "[serialization][data]") {
     // Test data access methods
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // FLAT BUFFER SERIALIZER TESTS
 // =============================================================================
 
-TEST(FlatBufferSerializer, Serialization) {
+TEST_CASE("FlatBufferSerializer Serialization", "[serialization][flatbuffer]") {
     // Test basic serialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(FlatBufferSerializer, Deserialization) {
+TEST_CASE("FlatBufferSerializer Deserialization", "[serialization][flatbuffer]") {
     // Test basic deserialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(FlatBufferSerializer, SizeCalculation) {
+TEST_CASE("FlatBufferSerializer SizeCalculation", "[serialization][flatbuffer]") {
     // Test serialized size calculation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(FlatBufferSerializer, ZeroCopyAccess) {
+TEST_CASE("FlatBufferSerializer ZeroCopyAccess", "[serialization][flatbuffer]") {
     // Test zero-copy access pattern
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // PACKET SERIALIZER TESTS
 // =============================================================================
 
-TEST(PacketSerializer, MacSerialization) {
+TEST_CASE("PacketSerializer MacSerialization", "[serialization][packet]") {
     // Test MAC address serialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(PacketSerializer, MacDeserialization) {
+TEST_CASE("PacketSerializer MacDeserialization", "[serialization][packet]") {
     // Test MAC address deserialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(PacketSerializer, IpSerialization) {
+TEST_CASE("PacketSerializer IpSerialization", "[serialization][packet]") {
     // Test IP address serialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(PacketSerializer, IpDeserialization) {
+TEST_CASE("PacketSerializer IpDeserialization", "[serialization][packet]") {
     // Test IP address deserialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // MESSAGE SERIALIZER TESTS
 // =============================================================================
 
-TEST(MessageSerializer, MessageSerialization) {
+TEST_CASE("MessageSerializer MessageSerialization", "[serialization][message]") {
     // Test protocol message serialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(MessageSerializer, MessageDeserialization) {
+TEST_CASE("MessageSerializer MessageDeserialization", "[serialization][message]") {
     // Test protocol message deserialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(MessageSerializer, TypeHandling) {
+TEST_CASE("MessageSerializer TypeHandling", "[serialization][message]") {
     // Test message type handling
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(MessageSerializer, PayloadHandling) {
+TEST_CASE("MessageSerializer PayloadHandling", "[serialization][message]") {
     // Test payload serialization/deserialization
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // SERIALIZER FACTORY TESTS
 // =============================================================================
 
-TEST(SerializerFactory, FlatBufferCreation) {
+TEST_CASE("SerializerFactory FlatBufferCreation", "[serialization][factory]") {
     // Test FlatBuffer serializer creation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(SerializerFactory, PacketSerializerCreation) {
+TEST_CASE("SerializerFactory PacketSerializerCreation", "[serialization][factory]") {
     // Test packet serializer creation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(SerializerFactory, MessageSerializerCreation) {
+TEST_CASE("SerializerFactory MessageSerializerCreation", "[serialization][factory]") {
     // Test message serializer creation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }

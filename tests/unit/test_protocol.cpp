@@ -1,12 +1,12 @@
 /**
  * @file test_protocol.cpp
- * @brief Google Test Tests for Protocol Handler Interface
- * 
+ * @brief Catch2 v3 Tests for Protocol Handler Interface
+ *
  * This file contains unit tests for the protocol handler interface
- * using Google Test framework.
+ * using Catch2 v3 framework.
  */
 
-#include <gtest/gtest.h>
+#include <catch2/catch_all.hpp>
 #include <vector>
 #include <cstdint>
 
@@ -17,70 +17,70 @@
 // MESSAGE TESTS
 // =============================================================================
 
-TEST(ProtocolMessage, DefaultConstruction) {
+TEST_CASE("ProtocolMessage DefaultConstruction", "[protocol][message]") {
     // Test default message construction
     // This will be properly implemented when modules are available
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(ProtocolMessage, MessageTypeValidation) {
+TEST_CASE("ProtocolMessage MessageTypeValidation", "[protocol][message]") {
     // Test message type validation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(ProtocolMessage, PayloadHandling) {
+TEST_CASE("ProtocolMessage PayloadHandling", "[protocol][message]") {
     // Test payload handling
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // MESSAGE HEADER TESTS
 // =============================================================================
 
-TEST(MessageHeader, DefaultConstruction) {
+TEST_CASE("MessageHeader DefaultConstruction", "[protocol][header]") {
     // Test default header construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(MessageHeader, Validation) {
+TEST_CASE("MessageHeader Validation", "[protocol][header]") {
     // Test header validation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // PROTOCOL STACK TESTS
 // =============================================================================
 
-TEST(ProtocolStack, Registration) {
+TEST_CASE("ProtocolStack Registration", "[protocol][stack]") {
     // Test protocol handler registration
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(ProtocolStack, Unregistration) {
+TEST_CASE("ProtocolStack Unregistration", "[protocol][stack]") {
     // Test protocol handler unregistration
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(ProtocolStack, StartStop) {
+TEST_CASE("ProtocolStack StartStop", "[protocol][stack]") {
     // Test protocol stack start/stop
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(ProtocolStack, Broadcasting) {
+TEST_CASE("ProtocolStack Broadcasting", "[protocol][stack]") {
     // Test message broadcasting
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // HANDLER CONFIG TESTS
 // =============================================================================
 
-TEST(HandlerConfig, DefaultValues) {
+TEST_CASE("HandlerConfig DefaultValues", "[protocol][config]") {
     // Test default handler configuration
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(HandlerConfig, CustomConfiguration) {
+TEST_CASE("HandlerConfig CustomConfiguration", "[protocol][config]") {
     // Test custom handler configuration
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }

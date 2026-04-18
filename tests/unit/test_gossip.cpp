@@ -1,12 +1,12 @@
 /**
  * @file test_gossip.cpp
- * @brief Google Test Tests for Gossip Protocol
- * 
+ * @brief Catch2 v3 Tests for Gossip Protocol
+ *
  * This file contains unit tests for the P2P gossip protocol
- * using Google Test framework.
+ * using Catch2 v3 framework.
  */
 
-#include <gtest/gtest.h>
+#include <catch2/catch_all.hpp>
 #include <string>
 #include <memory>
 
@@ -14,182 +14,182 @@
 // PEER INFO TESTS
 // =============================================================================
 
-TEST(PeerInfo, DefaultConstruction) {
+TEST_CASE("PeerInfo DefaultConstruction", "[gossip][peer]") {
     // Test default peer info construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(PeerInfo, StateManagement) {
+TEST_CASE("PeerInfo StateManagement", "[gossip][peer]") {
     // Test peer state management
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(PeerInfo, AliveState) {
+TEST_CASE("PeerInfo AliveState", "[gossip][peer]") {
     // Test alive state detection
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(PeerInfo, SuspectedState) {
+TEST_CASE("PeerInfo SuspectedState", "[gossip][peer]") {
     // Test suspected state detection
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(PeerInfo, DeadState) {
+TEST_CASE("PeerInfo DeadState", "[gossip][peer]") {
     // Test dead state detection
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // GOSSIP PAYLOAD TESTS
 // =============================================================================
 
-TEST(GossipPayload, DefaultConstruction) {
+TEST_CASE("GossipPayload DefaultConstruction", "[gossip][payload]") {
     // Test default payload construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipPayload, MessageTypeHandling) {
+TEST_CASE("GossipPayload MessageTypeHandling", "[gossip][payload]") {
     // Test message type handling
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipPayload, PeerListHandling) {
+TEST_CASE("GossipPayload PeerListHandling", "[gossip][payload]") {
     // Test peer list handling
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipPayload, HeartbeatHandling) {
+TEST_CASE("GossipPayload HeartbeatHandling", "[gossip][payload]") {
     // Test heartbeat information handling
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // GOSSIP CONFIGURATION TESTS
 // =============================================================================
 
-TEST(GossipConfig, DefaultValues) {
+TEST_CASE("GossipConfig DefaultValues", "[gossip][config]") {
     // Test default configuration values
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipConfig, CustomConfiguration) {
+TEST_CASE("GossipConfig CustomConfiguration", "[gossip][config]") {
     // Test custom configuration
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // GOSSIP PROTOCOL TESTS
 // =============================================================================
 
-TEST(GossipProtocol, DefaultConstruction) {
+TEST_CASE("GossipProtocol DefaultConstruction", "[gossip][protocol]") {
     // Test default protocol construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, StartStop) {
+TEST_CASE("GossipProtocol StartStop", "[gossip][protocol]") {
     // Test protocol start/stop lifecycle
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, RunningState) {
+TEST_CASE("GossipProtocol RunningState", "[gossip][protocol]") {
     // Test running state detection
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, PeerJoin) {
+TEST_CASE("GossipProtocol PeerJoin", "[gossip][protocol]") {
     // Test peer joining
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, PeerLeave) {
+TEST_CASE("GossipProtocol PeerLeave", "[gossip][protocol]") {
     // Test peer leaving
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, PeerRetrieval) {
+TEST_CASE("GossipProtocol PeerRetrieval", "[gossip][protocol]") {
     // Test peer information retrieval
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, PeerCount) {
+TEST_CASE("GossipProtocol PeerCount", "[gossip][protocol]") {
     // Test peer count
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, MessageSending) {
+TEST_CASE("GossipProtocol MessageSending", "[gossip][protocol]") {
     // Test message sending
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, Broadcasting) {
+TEST_CASE("GossipProtocol Broadcasting", "[gossip][protocol]") {
     // Test message broadcasting
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, Statistics) {
+TEST_CASE("GossipProtocol Statistics", "[gossip][protocol]") {
     // Test statistics collection
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipProtocol, Callbacks) {
+TEST_CASE("GossipProtocol Callbacks", "[gossip][protocol]") {
     // Test callback registration
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // GOSSIP NODE TESTS
 // =============================================================================
 
-TEST(GossipNode, DefaultConstruction) {
+TEST_CASE("GossipNode DefaultConstruction", "[gossip][node]") {
     // Test default node construction
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipNode, StartStop) {
+TEST_CASE("GossipNode StartStop", "[gossip][node]") {
     // Test node start/stop lifecycle
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipNode, JoinLeave) {
+TEST_CASE("GossipNode JoinLeave", "[gossip][node]") {
     // Test node join/leave operations
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipNode, Broadcasting) {
+TEST_CASE("GossipNode Broadcasting", "[gossip][node]") {
     // Test node broadcasting
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipNode, MemberRetrieval) {
+TEST_CASE("GossipNode MemberRetrieval", "[gossip][node]") {
     // Test member information retrieval
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipNode, Statistics) {
+TEST_CASE("GossipNode Statistics", "[gossip][node]") {
     // Test node statistics
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
 // =============================================================================
 // GOSSIP FACTORY TESTS
 // =============================================================================
 
-TEST(GossipFactory, ProtocolCreation) {
+TEST_CASE("GossipFactory ProtocolCreation", "[gossip][factory]") {
     // Test protocol creation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipFactory, NodeCreation) {
+TEST_CASE("GossipFactory NodeCreation", "[gossip][factory]") {
     // Test node creation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipFactory, DefaultConfig) {
+TEST_CASE("GossipFactory DefaultConfig", "[gossip][factory]") {
     // Test default configuration
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }
 
-TEST(GossipFactory, PeerIdGeneration) {
+TEST_CASE("GossipFactory PeerIdGeneration", "[gossip][factory]") {
     // Test peer ID generation
-    EXPECT_TRUE(true);
+    REQUIRE(true);
 }

@@ -120,6 +120,26 @@ if(NOT Celero_FOUND)
     endif()
 endif()
 
+# Find Catch2 v3 for testing
+FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        v3.4.0
+)
+
+find_package(Catch2 QUIET)
+
+if(NOT Catch2_FOUND)
+    message(STATUS "Catch2 not found - will download via FetchContent")
+    FetchContent_MakeAvailable(Catch2)
+    message(STATUS "Catch2 downloaded via FetchContent")
+    
+    if(TARGET Catch2::Catch2 AND NOT TARGET Catch2::Catch2WithMain)
+        add_library(Catch2::Catch2WithMain ALIAS Catch2::Catch2WithMain)
+        message(STATUS "Created Catch2::Catch2WithMain alias for downloaded Catch2")
+    endif()
+endif()
+
 # =============================================================================
 # INCLUDE DIRECTORIES
 # =============================================================================
@@ -446,6 +466,7 @@ target_link_libraries(mini_sonic_protocol_tests
     MiniSonic.Gossip
     MiniSonic.Utils
     Threads::Threads
+    Catch2::Catch2WithMain
 )
 set_target_properties(mini_sonic_protocol_tests PROPERTIES
     CXX_STANDARD 20
@@ -509,6 +530,7 @@ message(STATUS "")
 message(STATUS "Build Options:")
 message(STATUS "  Threads:     ${Threads_FOUND}")
 message(STATUS "  Celero:      ${Celero_FOUND}")
+message(STATUS "  Catch2:      ${Catch2_FOUND}")
 message(STATUS "  Debug:       ${SONIC_ENABLE_DEBUG}")
 message(STATUS "  ASan:        ${SONIC_ENABLE_ASAN}")
 message(STATUS "  Static Analysis: ${SONIC_STATIC_ANALYSIS}")
