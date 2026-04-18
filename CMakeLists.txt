@@ -428,6 +428,42 @@ set_target_properties(mini_sonic_demo PROPERTIES
     C_EXTENSIONS OFF
 )
 
+# 6. Protocol Stack Tests
+enable_testing()
+
+set(PROTOCOL_TEST_SOURCES
+    tests/unit/test_protocol.cpp
+    tests/unit/test_serialization.cpp
+    tests/unit/test_websocket.cpp
+    tests/unit/test_gossip.cpp
+)
+
+add_executable(mini_sonic_protocol_tests ${PROTOCOL_TEST_SOURCES})
+target_link_libraries(mini_sonic_protocol_tests
+    MiniSonic.Protocol
+    MiniSonic.Serialization
+    MiniSonic.WebSocket
+    MiniSonic.Gossip
+    MiniSonic.Utils
+    Threads::Threads
+)
+set_target_properties(mini_sonic_protocol_tests PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+add_test(NAME ProtocolTests COMMAND mini_sonic_protocol_tests)
+
+# 7. Protocol Stack Demo
+add_executable(mini_sonic_protocol_demo demo/protocol_stack_demo.cpp)
+target_link_libraries(mini_sonic_protocol_demo Threads::Threads)
+set_target_properties(mini_sonic_protocol_demo PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
 # =============================================================================
 # INFORMATION
 # =============================================================================
@@ -460,13 +496,15 @@ message(STATUS "C Core Library:")
 message(STATUS "  ✓ mini_switch_core     - C-based SONiC core")
 message(STATUS "")
 message(STATUS "Executables:")
-message(STATUS "  → mini_sonic_modular   - C++20 Modular SONiC")
-message(STATUS "  → mini_sonic_c         - C-based SONiC Core")
+message(STATUS "  → mini_sonic_modular         - C++20 Modular SONiC")
+message(STATUS "  → mini_sonic_c               - C-based SONiC Core")
 if(WIN32)
-message(STATUS "  → mini_sonic_windows   - Windows-specific C demo")
+message(STATUS "  → mini_sonic_windows         - Windows-specific C demo")
 endif()
-message(STATUS "  → mini_sonic_benchmarks - Performance benchmarks")
-message(STATUS "  → mini_sonic_demo      - Real-time data flow demo")
+message(STATUS "  → mini_sonic_benchmarks      - Performance benchmarks")
+message(STATUS "  → mini_sonic_demo            - Real-time data flow demo")
+message(STATUS "  → mini_sonic_protocol_tests  - Protocol stack unit tests")
+message(STATUS "  → mini_sonic_protocol_demo   - Protocol stack demonstration")
 message(STATUS "")
 message(STATUS "Build Options:")
 message(STATUS "  Threads:     ${Threads_FOUND}")
