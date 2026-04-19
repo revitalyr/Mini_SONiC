@@ -52,17 +52,13 @@
 // Include semantic type aliases
 #include "semantic_types.h"
 
+// Include constants
+#include "constants.h"
+
 // Use only kernel headers to avoid conflicts (Linux only)
 #ifndef _WIN32
 #include <linux/if.h>
 #endif
-
-#define BUFFER_SIZE 2048
-#define MAX_PORTS 8
-#define MAC_TABLE_SIZE 1024
-#define ARP_TABLE_SIZE 256
-#define VLAN_TABLE_SIZE 64
-#define RING_SIZE 1024
 
 typedef struct {
     Byte data[BUFFER_SIZE];

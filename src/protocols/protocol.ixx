@@ -16,6 +16,7 @@ module;
 export module MiniSonic.Protocol;
 
 import MiniSonic.Utils;
+import MiniSonic.Constants;
 
 using std::string;
 using std::function;
@@ -137,7 +138,7 @@ public:
  */
 struct HandlerConfig {
     Types::PortId listen_port{0};  // semantic alias
-    string bind_address{"0.0.0.0"};
+    string bind_address{Constants::DEFAULT_BIND_ADDRESS};
     size_t max_connections{100};
     Types::BufferLength buffer_size{4096};  // semantic alias
     bool enable_compression{false};

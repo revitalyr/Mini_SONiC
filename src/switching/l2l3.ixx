@@ -26,6 +26,9 @@ import MiniSonic.SAI;
 // Import Utils module for Types namespace
 import MiniSonic.Utils;
 
+// Import Constants module
+import MiniSonic.Constants;
+
 export namespace MiniSonic::L2 {
 
 // Using declarations for standard library types
@@ -62,7 +65,7 @@ private:
     unordered_map<Types::MacAddress, MacEntry> m_fdb;
     mutable mutex m_fdb_mutex;
 
-    static constexpr chrono::seconds MAC_AGE_TIMEOUT{300}; // 5 minutes
+    static constexpr chrono::seconds MAC_AGE_TIMEOUT{Constants::MAC_AGE_TIMEOUT_SEC}; // 5 minutes
 
     void learn(const Types::MacAddress& mac, Types::PortId port);  // semantic alias
     void cleanupOldEntries();

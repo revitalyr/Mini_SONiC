@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "common.h"
 
-#define MAC_TIMEOUT 300
+// MAC_TIMEOUT is now defined in constants.h
 
 typedef struct {
     MacAddress mac;

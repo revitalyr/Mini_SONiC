@@ -299,12 +299,7 @@ SwitchStatus_t SwitchCore_PeriodicMaintenance(SwitchContext_t *ctx);
 
 /* ── Event Flags ───────────────────────────────────────── */
 
-#define SWITCH_EVENT_PACKET_RECEIVED    (1U << 0)
-#define SWITCH_EVENT_PACKET_SENT        (1U << 1)
-#define SWITCH_EVENT_LINK_UP            (1U << 2)
-#define SWITCH_EVENT_LINK_DOWN          (1U << 3)
-#define SWITCH_EVENT_ERROR              (1U << 4)
-#define SWITCH_EVENT_MAINTENANCE        (1U << 5)
+// Switch event flags are now defined in constants.h
 
 /* ── Compile-time Assertions ───────────────────────────── */
 

@@ -10,10 +10,6 @@ struct eth_hdr {
 } PACKED_STRUCT;
 END_PACKED_STRUCT
 
-#define ETH_P_ARP 0x0806
-#define ETH_P_IP 0x0800
-#define ETH_P_8021Q 0x8100
-
 void print_mac(const uint8_t *mac);
 int is_broadcast(const uint8_t *mac);
 int is_multicast(const uint8_t *mac);

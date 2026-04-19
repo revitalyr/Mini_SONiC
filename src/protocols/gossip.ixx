@@ -25,6 +25,7 @@ export module MiniSonic.Gossip;
 
 import MiniSonic.Protocol;
 import MiniSonic.Utils;
+import MiniSonic.Constants;
 
 using std::string;
 using std::function;
@@ -119,22 +120,22 @@ struct GossipPayload {
  * @brief Gossip protocol configuration
  */
 struct GossipConfig {
-    Types::PortId listen_port{7946};  // Default gossip port (semantic alias)
-    string bind_address{"0.0.0.0"};
+    Types::PortId listen_port{Constants::DEFAULT_GOSSIP_PORT};  // semantic alias
+    string bind_address{Constants::DEFAULT_BIND_ADDRESS};
 
     // Gossip parameters
-    uint32_t gossip_interval_ms{1000};  // Gossip every 1 second
-    uint32_t gossip_fanout{3};  // Send to 3 random peers
-    uint32_t suspicion_timeout_ms{5000};  // 5 seconds to suspect
-    uint32_t dead_timeout_ms{30000};  // 30 seconds to declare dead
+    uint32_t gossip_interval_ms{Constants::DEFAULT_GOSSIP_INTERVAL_MS};
+    uint32_t gossip_fanout{Constants::DEFAULT_GOSSIP_FANOUT};
+    uint32_t suspicion_timeout_ms{Constants::DEFAULT_SUSPICION_TIMEOUT_MS};
+    uint32_t dead_timeout_ms{Constants::DEFAULT_DEAD_TIMEOUT_MS};
 
     // Failure detection
-    uint32_t ping_interval_ms{1000};
-    uint32_t ping_timeout_ms{500};
-    uint32_t ping_retries{3};
+    uint32_t ping_interval_ms{Constants::DEFAULT_PING_INTERVAL_MS};
+    uint32_t ping_timeout_ms{Constants::DEFAULT_PING_TIMEOUT_MS};
+    uint32_t ping_retries{Constants::DEFAULT_PING_RETRIES};
 
     // Membership
-    size_t max_peers{100};
+    size_t max_peers{Constants::DEFAULT_MAX_PEERS};
     bool enable_auto_discovery{true};
 };
 
@@ -164,8 +165,8 @@ public:
     
     void setMessageHandler(MessageCallback handler) override;
     void setErrorHandler(ErrorCallback handler) override;
-    
-    [[nodiscard]] string protocolName() const override { return "Gossip"; }
+
+    [[nodiscard]] string protocolName() const override { return Constants::PROTOCOL_NAME_GOSSIP; }
     [[nodiscard]] string getStats() const override;
     
     // Gossip-specific methods

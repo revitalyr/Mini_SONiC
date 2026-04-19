@@ -178,6 +178,19 @@ include_directories(src)
 # C++20 MODULES (MiniSonic Modular System)
 # =============================================================================
 
+# Module: MiniSonic.Constants
+add_library(MiniSonic.Constants STATIC)
+target_sources(MiniSonic.Constants
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/core/constants.ixx
+)
+target_include_directories(MiniSonic.Constants PUBLIC src)
+set_target_properties(MiniSonic.Constants PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
 # Module: MiniSonic.Utils
 add_library(MiniSonic.Utils STATIC)
 target_sources(MiniSonic.Utils
@@ -187,6 +200,7 @@ target_sources(MiniSonic.Utils
         src/core/utils.cpp
 )
 target_include_directories(MiniSonic.Utils PUBLIC src)
+target_link_libraries(MiniSonic.Utils MiniSonic.Constants)
 set_target_properties(MiniSonic.Utils PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
@@ -234,7 +248,7 @@ target_sources(MiniSonic.L2L3
         src/switching/l2l3.cpp
 )
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
-target_link_libraries(MiniSonic.L2L3 MiniSonic.DataPlane MiniSonic.Utils)
+target_link_libraries(MiniSonic.L2L3 MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Constants)
 set_target_properties(MiniSonic.L2L3 PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
@@ -267,7 +281,7 @@ target_sources(MiniSonic.Protocol
         src/protocols/protocol.cpp
 )
 target_include_directories(MiniSonic.Protocol PUBLIC src)
-target_link_libraries(MiniSonic.Protocol MiniSonic.Utils)
+target_link_libraries(MiniSonic.Protocol MiniSonic.Utils MiniSonic.Constants)
 set_target_properties(MiniSonic.Protocol PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
@@ -318,7 +332,7 @@ target_sources(MiniSonic.Gossip
 )
 target_include_directories(MiniSonic.Gossip PUBLIC src)
 target_include_directories(MiniSonic.Gossip PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(MiniSonic.Gossip MiniSonic.Protocol MiniSonic.Utils Threads::Threads ${Boost_LIBRARIES})
+target_link_libraries(MiniSonic.Gossip MiniSonic.Protocol MiniSonic.Utils MiniSonic.Constants Threads::Threads ${Boost_LIBRARIES})
 set_target_properties(MiniSonic.Gossip PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
