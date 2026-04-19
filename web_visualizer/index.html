@@ -475,18 +475,17 @@
                 const switchId = event.switch_id;
                 const packetId = event.packet_id;
                 const ingressPort = event.ingress_port;
-                
+
                 this.logEvent('PacketEnteredSwitch', `Packet ${packetId} entered ${switchId} on ${ingressPort}`, 'switch');
-                
+
                 // Highlight switch
                 if (this.switches.has(switchId)) {
                     const sw = this.switches.get(switchId);
                     sw.active = true;
                     setTimeout(() => sw.active = false, 500);
                 }
-                
-                // Create animated packet
-                this.createPacketAnimation(packetId, switchId);
+
+                // Don't create internal animation - only animate when packet exits switch
             }
 
             handlePacketForwardDecision(event) {
@@ -509,30 +508,41 @@
                 const switchId = event.switch_id;
                 const packetId = event.packet_id;
                 const egressPort = event.egress_port;
-                
-                this.logEvent('PacketExitedSwitch', `Packet ${packetId} exited ${switchId} via ${egressPort}`, 'switch');
+                const nextHop = event.next_hop;
+
+                this.logEvent('PacketExitedSwitch', `Packet ${packetId} exited ${switchId} via ${egressPort} to ${nextHop}`, 'switch');
+
+                // Animate packet moving along link to next switch
+                if (this.switches.has(switchId) && this.switches.has(nextHop)) {
+                    const fromSwitch = this.switches.get(switchId);
+                    const toSwitch = this.switches.get(nextHop);
+                    this.createLinkAnimation(packetId, fromSwitch, toSwitch);
+                }
             }
 
             handlePortStateChanged(event) {
                 const switchId = event.switch_id;
                 const port = event.port;
                 const state = event.state;
-                
+
                 this.logEvent('PortStateChanged', `Port ${port} on ${switchId} changed to ${state}`, 'switch');
             }
 
-            createPacketAnimation(packetId, switchId) {
-                if (!this.switches.has(switchId)) return;
-                
-                const sw = this.switches.get(switchId);
+            createLinkAnimation(packetId, fromSwitch, toSwitch) {
+                // Calculate center points of switches
+                const fromX = fromSwitch.x + fromSwitch.width / 2;
+                const fromY = fromSwitch.y + fromSwitch.height / 2;
+                const toX = toSwitch.x + toSwitch.width / 2;
+                const toY = toSwitch.y + toSwitch.height / 2;
+
                 this.activePackets.push({
                     id: packetId,
-                    x: sw.x,
-                    y: sw.y,
-                    targetX: sw.x + sw.width,
-                    targetY: sw.y + sw.height,
+                    x: fromX,
+                    y: fromY,
+                    targetX: toX,
+                    targetY: toY,
                     progress: 0,
-                    speed: 0.02
+                    speed: 0.005 // Slower animation
                 });
             }
 
@@ -615,13 +625,13 @@
                 this.activePackets.forEach(packet => {
                     ctx.fillStyle = '#76ff03';
                     ctx.beginPath();
-                    ctx.arc(packet.x, packet.y, 8, 0, Math.PI * 2);
+                    ctx.arc(packet.x, packet.y, 15, 0, Math.PI * 2);
                     ctx.fill();
-                    
+
                     // Draw packet ID
                     ctx.fillStyle = 'white';
-                    ctx.font = '9px Segoe UI';
-                    ctx.fillText(packet.id, packet.x + 10, packet.y + 3);
+                    ctx.font = '11px Segoe UI';
+                    ctx.fillText(packet.id, packet.x + 18, packet.y + 4);
                 });
                 
                 document.getElementById('switchCount').textContent = this.switches.size;

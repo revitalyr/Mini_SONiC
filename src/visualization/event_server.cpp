@@ -138,7 +138,7 @@ public:
         m_test_timer_thread = std::thread([this]() {
             while (m_running.load()) {
                 int speed = getSpeed();
-                int delay = std::max(1, 3 / speed); // Adjust delay based on speed
+                int delay = std::max(2, 10 / speed); // Adjust delay based on speed (10s base)
                 std::this_thread::sleep_for(std::chrono::seconds(delay));
                 if (!m_sessions.empty()) {
                     sendTestEvent();
@@ -298,6 +298,18 @@ private:
         packet_forward["egress_port"] = "eth1";
         packet_forward["next_hop"] = next_switch;
         handleJsonEvent(packet_forward);
+
+        // Send PacketExitedSwitch event (triggers packet movement along link)
+        nlohmann::json packet_exited;
+        packet_exited["type"] = "PacketExitedSwitch";
+        packet_exited["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()
+        ).count();
+        packet_exited["switch_id"] = current_switch;
+        packet_exited["packet_id"] = "TEST-" + std::to_string(packet_counter);
+        packet_exited["egress_port"] = "eth1";
+        packet_exited["next_hop"] = next_switch;
+        handleJsonEvent(packet_exited);
     }
 
     void handleEvent(const std::shared_ptr<Events::Event>& event) {
