@@ -29,6 +29,9 @@ import MiniSonic.SAI;
 // Import Utils module for Types namespace
 import MiniSonic.Utils;
 
+// Import Events module for visualization events
+import MiniSonic.Events;
+
 export namespace MiniSonic::DataPlane {
 
 // Using declarations for standard library types
@@ -57,12 +60,13 @@ public:
     Types::IpAddress m_src_ip;
     Types::IpAddress m_dst_ip;
     Types::PortId m_ingress_port;  // semantic alias
+    uint64_t m_id;  // Unique packet ID for visualization
 
     // Timestamp for latency measurement
     chrono::high_resolution_clock::time_point timestamp;
 
     // Default constructor
-    Packet() = default;
+    Packet() : m_id(0) {}
 
     // Parameterized constructor
     Packet(
@@ -70,12 +74,14 @@ public:
         Types::MacAddress dst_mac,
         Types::IpAddress src_ip,
         Types::IpAddress dst_ip,
-        Types::PortId ingress_port  // semantic alias
+        Types::PortId ingress_port,  // semantic alias
+        uint64_t id = 0
     ) : m_src_mac(std::move(src_mac)),
         m_dst_mac(std::move(dst_mac)),
         m_src_ip(std::move(src_ip)),
         m_dst_ip(std::move(dst_ip)),
         m_ingress_port(ingress_port),
+        m_id(id),
         timestamp(chrono::high_resolution_clock::now()) {}
 
     // Move constructor
@@ -99,6 +105,7 @@ public:
     [[nodiscard]] const Types::IpAddress& srcIp() const noexcept { return m_src_ip; }
     [[nodiscard]] const Types::IpAddress& dstIp() const noexcept { return m_dst_ip; }
     [[nodiscard]] Types::PortId ingressPort() const noexcept { return m_ingress_port; }  // semantic alias
+    [[nodiscard]] uint64_t id() const noexcept { return m_id; }
 
     // Setters
     void setSrcMac(Types::MacAddress mac) { m_src_mac = std::move(mac); }
@@ -106,10 +113,43 @@ public:
     void setSrcIp(Types::IpAddress ip) { m_src_ip = std::move(ip); }
     void setDstIp(Types::IpAddress ip) { m_dst_ip = std::move(ip); }
     void setIngressPort(Types::PortId port) { m_ingress_port = port; }  // semantic alias
+    void setId(uint64_t id) { m_id = id; }
 
     // Update timestamp
     void updateTimestamp() noexcept {
         timestamp = chrono::high_resolution_clock::now();
+    }
+
+    // Convert to PacketInfo for event serialization
+    [[nodiscard]] Events::PacketInfo toPacketInfo() const {
+        return Events::PacketInfo{
+            .id = m_id,
+            .src_mac = formatMac(m_src_mac),
+            .dst_mac = formatMac(m_dst_mac),
+            .src_ip = formatIp(m_src_ip),
+            .dst_ip = formatIp(m_dst_ip),
+            .src_port = 0,  // Would need L4 header
+            .dst_port = 0,
+            .protocol = "IPv4",
+            .dscp = 0,
+            .ttl = 64
+        };
+    }
+
+private:
+    static string formatMac(Types::MacAddress mac) {
+        char buf[18];
+        snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
+                 (mac >> 40) & 0xFF, (mac >> 32) & 0xFF, (mac >> 24) & 0xFF,
+                 (mac >> 16) & 0xFF, (mac >> 8) & 0xFF, mac & 0xFF);
+        return string(buf);
+    }
+
+    static string formatIp(Types::IpAddress ip) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%u.%u.%u.%u",
+                 (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
+        return string(buf);
     }
 
     // C++23: Get packet as span for efficient data access
@@ -128,7 +168,7 @@ public:
  */
 export class Pipeline {
 public:
-    explicit Pipeline(SAI::SaiInterface& sai);
+    explicit Pipeline(SAI::SaiInterface& sai, const string& switch_id = "SWITCH0");
     ~Pipeline() = default;
 
     /**
@@ -148,8 +188,21 @@ public:
      */
     [[nodiscard]] string getStats() const;
 
+    /**
+     * @brief Set switch ID for event emission
+     */
+    void setSwitchId(const string& switch_id) { m_switch_id = switch_id; }
+
+    /**
+     * @brief Get switch ID
+     */
+    [[nodiscard]] string switchId() const { return m_switch_id; }
+
 private:
     SAI::SaiInterface& m_sai;
+    string m_switch_id;
+    Events::EventBus& m_event_bus;
+    std::atomic<uint64_t> m_packet_counter{0};
 };
 
 /**

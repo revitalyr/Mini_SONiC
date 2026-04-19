@@ -29,6 +29,9 @@ import MiniSonic.Utils;
 // Import Constants module
 import MiniSonic.Constants;
 
+// Import Events module for visualization events
+import MiniSonic.Events;
+
 export namespace MiniSonic::L2 {
 
 // Using declarations for standard library types
@@ -46,12 +49,17 @@ namespace chrono = std::chrono;
  */
 export class L2Service {
 public:
-    explicit L2Service(SAI::SaiInterface& sai);
+    explicit L2Service(SAI::SaiInterface& sai, const std::string& switch_id = "SWITCH0");
     ~L2Service() = default;
 
     // Public interface
     bool handle(MiniSonic::DataPlane::Packet& pkt);
     std::string getStats() const;
+
+    /**
+     * @brief Set switch ID for event emission
+     */
+    void setSwitchId(const std::string& switch_id) { m_switch_id = switch_id; }
 
 private:
     struct MacEntry {
@@ -62,6 +70,8 @@ private:
     };
 
     SAI::SaiInterface& m_sai;
+    std::string m_switch_id;
+    Events::EventBus& m_event_bus;
     unordered_map<Types::MacAddress, MacEntry> m_fdb;
     mutable mutex m_fdb_mutex;
 
@@ -116,7 +126,7 @@ private:
  */
 export class L3Service {
 public:
-    explicit L3Service(SAI::SaiInterface& sai);
+    explicit L3Service(SAI::SaiInterface& sai, const std::string& switch_id = "SWITCH0");
     ~L3Service() = default;
 
     // Public interface
@@ -125,8 +135,15 @@ public:
     bool removeRoute(const std::string& network, int prefix_len);
     std::string getStats() const;
 
+    /**
+     * @brief Set switch ID for event emission
+     */
+    void setSwitchId(const std::string& switch_id) { m_switch_id = switch_id; }
+
 private:
     SAI::SaiInterface& m_sai;
+    std::string m_switch_id;
+    Events::EventBus& m_event_bus;
     LpmTrie m_routing_table;
     unordered_map<std::string, std::string> m_routes; // network -> next_hop
     mutable mutex m_routes_mutex;

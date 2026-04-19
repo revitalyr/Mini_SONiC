@@ -17,10 +17,16 @@ module MiniSonic.L2L3;
 // Import Packet type from DataPlane module
 using MiniSonic::DataPlane::Packet;
 
+// Import Events module
+import MiniSonic.Events;
+
 namespace MiniSonic::L2 {
 // L2Service Implementation
-L2Service::L2Service(SAI::SaiInterface& sai) : m_sai(sai) {
-    std::cout << "[L2] Initializing L2 service\n";
+L2Service::L2Service(SAI::SaiInterface& sai, const std::string& switch_id)
+    : m_sai(sai),
+      m_switch_id(switch_id),
+      m_event_bus(Events::getGlobalEventBus()) {
+    std::cout << "[L2] Initializing L2 service for " << m_switch_id << "\n";
 }
 
 bool L2Service::handle(Packet& pkt) {
@@ -227,9 +233,12 @@ std::vector<bool> LpmTrie::ipToBinary(const std::string& ip) {
 }
 
 // L3Service Implementation
-L3Service::L3Service(SAI::SaiInterface& sai) : m_sai(sai) {
-    std::cout << "[L3] Initializing L3 service\n";
-    
+L3Service::L3Service(SAI::SaiInterface& sai, const std::string& switch_id)
+    : m_sai(sai),
+      m_switch_id(switch_id),
+      m_event_bus(Events::getGlobalEventBus()) {
+    std::cout << "[L3] Initializing L3 service for " << m_switch_id << "\n";
+
     // Add default route
     addRoute("0.0.0.0", 0, "192.168.1.1");
 }

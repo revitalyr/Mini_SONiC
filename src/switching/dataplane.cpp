@@ -13,20 +13,92 @@ module MiniSonic.DataPlane;
 
 // Import local modules
 import MiniSonic.SAI;
+import MiniSonic.Events;
 
 namespace MiniSonic::DataPlane {
 
 // Pipeline Implementation
-Pipeline::Pipeline(SAI::SaiInterface& sai) : m_sai(sai) {
+Pipeline::Pipeline(SAI::SaiInterface& sai, const string& switch_id)
+    : m_sai(sai),
+      m_switch_id(switch_id),
+      m_event_bus(Events::getGlobalEventBus()) {
 }
 
 void Pipeline::process(Packet& pkt) {
+    // Assign packet ID if not set
+    if (pkt.id() == 0) {
+        pkt.setId(m_packet_counter.fetch_add(1) + 1);
+    }
+
+    // Emit PacketEnteredSwitch event
+    auto entered_event = std::make_shared<Events::PacketEnteredSwitch>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count(),
+        m_switch_id,
+        pkt.id(),
+        "Eth" + std::to_string(pkt.ingressPort())
+    );
+    m_event_bus.publish(entered_event);
+
+    // Emit PipelineStageEntered event for Parser
+    auto parser_entered = std::make_shared<Events::PipelineStageEntered>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count(),
+        m_switch_id,
+        pkt.id(),
+        "Parser"
+    );
+    m_event_bus.publish(parser_entered);
+
     // Stub implementation - actual processing would go here
-    (void)pkt;
+    // This would include L2 lookup, L3 lookup, ACL check, QoS classification, etc.
+
+    // Emit PipelineStageExited event for Parser
+    auto parser_exited = std::make_shared<Events::PipelineStageExited>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count(),
+        m_switch_id,
+        pkt.id(),
+        "Parser",
+        100  // 100ns latency
+    );
+    m_event_bus.publish(parser_exited);
+
+    // Emit PacketForwardDecision event
+    auto forward_event = std::make_shared<Events::PacketForwardDecision>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count(),
+        m_switch_id,
+        pkt.id(),
+        "Eth1",
+        "0.0.0.0/0",
+        "0x1234",
+        "SWITCH1"
+    );
+    m_event_bus.publish(forward_event);
+
+    // Emit PacketExitedSwitch event
+    auto exited_event = std::make_shared<Events::PacketExitedSwitch>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count(),
+        m_switch_id,
+        pkt.id(),
+        "Eth1"
+    );
+    m_event_bus.publish(exited_event);
 }
 
 std::string Pipeline::getStats() const {
-    return "Pipeline stats: Not implemented";
+    std::ostringstream oss;
+    oss << "Pipeline stats:\n"
+       << "  Switch ID: " << m_switch_id << "\n"
+       << "  Packets processed: " << m_packet_counter.load() << "\n";
+    return oss.str();
 }
 
 // PipelineThread Implementation

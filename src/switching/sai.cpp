@@ -13,16 +13,21 @@ module;
 
 module MiniSonic.SAI;
 
+// Import Events module
+import MiniSonic.Events;
+
 namespace MiniSonic::SAI {
 // SimulatedSai Implementation
-SimulatedSai::SimulatedSai() {
-    std::cout << "[SAI] Initializing simulated SAI\n";
-    
+SimulatedSai::SimulatedSai(const std::string& switch_id)
+    : m_switch_id(switch_id),
+      m_event_bus(Events::getGlobalEventBus()) {
+    std::cout << "[SAI] Initializing simulated SAI for " << m_switch_id << "\n";
+
     // Create default ports
     for (Types::Port i = 1; i <= 24; ++i) {
         createPort(i);
     }
-    
+
     std::cout << "[SAI] Created " << m_ports.size() << " default ports\n";
 }
 
@@ -70,9 +75,19 @@ bool SimulatedSai::setPortState(Types::Port port_id, bool admin_state) {
     
     it->second.admin_state = admin_state;
     updateOperState(port_id);
-    
-    // std::cout << "[SAI] Set port " << port_id << " admin state to " 
-    //           << (admin_state ? "up" : "down") << "\n";
+
+    // Emit PortStateChanged event
+    auto port_event = std::make_shared<Events::PortStateChanged>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()
+        ).count(),
+        m_switch_id,
+        "Eth" + std::to_string(port_id),
+        admin_state ? "UP" : "DOWN"
+    );
+    m_event_bus.publish(port_event);
+
+    // std::cout << "[SAI] Set port " << port_id << " admin state to " << (admin_state ? "UP" : "DOWN") << "\n";
     return true;
 }
 

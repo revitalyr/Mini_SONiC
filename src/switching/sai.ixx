@@ -20,6 +20,9 @@ export module MiniSonic.SAI;
 // Import Utils module for Types namespace
 import MiniSonic.Utils;
 
+// Import Events module for visualization events
+import MiniSonic.Events;
+
 export namespace MiniSonic::SAI {
 
 // Using declarations for standard library types
@@ -55,7 +58,7 @@ public:
  */
 export class SimulatedSai : public SaiInterface {
 public:
-    SimulatedSai();
+    SimulatedSai(const std::string& switch_id = "SWITCH0");
     ~SimulatedSai() override = default;
 
     // SaiInterface implementation
@@ -66,6 +69,11 @@ public:
     vector<Types::PortId> getPortList() const override;  // semantic alias
     string getStats() const override;
 
+    /**
+     * @brief Set switch ID for event emission
+     */
+    void setSwitchId(const std::string& switch_id) { m_switch_id = switch_id; }
+
 private:
     struct PortInfo {
         bool admin_state = false;
@@ -75,6 +83,8 @@ private:
         Types::PacketCount packets_out = 0;  // semantic alias
     };
 
+    std::string m_switch_id;
+    Events::EventBus& m_event_bus;
     unordered_map<Types::PortId, PortInfo> m_ports;  // semantic alias
     mutable mutex m_ports_mutex;
 

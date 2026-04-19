@@ -161,11 +161,34 @@ if(NOT Catch2_FOUND)
     message(STATUS "Catch2 not found - will download via FetchContent")
     FetchContent_MakeAvailable(Catch2)
     message(STATUS "Catch2 downloaded via FetchContent")
-    
+
     if(TARGET Catch2::Catch2 AND NOT TARGET Catch2::Catch2WithMain)
         add_library(Catch2::Catch2WithMain ALIAS Catch2::Catch2WithMain)
         message(STATUS "Created Catch2::Catch2WithMain alias for downloaded Catch2")
     endif()
+endif()
+
+# Find nlohmann/json for event serialization
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+)
+
+find_package(nlohmann_json QUIET)
+
+if(NOT nlohmann_json_FOUND)
+    message(STATUS "nlohmann/json not found - will download via FetchContent")
+    FetchContent_MakeAvailable(nlohmann_json)
+    message(STATUS "nlohmann/json downloaded via FetchContent")
+endif()
+
+# Find Qt6 for visualizer
+find_package(Qt6 QUIET COMPONENTS Core Network Widgets)
+if(Qt6_FOUND)
+    message(STATUS "Qt6 found - visualizer components will be built")
+else()
+    message(STATUS "Qt6 not found - visualizer components will not be built")
 endif()
 
 # =============================================================================
@@ -191,6 +214,20 @@ set_target_properties(MiniSonic.Constants PROPERTIES
     CXX_EXTENSIONS OFF
 )
 
+# Module: MiniSonic.Events
+add_library(MiniSonic.Events STATIC)
+target_sources(MiniSonic.Events
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/core/events.ixx
+)
+target_include_directories(MiniSonic.Events PUBLIC src)
+target_link_libraries(MiniSonic.Events nlohmann_json::nlohmann_json)
+set_target_properties(MiniSonic.Events PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
 # Module: MiniSonic.Utils
 add_library(MiniSonic.Utils STATIC)
 target_sources(MiniSonic.Utils
@@ -200,7 +237,7 @@ target_sources(MiniSonic.Utils
         src/core/utils.cpp
 )
 target_include_directories(MiniSonic.Utils PUBLIC src)
-target_link_libraries(MiniSonic.Utils MiniSonic.Constants)
+target_link_libraries(MiniSonic.Utils MiniSonic.Constants MiniSonic.Events)
 set_target_properties(MiniSonic.Utils PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
@@ -216,7 +253,7 @@ target_sources(MiniSonic.SAI
         src/switching/sai.cpp
 )
 target_include_directories(MiniSonic.SAI PUBLIC src)
-target_link_libraries(MiniSonic.SAI MiniSonic.Utils)
+target_link_libraries(MiniSonic.SAI MiniSonic.Utils MiniSonic.Events)
 set_target_properties(MiniSonic.SAI PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
@@ -232,7 +269,7 @@ target_sources(MiniSonic.DataPlane
         src/switching/dataplane.cpp
 )
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking)
+target_link_libraries(MiniSonic.DataPlane MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Events)
 set_target_properties(MiniSonic.DataPlane PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
@@ -248,7 +285,7 @@ target_sources(MiniSonic.L2L3
         src/switching/l2l3.cpp
 )
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
-target_link_libraries(MiniSonic.L2L3 MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Constants)
+target_link_libraries(MiniSonic.L2L3 MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Constants MiniSonic.Events)
 set_target_properties(MiniSonic.L2L3 PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
@@ -521,6 +558,32 @@ set_target_properties(mini_sonic_protocol_demo PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
+
+# =============================================================================
+# VISUALIZATION COMPONENTS
+# =============================================================================
+
+# Qt6 Visualizer (only if Qt6 is found)
+if(Qt6_FOUND)
+    add_executable(mini_sonic_qt_visualizer src/visualization/qt_visualizer.cpp)
+    target_link_libraries(mini_sonic_qt_visualizer Qt6::Core Qt6::Network Qt6::Widgets)
+    set_target_properties(mini_sonic_qt_visualizer PROPERTIES
+        CXX_STANDARD 23
+        CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
+    )
+    message(STATUS "  ✓ mini_sonic_qt_visualizer - Qt6 visualizer application")
+endif()
+
+# Event Server (standalone WebSocket server for event streaming)
+add_executable(mini_sonic_event_server src/visualization/event_server.cpp)
+target_link_libraries(mini_sonic_event_server MiniSonic.Events nlohmann_json::nlohmann_json)
+set_target_properties(mini_sonic_event_server PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+message(STATUS "  ✓ mini_sonic_event_server - WebSocket event streaming server")
 
 # =============================================================================
 # INFORMATION

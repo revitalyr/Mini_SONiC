@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini_SONiC Network Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #4fc3f7;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #4fc3f7;
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            background: #29b6f6;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #ef5350;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53935;
+        }
+
+        .status {
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .status.connected {
+            background: #66bb6a;
+            color: white;
+        }
+
+        .status.disconnected {
+            background: #ef5350;
+            color: white;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .visualization-panel {
+            flex: 2;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        #networkCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .event-panel {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            max-width: 400px;
+        }
+
+        .event-header {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .event-header h2 {
+            font-size: 18px;
+            color: #4fc3f7;
+        }
+
+        .event-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .event-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            border-left: 3px solid #4fc3f7;
+            font-size: 13px;
+        }
+
+        .event-item.packet {
+            border-left-color: #66bb6a;
+        }
+
+        .event-item.switch {
+            border-left-color: #4fc3f7;
+        }
+
+        .event-item.error {
+            border-left-color: #ef5350;
+        }
+
+        .event-time {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .event-type {
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+
+        .event-details {
+            color: #b0b0b0;
+            margin-top: 3px;
+        }
+
+        /* Packet card styling */
+        .packet-card {
+            position: absolute;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .packet-card .packet-id {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .packet-card .packet-info {
+            font-size: 10px;
+            opacity: 0.9;
+        }
+
+        /* Switch node styling (rendered on canvas) */
+        .switch-node {
+            fill: #1976d2;
+            stroke: #4fc3f7;
+            stroke-width: 2;
+        }
+
+        .switch-node.active {
+            fill: #66bb6a;
+            stroke: #81c784;
+        }
+
+        .switch-label {
+            fill: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .link-line {
+            stroke: #555;
+            stroke-width: 2;
+        }
+
+        .link-line.active {
+            stroke: #66bb6a;
+            stroke-width: 3;
+        }
+
+        /* Statistics panel */
+        .stats-panel {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .stat-value {
+            color: #4fc3f7;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Mini_SONiC Network Visualizer</h1>
+        <div class="controls">
+            <button id="connectBtn" class="btn btn-primary">Connect</button>
+            <button id="disconnectBtn" class="btn btn-danger">Disconnect</button>
+            <span id="connectionStatus" class="status disconnected">Disconnected</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="visualization-panel">
+            <canvas id="networkCanvas"></canvas>
+        </div>
+
+        <div class="event-panel">
+            <div class="event-header">
+                <h2>Event Log</h2>
+            </div>
+            <div id="eventList" class="event-list">
+                <div class="event-item">
+                    <div class="event-time">--:--:--</div>
+                    <div class="event-type">System</div>
+                    <div class="event-details">Visualizer initialized. Click Connect to start.</div>
+                </div>
+            </div>
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <span class="stat-label">Events Received:</span>
+                    <span id="eventCount" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Packets Processed:</span>
+                    <span id="packetCount" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Active Switches:</span>
+                    <span id="switchCount" class="stat-value">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NetworkVisualizer {
+            constructor() {
+                this.canvas = document.getElementById('networkCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.eventList = document.getElementById('eventList');
+                this.connectBtn = document.getElementById('connectBtn');
+                this.disconnectBtn = document.getElementById('disconnectBtn');
+                this.connectionStatus = document.getElementById('connectionStatus');
+                
+                this.ws = null;
+                this.connected = false;
+                this.eventCount = 0;
+                this.packetCount = 0;
+                
+                this.switches = new Map();
+                this.links = [];
+                this.packets = new Map();
+                this.activePackets = [];
+                
+                this.initTopology();
+                this.resizeCanvas();
+                this.setupEventListeners();
+                this.startAnimation();
+            }
+
+            initTopology() {
+                // Initialize network topology
+                this.switches.set('TOR1', { x: 100, y: 200, width: 120, height: 80, name: 'TOR1', role: 'Top-of-Rack', active: false });
+                this.switches.set('Spine1', { x: 400, y: 100, width: 120, height: 80, name: 'Spine1', role: 'Spine', active: false });
+                this.switches.set('Spine2', { x: 400, y: 300, width: 120, height: 80, name: 'Spine2', role: 'Spine', active: false });
+                this.switches.set('TOR2', { x: 700, y: 200, width: 120, height: 80, name: 'TOR2', role: 'Top-of-Rack', active: false });
+                
+                this.links = [
+                    { from: 'TOR1', to: 'Spine1', active: false },
+                    { from: 'TOR1', to: 'Spine2', active: false },
+                    { from: 'Spine1', to: 'TOR2', active: false },
+                    { from: 'Spine2', to: 'TOR2', active: false }
+                ];
+            }
+
+            resizeCanvas() {
+                const container = this.canvas.parentElement;
+                this.canvas.width = container.clientWidth;
+                this.canvas.height = container.clientHeight;
+                this.draw();
+            }
+
+            setupEventListeners() {
+                this.connectBtn.addEventListener('click', () => this.connect());
+                this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+
+            connect() {
+                if (this.connected) return;
+                
+                try {
+                    this.ws = new WebSocket('ws://127.0.0.1:8080');
+                    
+                    this.ws.onopen = () => {
+                        this.connected = true;
+                        this.connectionStatus.textContent = 'Connected';
+                        this.connectionStatus.className = 'status connected';
+                        this.connectBtn.disabled = true;
+                        this.disconnectBtn.disabled = false;
+                        this.logEvent('System', 'Connected to event stream');
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        this.handleEvent(JSON.parse(event.data));
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        this.logEvent('Error', 'WebSocket error: ' + error.message, 'error');
+                    };
+                    
+                    this.ws.onclose = () => {
+                        this.connected = false;
+                        this.connectionStatus.textContent = 'Disconnected';
+                        this.connectionStatus.className = 'status disconnected';
+                        this.connectBtn.disabled = false;
+                        this.disconnectBtn.disabled = true;
+                        this.logEvent('System', 'Disconnected from event stream');
+                    };
+                } catch (error) {
+                    this.logEvent('Error', 'Failed to connect: ' + error.message, 'error');
+                }
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+            }
+
+            handleEvent(event) {
+                this.eventCount++;
+                document.getElementById('eventCount').textContent = this.eventCount;
+                
+                switch (event.type) {
+                    case 'PacketGenerated':
+                        this.handlePacketGenerated(event);
+                        break;
+                    case 'PacketEnteredSwitch':
+                        this.handlePacketEnteredSwitch(event);
+                        break;
+                    case 'PacketForwardDecision':
+                        this.handlePacketForwardDecision(event);
+                        break;
+                    case 'PacketExitedSwitch':
+                        this.handlePacketExitedSwitch(event);
+                        break;
+                    case 'PortStateChanged':
+                        this.handlePortStateChanged(event);
+                        break;
+                    default:
+                        this.logEvent(event.type, JSON.stringify(event));
+                }
+            }
+
+            handlePacketGenerated(event) {
+                const packet = event.packet;
+                this.logEvent('PacketGenerated', `Packet ${packet.id}: ${packet.src_ip} -> ${packet.dst_ip}`, 'packet');
+                this.packetCount++;
+                document.getElementById('packetCount').textContent = this.packetCount;
+            }
+
+            handlePacketEnteredSwitch(event) {
+                const switchId = event.switch_id;
+                const packetId = event.packet_id;
+                const ingressPort = event.ingress_port;
+                
+                this.logEvent('PacketEnteredSwitch', `Packet ${packetId} entered ${switchId} on ${ingressPort}`, 'switch');
+                
+                // Highlight switch
+                if (this.switches.has(switchId)) {
+                    const sw = this.switches.get(switchId);
+                    sw.active = true;
+                    setTimeout(() => sw.active = false, 500);
+                }
+                
+                // Create animated packet
+                this.createPacketAnimation(packetId, switchId);
+            }
+
+            handlePacketForwardDecision(event) {
+                const switchId = event.switch_id;
+                const egressPort = event.egress_port;
+                const nextHop = event.next_hop;
+                
+                this.logEvent('PacketForwardDecision', `${switchId} -> ${nextHop} via ${egressPort}`, 'switch');
+                
+                // Activate link
+                this.links.forEach(link => {
+                    if (link.from === switchId || link.to === switchId) {
+                        link.active = true;
+                        setTimeout(() => link.active = false, 300);
+                    }
+                });
+            }
+
+            handlePacketExitedSwitch(event) {
+                const switchId = event.switch_id;
+                const packetId = event.packet_id;
+                const egressPort = event.egress_port;
+                
+                this.logEvent('PacketExitedSwitch', `Packet ${packetId} exited ${switchId} via ${egressPort}`, 'switch');
+            }
+
+            handlePortStateChanged(event) {
+                const switchId = event.switch_id;
+                const port = event.port;
+                const state = event.state;
+                
+                this.logEvent('PortStateChanged', `Port ${port} on ${switchId} changed to ${state}`, 'switch');
+            }
+
+            createPacketAnimation(packetId, switchId) {
+                if (!this.switches.has(switchId)) return;
+                
+                const sw = this.switches.get(switchId);
+                this.activePackets.push({
+                    id: packetId,
+                    x: sw.x,
+                    y: sw.y,
+                    targetX: sw.x + sw.width,
+                    targetY: sw.y + sw.height,
+                    progress: 0,
+                    speed: 0.02
+                });
+            }
+
+            logEvent(type, details, category = 'switch') {
+                const time = new Date().toLocaleTimeString();
+                const eventItem = document.createElement('div');
+                eventItem.className = `event-item ${category}`;
+                eventItem.innerHTML = `
+                    <div class="event-time">${time}</div>
+                    <div class="event-type">${type}</div>
+                    <div class="event-details">${details}</div>
+                `;
+                this.eventList.insertBefore(eventItem, this.eventList.firstChild);
+                
+                // Keep only last 100 events
+                while (this.eventList.children.length > 100) {
+                    this.eventList.removeChild(this.eventList.lastChild);
+                }
+            }
+
+            startAnimation() {
+                const animate = () => {
+                    this.updatePackets();
+                    this.draw();
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }
+
+            updatePackets() {
+                this.activePackets = this.activePackets.filter(packet => {
+                    packet.progress += packet.speed;
+                    if (packet.progress >= 1) {
+                        return false;
+                    }
+                    packet.x += (packet.targetX - packet.x) * packet.speed;
+                    packet.y += (packet.targetY - packet.y) * packet.speed;
+                    return true;
+                });
+            }
+
+            draw() {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw links
+                this.links.forEach(link => {
+                    const from = this.switches.get(link.from);
+                    const to = this.switches.get(link.to);
+                    if (from && to) {
+                        ctx.beginPath();
+                        ctx.moveTo(from.x + from.width / 2, from.y + from.height / 2);
+                        ctx.lineTo(to.x + to.width / 2, to.y + to.height / 2);
+                        ctx.strokeStyle = link.active ? '#66bb6a' : '#555';
+                        ctx.lineWidth = link.active ? 3 : 2;
+                        ctx.stroke();
+                    }
+                });
+                
+                // Draw switches
+                this.switches.forEach(sw => {
+                    // Draw switch box
+                    ctx.fillStyle = sw.active ? '#66bb6a' : '#1976d2';
+                    ctx.strokeStyle = sw.active ? '#81c784' : '#4fc3f7';
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(sw.x, sw.y, sw.width, sw.height);
+                    ctx.strokeRect(sw.x, sw.y, sw.width, sw.height);
+                    
+                    // Draw switch name
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 12px Segoe UI';
+                    ctx.fillText(sw.name, sw.x + 10, sw.y + 25);
+                    
+                    // Draw switch role
+                    ctx.font = '10px Segoe UI';
+                    ctx.fillText(sw.role, sw.x + 10, sw.y + 45);
+                });
+                
+                // Draw animated packets
+                this.activePackets.forEach(packet => {
+                    ctx.fillStyle = '#76ff03';
+                    ctx.beginPath();
+                    ctx.arc(packet.x, packet.y, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw packet ID
+                    ctx.fillStyle = 'white';
+                    ctx.font = '9px Segoe UI';
+                    ctx.fillText(packet.id, packet.x + 10, packet.y + 3);
+                });
+                
+                document.getElementById('switchCount').textContent = this.switches.size;
+            }
+        }
+
+        // Initialize visualizer when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new NetworkVisualizer();
+        });
+    </script>
+</body>
+</html>
