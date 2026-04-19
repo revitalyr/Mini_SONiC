@@ -41,31 +41,58 @@
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
         }
 
         .btn-primary {
-            background: #4fc3f7;
-            color: #1a1a2e;
+            background: #1976d2;
+            color: white;
         }
 
         .btn-primary:hover {
-            background: #29b6f6;
-            transform: translateY(-2px);
+            background: #1565c0;
         }
 
         .btn-danger {
-            background: #ef5350;
+            background: #d32f2f;
             color: white;
         }
 
         .btn-danger:hover {
-            background: #e53935;
+            background: #c62828;
+        }
+
+        .btn-small {
+            padding: 4px 12px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .speed-control span {
+            color: #ccc;
+            font-size: 13px;
+        }
+
+        #speedValue {
+            color: #4fc3f7;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
         }
 
         .status {
@@ -248,6 +275,12 @@
             <button id="connectBtn" class="btn btn-primary">Connect</button>
             <button id="disconnectBtn" class="btn btn-danger">Disconnect</button>
             <span id="connectionStatus" class="status disconnected">Disconnected</span>
+            <div class="speed-control">
+                <span>Speed:</span>
+                <button id="speedDownBtn" class="btn btn-small">-</button>
+                <span id="speedValue">1x</span>
+                <button id="speedUpBtn" class="btn btn-small">+</button>
+            </div>
         </div>
     </div>
 
@@ -293,11 +326,15 @@
                 this.connectBtn = document.getElementById('connectBtn');
                 this.disconnectBtn = document.getElementById('disconnectBtn');
                 this.connectionStatus = document.getElementById('connectionStatus');
+                this.speedUpBtn = document.getElementById('speedUpBtn');
+                this.speedDownBtn = document.getElementById('speedDownBtn');
+                this.speedValue = document.getElementById('speedValue');
                 
                 this.ws = null;
                 this.connected = false;
                 this.eventCount = 0;
                 this.packetCount = 0;
+                this.speed = 1; // Speed multiplier (1x, 2x, 3x, etc.)
                 
                 this.switches = new Map();
                 this.links = [];
@@ -335,6 +372,8 @@
             setupEventListeners() {
                 this.connectBtn.addEventListener('click', () => this.connect());
                 this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.speedUpBtn.addEventListener('click', () => this.changeSpeed(1));
+                this.speedDownBtn.addEventListener('click', () => this.changeSpeed(-1));
                 window.addEventListener('resize', () => this.resizeCanvas());
             }
 
@@ -378,6 +417,25 @@
                 if (this.ws) {
                     this.ws.close();
                     this.ws = null;
+                }
+            }
+
+            changeSpeed(delta) {
+                const newSpeed = this.speed + delta;
+                if (newSpeed >= 1 && newSpeed <= 10) {
+                    this.speed = newSpeed;
+                    this.speedValue.textContent = this.speed + 'x';
+                    this.sendSpeedControl();
+                }
+            }
+
+            sendSpeedControl() {
+                if (this.connected && this.ws) {
+                    const message = {
+                        type: 'speed_control',
+                        speed: this.speed
+                    };
+                    this.ws.send(JSON.stringify(message));
                 }
             }
 

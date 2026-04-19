@@ -117,7 +117,7 @@ struct GossipPayload {
 // =============================================================================
 
 /**
- * @brief Gossip protocol configuration
+ * @brief Gossip configuration parameters
  */
 struct GossipConfig {
     Types::PortId listen_port{Constants::DEFAULT_GOSSIP_PORT};  // semantic alias

@@ -126,27 +126,20 @@ else()
     message(WARNING "Curses/ncurses not found. Dashboard features will be limited.")
 endif()
 
-# Find Celero for benchmarking
+# Find Celero for benchmarking - temporarily disabled due to build issues
+message(STATUS "Celero temporarily disabled")
+# include(FetchContent)
+# FetchContent_Declare(
+#     Celero
+#     GIT_REPOSITORY https://github.com/DigitalInBlue/Celero.git
+#     GIT_TAG        master
+# )
+# FetchContent_MakeAvailable(Celero)
+# message(STATUS "Celero downloaded via FetchContent")
+# # Create alias for Celero
+# add_library(Celero::Celero ALIAS celero)
+
 include(FetchContent)
-
-FetchContent_Declare(
-    Celero
-    GIT_REPOSITORY https://github.com/DigitalInBlue/Celero.git
-    GIT_TAG        v2.9.0
-)
-
-find_package(Celero QUIET)
-
-if(NOT Celero_FOUND)
-    message(STATUS "Celero not found - will download via FetchContent")
-    FetchContent_MakeAvailable(Celero)
-    message(STATUS "Celero downloaded via FetchContent")
-    
-    if(TARGET celero AND NOT TARGET Celero::Celero)
-        add_library(Celero::Celero ALIAS celero)
-        message(STATUS "Created Celero::Celero alias for downloaded Celero")
-    endif()
-endif()
 
 # Find Catch2 v3 for testing
 FetchContent_Declare(
@@ -577,7 +570,20 @@ endif()
 
 # Event Server (standalone WebSocket server for event streaming)
 add_executable(mini_sonic_event_server src/visualization/event_server.cpp)
-target_link_libraries(mini_sonic_event_server MiniSonic.Events nlohmann_json::nlohmann_json)
+target_link_libraries(mini_sonic_event_server
+    MiniSonic.Events
+    nlohmann_json::nlohmann_json
+    Boost::system
+    Boost::asio
+    Boost::filesystem
+)
+if(WIN32)
+    target_link_libraries(mini_sonic_event_server ws2_32)
+    # Enable exception handling for boost.beast
+    target_compile_options(mini_sonic_event_server PRIVATE /EHsc)
+else()
+    target_compile_options(mini_sonic_event_server PRIVATE -fexceptions)
+endif()
 set_target_properties(mini_sonic_event_server PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
