@@ -12,8 +12,8 @@
 static volatile int running = 1;
 
 // Global packet counters
-volatile unsigned long global_rx_count = 0;
-volatile unsigned long global_tx_count = 0;
+volatile PacketCount global_rx_count = 0;
+volatile PacketCount global_tx_count = 0;
 
 void signal_handler(int sig) {
     printf("\nReceived signal %d, shutting down...\n", sig);

@@ -2,7 +2,7 @@
 #include "port.h"
 
 port_t ports[MAX_PORTS];
-int port_count = 0;
+EntryCount port_count = 0;
 
 int port_init(void) {
     memset(ports, 0, sizeof(ports));

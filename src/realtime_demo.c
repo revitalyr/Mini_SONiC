@@ -1,7 +1,7 @@
 /**
  * @file realtime_demo.c
  * @brief Real-time Data Flow Demo for SONiC Mini Switch
- * 
+ *
  * This demo shows real packet processing with actual data flow
  * between switches, demonstrating how data moves through
  * the system in real-time.
@@ -12,7 +12,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
-#include <unistd.h>
 
 #include "cross_platform.h"
 #include "../include/constants.h"
