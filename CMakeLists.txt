@@ -22,7 +22,7 @@ option(SONIC_STATIC_ANALYSIS "Enable static analysis tools" OFF)
 # COMPILER FLAGS
 # =============================================================================
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -65,12 +65,12 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_definitions(-D_WIN32_WINNT=0x0601)
 
     # Force include portability header for MSVC to handle GCC-specific attributes and Linux constants
-    add_compile_options("/FI" "${CMAKE_SOURCE_DIR}/mini_switch/include/cross_platform.h")
+    add_compile_options("/FI" "${CMAKE_SOURCE_DIR}/examples/mini_switch/include/cross_platform.h")
 endif()
 
-# Add FreeRTOS include directory if it exists (assuming it's in mini_switch/include/FreeRTOS/Source/include)
-if(EXISTS "${CMAKE_SOURCE_DIR}/mini_switch/include/FreeRTOS/Source/include")
-    include_directories("${CMAKE_SOURCE_DIR}/mini_switch/include/FreeRTOS/Source/include")
+# Add FreeRTOS include directory if it exists (assuming it's in examples/mini_switch/include/FreeRTOS/Source/include)
+if(EXISTS "${CMAKE_SOURCE_DIR}/examples/mini_switch/include/FreeRTOS/Source/include")
+    include_directories("${CMAKE_SOURCE_DIR}/examples/mini_switch/include/FreeRTOS/Source/include")
 endif()
 
 # Static analysis tools
@@ -89,6 +89,22 @@ endif()
 # =============================================================================
 
 find_package(Threads REQUIRED)
+
+# Find Boost libraries
+find_package(Boost 1.85.0 REQUIRED COMPONENTS
+    system
+    asio
+    serialization
+    filesystem
+)
+if(Boost_FOUND)
+    message(STATUS "Boost found: ${Boost_VERSION}")
+    message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+    message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
+    add_compile_definitions(BOOST_FOUND)
+else()
+    message(FATAL_ERROR "Boost 1.85.0 or higher is required")
+endif()
 
 # Find Curses/ncurses for the dashboard components
 find_package(Curses QUIET)
@@ -160,7 +176,7 @@ target_sources(MiniSonic.Utils
 )
 target_include_directories(MiniSonic.Utils PUBLIC src)
 set_target_properties(MiniSonic.Utils PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -176,7 +192,7 @@ target_sources(MiniSonic.SAI
 target_include_directories(MiniSonic.SAI PUBLIC src)
 target_link_libraries(MiniSonic.SAI MiniSonic.Utils)
 set_target_properties(MiniSonic.SAI PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -192,7 +208,7 @@ target_sources(MiniSonic.DataPlane
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
 target_link_libraries(MiniSonic.DataPlane MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking)
 set_target_properties(MiniSonic.DataPlane PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -208,7 +224,7 @@ target_sources(MiniSonic.L2L3
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
 target_link_libraries(MiniSonic.L2L3 MiniSonic.DataPlane MiniSonic.Utils)
 set_target_properties(MiniSonic.L2L3 PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -222,9 +238,10 @@ target_sources(MiniSonic.Networking
         src/networking/networking.cpp
 )
 target_include_directories(MiniSonic.Networking PUBLIC src)
-target_link_libraries(MiniSonic.Networking MiniSonic.Utils)
+target_include_directories(MiniSonic.Networking PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(MiniSonic.Networking MiniSonic.Utils ${Boost_LIBRARIES})
 set_target_properties(MiniSonic.Networking PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -240,7 +257,7 @@ target_sources(MiniSonic.Protocol
 target_include_directories(MiniSonic.Protocol PUBLIC src)
 target_link_libraries(MiniSonic.Protocol MiniSonic.Utils)
 set_target_properties(MiniSonic.Protocol PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -252,9 +269,10 @@ target_sources(MiniSonic.Serialization
         src/protocols/serialization.ixx
 )
 target_include_directories(MiniSonic.Serialization PUBLIC src)
-target_link_libraries(MiniSonic.Serialization MiniSonic.Utils)
+target_include_directories(MiniSonic.Serialization PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(MiniSonic.Serialization MiniSonic.Utils ${Boost_LIBRARIES})
 set_target_properties(MiniSonic.Serialization PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -273,7 +291,7 @@ if(WIN32)
     target_link_libraries(MiniSonic.WebSocket ws2_32)
 endif()
 set_target_properties(MiniSonic.WebSocket PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -292,7 +310,7 @@ if(WIN32)
     target_link_libraries(MiniSonic.Gossip ws2_32)
 endif()
 set_target_properties(MiniSonic.Gossip PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -316,7 +334,7 @@ target_link_libraries(MiniSonic.App
     MiniSonic.Serialization
 )
 set_target_properties(MiniSonic.App PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -327,48 +345,48 @@ set_target_properties(MiniSonic.App PROPERTIES
 
 # Include directories for C code
 include_directories(
-    mini_switch/include
-    mini_switch/src
+    examples/mini_switch/include
+    examples/mini_switch/src
 )
 
 # C Library for mini_switch core
 set(MINISWITCH_C_SOURCES
-    mini_switch/src/sonic_types.c
-    mini_switch/src/switch_core.c
-    mini_switch/src/switch_hal.c
-    mini_switch/src/port.c
-    mini_switch/src/vlan.c
-    mini_switch/src/mac_table.c
-    mini_switch/src/fdb_orch.c
-    mini_switch/src/orchagent.c
-    mini_switch/src/ethernet.c
-    mini_switch/src/arp.c
-    mini_switch/src/ip.c
-    mini_switch/src/forwarding.c
-    mini_switch/src/hash_table.c
-    mini_switch/src/list.c
-    mini_switch/src/memory.c
-    mini_switch/src/ring_buffer.c
-    mini_switch/src/timer.c
-    mini_switch/src/utils.c
-    mini_switch/src/logging.c
-    mini_switch/src/tx_simple.c
-    mini_switch/src/net_utils.c
+    examples/mini_switch/src/sonic_types.c
+    examples/mini_switch/src/switch_core.c
+    examples/mini_switch/src/switch_hal.c
+    examples/mini_switch/src/port.c
+    examples/mini_switch/src/vlan.c
+    examples/mini_switch/src/mac_table.c
+    examples/mini_switch/src/fdb_orch.c
+    examples/mini_switch/src/orchagent.c
+    examples/mini_switch/src/ethernet.c
+    examples/mini_switch/src/arp.c
+    examples/mini_switch/src/ip.c
+    examples/mini_switch/src/forwarding.c
+    examples/mini_switch/src/hash_table.c
+    examples/mini_switch/src/list.c
+    examples/mini_switch/src/memory.c
+    examples/mini_switch/src/ring_buffer.c
+    examples/mini_switch/src/timer.c
+    examples/mini_switch/src/utils.c
+    examples/mini_switch/src/logging.c
+    examples/mini_switch/src/tx_simple.c
+    examples/mini_switch/src/net_utils.c
 )
 
 add_library(mini_switch_core STATIC ${MINISWITCH_C_SOURCES})
 if(CURSES_FOUND)
     target_sources(mini_switch_core PRIVATE 
-        mini_switch/src/dashboard.c 
-        mini_switch/src/visual.c
+        examples/mini_switch/src/dashboard.c 
+        examples/mini_switch/src/visual.c
     )
     target_link_libraries(mini_switch_core PRIVATE ${CURSES_LIBRARIES})
     target_include_directories(mini_switch_core PRIVATE ${CURSES_INCLUDE_DIRS})
     target_compile_definitions(mini_switch_core PRIVATE HAS_CURSES)
 endif()
 target_include_directories(mini_switch_core PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/mini_switch/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/mini_switch/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/examples/mini_switch/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/examples/mini_switch/src
 )
 set_target_properties(mini_switch_core PROPERTIES
     C_STANDARD 99
@@ -393,13 +411,13 @@ target_link_libraries(mini_sonic_modular
     Threads::Threads
 )
 set_target_properties(mini_sonic_modular PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
 
 # 2. C-based SONiC Core
-add_executable(mini_sonic_c mini_switch/src/main.c)
+add_executable(mini_sonic_c examples/mini_switch/src/main.c)
 target_link_libraries(mini_sonic_c mini_switch_core Threads::Threads)
 set_target_properties(mini_sonic_c PROPERTIES
     C_STANDARD 99
@@ -409,7 +427,7 @@ set_target_properties(mini_sonic_c PROPERTIES
 
 # 3. C Windows Demo
 if(WIN32)
-    add_executable(mini_sonic_windows mini_switch/src/main_windows.c)
+    add_executable(mini_sonic_windows examples/mini_switch/src/main_windows.c)
     target_link_libraries(mini_sonic_windows mini_switch_core Threads::Threads)
     set_target_properties(mini_sonic_windows PROPERTIES
         C_STANDARD 99
@@ -420,7 +438,7 @@ endif()
 
 # 4. Benchmarks (Celero only)
 set(BENCHMARK_SOURCES
-    benchmarks/benchmark_celero_simple_working.cpp
+    tools/benchmarks/benchmark_celero_simple_working.cpp
 )
 
 add_executable(mini_sonic_benchmarks ${BENCHMARK_SOURCES})
@@ -464,7 +482,7 @@ target_link_libraries(mini_sonic_protocol_tests
     Catch2::Catch2WithMain
 )
 set_target_properties(mini_sonic_protocol_tests PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
@@ -472,10 +490,10 @@ set_target_properties(mini_sonic_protocol_tests PROPERTIES
 add_test(NAME ProtocolTests COMMAND mini_sonic_protocol_tests)
 
 # 7. Protocol Stack Demo
-add_executable(mini_sonic_protocol_demo demo/protocol_stack_demo.cpp)
+add_executable(mini_sonic_protocol_demo examples/demo/protocol_stack_demo.cpp)
 target_link_libraries(mini_sonic_protocol_demo Threads::Threads)
 set_target_properties(mini_sonic_protocol_demo PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
