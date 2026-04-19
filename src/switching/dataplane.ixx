@@ -56,7 +56,7 @@ public:
     Types::MacAddress m_dst_mac;
     Types::IpAddress m_src_ip;
     Types::IpAddress m_dst_ip;
-    Types::Port m_ingress_port;
+    Types::PortId m_ingress_port;  // semantic alias
 
     // Timestamp for latency measurement
     chrono::high_resolution_clock::time_point timestamp;
@@ -70,7 +70,7 @@ public:
         Types::MacAddress dst_mac,
         Types::IpAddress src_ip,
         Types::IpAddress dst_ip,
-        Types::Port ingress_port
+        Types::PortId ingress_port  // semantic alias
     ) : m_src_mac(std::move(src_mac)),
         m_dst_mac(std::move(dst_mac)),
         m_src_ip(std::move(src_ip)),
@@ -98,14 +98,14 @@ public:
     [[nodiscard]] const Types::MacAddress& dstMac() const noexcept { return m_dst_mac; }
     [[nodiscard]] const Types::IpAddress& srcIp() const noexcept { return m_src_ip; }
     [[nodiscard]] const Types::IpAddress& dstIp() const noexcept { return m_dst_ip; }
-    [[nodiscard]] Types::Port ingressPort() const noexcept { return m_ingress_port; }
+    [[nodiscard]] Types::PortId ingressPort() const noexcept { return m_ingress_port; }  // semantic alias
 
     // Setters
     void setSrcMac(Types::MacAddress mac) { m_src_mac = std::move(mac); }
     void setDstMac(Types::MacAddress mac) { m_dst_mac = std::move(mac); }
     void setSrcIp(Types::IpAddress ip) { m_src_ip = std::move(ip); }
     void setDstIp(Types::IpAddress ip) { m_dst_ip = std::move(ip); }
-    void setIngressPort(Types::Port port) { m_ingress_port = port; }
+    void setIngressPort(Types::PortId port) { m_ingress_port = port; }  // semantic alias
 
     // Update timestamp
     void updateTimestamp() noexcept {

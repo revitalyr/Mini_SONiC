@@ -53,9 +53,9 @@ enum class MessageType : uint32_t {
 struct MessageHeader {
     MessageType type{MessageType::UNKNOWN};
     uint32_t length{0};
-    uint32_t sequence{0};
-    uint64_t timestamp{0};
-    
+    Types::SequenceNumber sequence{0};  // semantic alias
+    Types::Timestamp timestamp{0};       // semantic alias
+
     [[nodiscard]] bool isValid() const noexcept {
         return type != MessageType::UNKNOWN && length > 0;
     }
@@ -136,10 +136,10 @@ public:
  * @brief Protocol handler configuration
  */
 struct HandlerConfig {
-    Types::Port listen_port{0};
+    Types::PortId listen_port{0};  // semantic alias
     string bind_address{"0.0.0.0"};
     size_t max_connections{100};
-    size_t buffer_size{4096};
+    Types::BufferLength buffer_size{4096};  // semantic alias
     bool enable_compression{false};
     uint32_t timeout_ms{5000};
 };
@@ -224,18 +224,18 @@ class ITransport {
 public:
     using ReceiveCallback = function<void(vector<byte>)>;
     using ErrorCallback = function<void(const string&)>;
-    
+
     virtual ~ITransport() = default;
-    
-    virtual void connect(const string& address, Types::Port port) = 0;
-    virtual void listen(Types::Port port) = 0;
+
+    virtual void connect(const string& address, Types::PortId port) = 0;  // semantic alias
+    virtual void listen(Types::PortId port) = 0;  // semantic alias
     virtual void disconnect() = 0;
-    
+
     virtual void send(const vector<byte>& data) = 0;
-    
+
     virtual void setReceiveHandler(ReceiveCallback handler) = 0;
     virtual void setErrorHandler(ErrorCallback handler) = 0;
-    
+
     [[nodiscard]] virtual bool isConnected() const noexcept = 0;
     [[nodiscard]] virtual string transportInfo() const = 0;
 };

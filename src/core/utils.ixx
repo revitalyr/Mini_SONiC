@@ -25,11 +25,18 @@ export module MiniSonic.Utils;
  * @brief Internal types for the modular system
  */
 namespace Types {
-    // Define Port type here, assuming it's a simple integer type
-    // If Port is a more complex struct/class, its definition should be here or in a dedicated header.
-    export using Port = uint16_t;
-    export using MacAddress = uint64_t; // Example, adjust as needed
-    export using IpAddress = uint32_t; // Example, adjust as needed
+    // Semantic type aliases for domain clarity (C++23)
+    export using PortId = uint16_t;           // Port identifier (semantic alias)
+    export using MacAddress = uint64_t;       // MAC address (semantic alias)
+    export using IpAddress = uint32_t;        // IP address (semantic alias)
+    export using VlanId = uint16_t;           // VLAN identifier (semantic alias)
+    export using PacketCount = uint64_t;      // Number of packets (semantic alias)
+    export using ByteCount = uint64_t;        // Number of bytes (semantic alias)
+    export using Timestamp = uint64_t;        // Unix timestamp (semantic alias)
+    export using SequenceNumber = uint32_t;    // Sequence number (semantic alias)
+    export using BufferLength = size_t;        // Buffer length in bytes (semantic alias)
+    export using EntryCount = size_t;         // Number of entries (semantic alias)
+    export using SocketFd = int;              // Socket file descriptor (semantic alias)
     export {
         using Count = uint64_t;
         template<typename T>

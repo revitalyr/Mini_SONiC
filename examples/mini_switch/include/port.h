@@ -1,19 +1,21 @@
 #pragma once
 
+#include "common.h"
+
 typedef struct {
-    int ifindex;
-    int sock;
-    char name[16];
-    uint16_t vlan;
+    InterfaceIndex ifindex;
+    SocketFd sock;
+    InterfaceName name;
+    VlanId vlan;
     int active;
 } port_t;
 
 extern port_t ports[MAX_PORTS];
-extern int port_count;
+extern EntryCount port_count;
 
 int port_init(void);
 int port_add(const char *ifname);
-int port_find_by_ifindex(int ifindex);
+int port_find_by_ifindex(InterfaceIndex ifindex);
 int port_find_by_name(const char *ifname);
 void port_print(void);
-int port_get_sock(int port_idx);
+SocketFd port_get_sock(EntryCount port_idx);

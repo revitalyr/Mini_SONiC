@@ -40,11 +40,11 @@ public:
     virtual ~SaiInterface() = default;
 
     // Virtual methods for hardware operations
-    virtual bool createPort(Types::Port port_id) = 0;
-    virtual bool deletePort(Types::Port port_id) = 0;
-    virtual bool setPortState(Types::Port port_id, bool admin_state) = 0;
-    virtual std::optional<bool> getPortState(Types::Port port_id) const = 0;
-    virtual vector<Types::Port> getPortList() const = 0;
+    virtual bool createPort(Types::PortId port_id) = 0;  // semantic alias
+    virtual bool deletePort(Types::PortId port_id) = 0;  // semantic alias
+    virtual bool setPortState(Types::PortId port_id, bool admin_state) = 0;  // semantic alias
+    virtual std::optional<bool> getPortState(Types::PortId port_id) const = 0;  // semantic alias
+    virtual vector<Types::PortId> getPortList() const = 0;  // semantic alias
     virtual string getStats() const = 0;
 };
 
@@ -59,11 +59,11 @@ public:
     ~SimulatedSai() override = default;
 
     // SaiInterface implementation
-    bool createPort(Types::Port port_id) override;
-    bool deletePort(Types::Port port_id) override;
-    bool setPortState(Types::Port port_id, bool admin_state) override;
-    std::optional<bool> getPortState(Types::Port port_id) const override;
-    vector<Types::Port> getPortList() const override;
+    bool createPort(Types::PortId port_id) override;  // semantic alias
+    bool deletePort(Types::PortId port_id) override;  // semantic alias
+    bool setPortState(Types::PortId port_id, bool admin_state) override;  // semantic alias
+    std::optional<bool> getPortState(Types::PortId port_id) const override;  // semantic alias
+    vector<Types::PortId> getPortList() const override;  // semantic alias
     string getStats() const override;
 
 private:
@@ -71,14 +71,14 @@ private:
         bool admin_state = false;
         bool oper_state = false;
         chrono::steady_clock::time_point created_at;
-        Types::Count packets_in = 0;
-        Types::Count packets_out = 0;
+        Types::PacketCount packets_in = 0;  // semantic alias
+        Types::PacketCount packets_out = 0;  // semantic alias
     };
 
-    unordered_map<Types::Port, PortInfo> m_ports;
+    unordered_map<Types::PortId, PortInfo> m_ports;  // semantic alias
     mutable mutex m_ports_mutex;
 
-    void updateOperState(Types::Port port_id);
+    void updateOperState(Types::PortId port_id);  // semantic alias
 };
 
 } // export namespace MiniSonic::SAI

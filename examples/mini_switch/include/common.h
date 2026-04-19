@@ -7,7 +7,7 @@
     #include <windows.h>
     #include <process.h>
     #pragma comment(lib, "ws2_32.lib")
-    
+
     // Windows compatibility definitions
     #define sleep(x) Sleep((x) * 1000)
     #define usleep(x) Sleep((x) / 1000)
@@ -17,7 +17,7 @@
         ((*(handle) = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)(routine), (arg), 0, NULL)) == NULL ? -1 : 0)
     #define pthread_join(thread, result) WaitForSingleObject(thread, INFINITE)
     #define pthread_detach(thread) CloseHandle(thread)
-    
+
 #else
     // Unix/Linux headers
     #include <unistd.h>
@@ -49,6 +49,9 @@
 #include <time.h>
 #include <signal.h>
 
+// Include semantic type aliases
+#include "semantic_types.h"
+
 // Use only kernel headers to avoid conflicts (Linux only)
 #ifndef _WIN32
 #include <linux/if.h>
@@ -62,16 +65,16 @@
 #define RING_SIZE 1024
 
 typedef struct {
-    uint8_t data[BUFFER_SIZE];
-    size_t len;
-    int port;
+    Byte data[BUFFER_SIZE];
+    BufferLength len;
+    PortId port;
     struct timespec timestamp;
 } packet_t;
 
 typedef struct {
     void *data[RING_SIZE];
-    atomic_uint head;
-    atomic_uint tail;
+    AtomicCounter head;
+    AtomicCounter tail;
 } ring_t;
 
 typedef struct {
@@ -81,5 +84,5 @@ typedef struct {
 
 // Forward declarations
 extern packet_queues_t global_queues;
-extern volatile unsigned long global_rx_count;
-extern volatile unsigned long global_tx_count;
+extern volatile PacketCount global_rx_count;
+extern volatile PacketCount global_tx_count;

@@ -64,20 +64,20 @@ enum class PeerState {
 struct PeerInfo {
     string peer_id;
     string address;
-    Types::Port port;
+    Types::PortId port;  // semantic alias
     PeerState state{PeerState::ALIVE};
-    uint64_t heartbeat{0};
-    uint64_t last_seen{0};
-    uint64_t incarnation{0};
-    
+    Types::Timestamp heartbeat{0};      // semantic alias
+    Types::Timestamp last_seen{0};      // semantic alias
+    Types::SequenceNumber incarnation{0};  // semantic alias
+
     [[nodiscard]] bool isAlive() const noexcept {
         return state == PeerState::ALIVE;
     }
-    
+
     [[nodiscard]] bool isSuspected() const noexcept {
         return state == PeerState::SUSPECTED;
     }
-    
+
     [[nodiscard]] bool isDead() const noexcept {
         return state == PeerState::DEAD;
     }
@@ -106,9 +106,9 @@ enum class GossipMessageType : uint32_t {
 struct GossipPayload {
     GossipMessageType type{GossipMessageType::PING};
     string sender_id;
-    uint64_t incarnation{0};
+    Types::SequenceNumber incarnation{0};  // semantic alias
     vector<string> peer_list;  // For member list propagation
-    map<string, uint64_t> heartbeats;  // Peer heartbeat info
+    map<string, Types::Timestamp> heartbeats;  // Peer heartbeat info (semantic alias)
 };
 
 // =============================================================================
@@ -119,20 +119,20 @@ struct GossipPayload {
  * @brief Gossip protocol configuration
  */
 struct GossipConfig {
-    Types::Port listen_port{7946};  // Default gossip port
+    Types::PortId listen_port{7946};  // Default gossip port (semantic alias)
     string bind_address{"0.0.0.0"};
-    
+
     // Gossip parameters
     uint32_t gossip_interval_ms{1000};  // Gossip every 1 second
     uint32_t gossip_fanout{3};  // Send to 3 random peers
     uint32_t suspicion_timeout_ms{5000};  // 5 seconds to suspect
     uint32_t dead_timeout_ms{30000};  // 30 seconds to declare dead
-    
+
     // Failure detection
     uint32_t ping_interval_ms{1000};
     uint32_t ping_timeout_ms{500};
     uint32_t ping_retries{3};
-    
+
     // Membership
     size_t max_peers{100};
     bool enable_auto_discovery{true};
@@ -169,9 +169,9 @@ public:
     [[nodiscard]] string getStats() const override;
     
     // Gossip-specific methods
-    void joinPeer(const string& address, Types::Port port);
+    void joinPeer(const string& address, Types::PortId port);  // semantic alias
     void leaveCluster();
-    
+
     [[nodiscard]] string peerId() const noexcept { return m_peer_id; }
     [[nodiscard]] vector<PeerInfo> getPeers() const;
     [[nodiscard]] size_t peerCount() const;
@@ -253,19 +253,19 @@ class GossipNode {
 public:
     explicit GossipNode(const string& peer_id, const GossipConfig& config = GossipConfig{});
     ~GossipNode();
-    
+
     void start();
     void stop();
-    
-    void join(const string& address, Types::Port port);
+
+    void join(const string& address, Types::PortId port);  // semantic alias
     void leave();
-    
+
     void broadcast(const vector<uint8_t>& data);
     void setDataHandler(function<void(const string&, const vector<uint8_t>&)> handler);
-    
+
     [[nodiscard]] vector<PeerInfo> members() const;
     [[nodiscard]] string nodeId() const { return m_peer_id; }
-    
+
     [[nodiscard]] string stats() const;
 
 private:

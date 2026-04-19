@@ -52,7 +52,7 @@ public:
 
 private:
     struct MacEntry {
-        Types::Port port;
+        Types::PortId port;  // semantic alias
         // Note: `mutable` allows modification in const methods if needed for stats
         chrono::steady_clock::time_point learned_at;
         chrono::steady_clock::time_point last_seen;
@@ -64,7 +64,7 @@ private:
 
     static constexpr chrono::seconds MAC_AGE_TIMEOUT{300}; // 5 minutes
 
-    void learn(const Types::MacAddress& mac, Types::Port port);
+    void learn(const Types::MacAddress& mac, Types::PortId port);  // semantic alias
     void cleanupOldEntries();
     bool forwardPacket(MiniSonic::DataPlane::Packet& pkt);
 };
