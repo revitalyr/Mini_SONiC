@@ -154,9 +154,9 @@ include_directories(src)
 add_library(MiniSonic.Utils STATIC)
 target_sources(MiniSonic.Utils
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/utils.ixx
+        src/core/utils.ixx
     PRIVATE
-        src/modules/utils.cpp
+        src/core/utils.cpp
 )
 target_include_directories(MiniSonic.Utils PUBLIC src)
 set_target_properties(MiniSonic.Utils PROPERTIES
@@ -169,9 +169,9 @@ set_target_properties(MiniSonic.Utils PROPERTIES
 add_library(MiniSonic.SAI STATIC)
 target_sources(MiniSonic.SAI
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/sai.ixx
+        src/switching/sai.ixx
     PRIVATE
-        src/modules/sai.cpp
+        src/switching/sai.cpp
 )
 target_include_directories(MiniSonic.SAI PUBLIC src)
 target_link_libraries(MiniSonic.SAI MiniSonic.Utils)
@@ -185,9 +185,9 @@ set_target_properties(MiniSonic.SAI PROPERTIES
 add_library(MiniSonic.DataPlane STATIC)
 target_sources(MiniSonic.DataPlane
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/dataplane.ixx
+        src/switching/dataplane.ixx
     PRIVATE
-        src/modules/dataplane.cpp
+        src/switching/dataplane.cpp
 )
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
 target_link_libraries(MiniSonic.DataPlane MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking)
@@ -201,9 +201,9 @@ set_target_properties(MiniSonic.DataPlane PROPERTIES
 add_library(MiniSonic.L2L3 STATIC)
 target_sources(MiniSonic.L2L3
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/l2l3.ixx
+        src/switching/l2l3.ixx
     PRIVATE
-        src/modules/l2l3.cpp
+        src/switching/l2l3.cpp
 )
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
 target_link_libraries(MiniSonic.L2L3 MiniSonic.DataPlane MiniSonic.Utils)
@@ -217,9 +217,9 @@ set_target_properties(MiniSonic.L2L3 PROPERTIES
 add_library(MiniSonic.Networking STATIC)
 target_sources(MiniSonic.Networking
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/networking.ixx
+        src/networking/networking.ixx
     PRIVATE
-        src/modules/networking.cpp
+        src/networking/networking.cpp
 )
 target_include_directories(MiniSonic.Networking PUBLIC src)
 target_link_libraries(MiniSonic.Networking MiniSonic.Utils)
@@ -233,9 +233,9 @@ set_target_properties(MiniSonic.Networking PROPERTIES
 add_library(MiniSonic.Protocol STATIC)
 target_sources(MiniSonic.Protocol
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/protocol.ixx
+        src/protocols/protocol.ixx
     PRIVATE
-        src/modules/protocol.cpp
+        src/protocols/protocol.cpp
 )
 target_include_directories(MiniSonic.Protocol PUBLIC src)
 target_link_libraries(MiniSonic.Protocol MiniSonic.Utils)
@@ -249,7 +249,7 @@ set_target_properties(MiniSonic.Protocol PROPERTIES
 add_library(MiniSonic.Serialization STATIC)
 target_sources(MiniSonic.Serialization
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/serialization.ixx
+        src/protocols/serialization.ixx
 )
 target_include_directories(MiniSonic.Serialization PUBLIC src)
 target_link_libraries(MiniSonic.Serialization MiniSonic.Utils)
@@ -263,9 +263,9 @@ set_target_properties(MiniSonic.Serialization PROPERTIES
 add_library(MiniSonic.WebSocket STATIC)
 target_sources(MiniSonic.WebSocket
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/websocket.ixx
+        src/protocols/websocket.ixx
     PRIVATE
-        src/modules/websocket.cpp
+        src/protocols/websocket.cpp
 )
 target_include_directories(MiniSonic.WebSocket PUBLIC src)
 target_link_libraries(MiniSonic.WebSocket MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
@@ -282,9 +282,9 @@ set_target_properties(MiniSonic.WebSocket PROPERTIES
 add_library(MiniSonic.Gossip STATIC)
 target_sources(MiniSonic.Gossip
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/gossip.ixx
+        src/protocols/gossip.ixx
     PRIVATE
-        src/modules/gossip.cpp
+        src/protocols/gossip.cpp
 )
 target_include_directories(MiniSonic.Gossip PUBLIC src)
 target_link_libraries(MiniSonic.Gossip MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
@@ -301,9 +301,9 @@ set_target_properties(MiniSonic.Gossip PROPERTIES
 add_library(MiniSonic.App STATIC)
 target_sources(MiniSonic.App
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/modules/app.ixx
+        src/applications/app.ixx
     PRIVATE
-        src/modules/app.cpp
+        src/applications/app.cpp
 )
 target_include_directories(MiniSonic.App PUBLIC src)
 target_link_libraries(MiniSonic.App 
@@ -495,6 +495,13 @@ message(STATUS "  Build Type:  ${CMAKE_BUILD_TYPE}")
 message(STATUS "  Compiler:    ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  C Standard:  99")
+message(STATUS "")
+message(STATUS "Directory Structure:")
+message(STATUS "  src/core/         - Core utilities and common code")
+message(STATUS "  src/networking/   - Low-level networking and transport")
+message(STATUS "  src/protocols/    - Protocol-oriented layer (protocol, websocket, gossip, serialization)")
+message(STATUS "  src/switching/    - Traditional SONiC switching (SAI, L2/L3, dataplane)")
+message(STATUS "  src/applications/ - Application orchestration")
 message(STATUS "")
 message(STATUS "C++20 Modules Built:")
 message(STATUS "  ✓ MiniSonic.App         - Main application orchestration")
