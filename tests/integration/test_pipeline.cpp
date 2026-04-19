@@ -1,20 +1,12 @@
-#include <gtest/gtest.h>
+#include <catch2/catch_all.hpp>
 #include "dataplane/pipeline.h"
 #include "sai/simulated_sai.h"
 #include "dataplane/packet.h"
 
-class PipelineTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        sai_ = std::make_unique<SimulatedSai>();
-        pipeline_ = std::make_unique<Pipeline>(*sai_);
-    }
-
-    std::unique_ptr<SimulatedSai> sai_;
-    std::unique_ptr<Pipeline> pipeline_;
-};
-
-TEST_F(PipelineTest, L2ForwardingScenario) {
+TEST_CASE("Pipeline L2ForwardingScenario", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Learn MAC addresses
     Packet learn_pkt1{
         .src_mac = "aa:bb:cc:dd:ee:01",
@@ -23,7 +15,7 @@ TEST_F(PipelineTest, L2ForwardingScenario) {
         .dst_ip = "10.0.0.2",
         .ingress_port = 1
     };
-    pipeline_->process(learn_pkt1);
+    pipeline.process(learn_pkt1);
 
     Packet learn_pkt2{
         .src_mac = "aa:bb:cc:dd:ee:02",
@@ -32,7 +24,7 @@ TEST_F(PipelineTest, L2ForwardingScenario) {
         .dst_ip = "10.0.0.1",
         .ingress_port = 2
     };
-    pipeline_->process(learn_pkt2);
+    pipeline.process(learn_pkt2);
 
     // Test forwarding between learned MACs
     Packet forward_pkt{
@@ -44,13 +36,16 @@ TEST_F(PipelineTest, L2ForwardingScenario) {
     };
 
     // Should be handled by L2 (forwarded)
-    pipeline_->process(forward_pkt);
+    pipeline.process(forward_pkt);
 }
 
-TEST_F(PipelineTest, L3RoutingScenario) {
+TEST_CASE("Pipeline L3RoutingScenario", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Add L3 routes
-    pipeline_->get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
-    pipeline_->get_l3().add_route("192.168.1.0", 24, "192.168.1.1");
+    pipeline.get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
+    pipeline.get_l3().add_route("192.168.1.0", 24, "192.168.1.1");
 
     // Test L3 packet to known route
     Packet l3_pkt{
@@ -62,12 +57,15 @@ TEST_F(PipelineTest, L3RoutingScenario) {
     };
 
     // Should be handled by L3 (routed)
-    pipeline_->process(l3_pkt);
+    pipeline.process(l3_pkt);
 }
 
-TEST_F(PipelineTest, L2FallsBackToL3) {
+TEST_CASE("Pipeline L2FallsBackToL3", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Add L3 route
-    pipeline_->get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
+    pipeline.get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
 
     // Send packet with unknown destination MAC (should flood in L2, then try L3)
     Packet pkt{
@@ -79,10 +77,13 @@ TEST_F(PipelineTest, L2FallsBackToL3) {
     };
 
     // Should be processed by pipeline
-    pipeline_->process(pkt);
+    pipeline.process(pkt);
 }
 
-TEST_F(PipelineTest, PacketDropScenario) {
+TEST_CASE("Pipeline PacketDropScenario", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Send packet with no matching L2 or L3 entries
     Packet pkt{
         .src_mac = "aa:bb:cc:dd:ee:ff",
@@ -93,10 +94,13 @@ TEST_F(PipelineTest, PacketDropScenario) {
     };
 
     // Should be dropped by pipeline
-    pipeline_->process(pkt);
+    pipeline.process(pkt);
 }
 
-TEST_F(PipelineTest, MixedTrafficScenario) {
+TEST_CASE("Pipeline MixedTrafficScenario", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Setup: Learn some MACs and add some routes
     Packet learn_pkt{
         .src_mac = "11:22:33:44:55:66",
@@ -105,9 +109,9 @@ TEST_F(PipelineTest, MixedTrafficScenario) {
         .dst_ip = "10.0.0.2",
         .ingress_port = 1
     };
-    pipeline_->process(learn_pkt);
+    pipeline.process(learn_pkt);
 
-    pipeline_->get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
+    pipeline.get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
 
     // Test 1: L2 forwarding to known MAC
     Packet l2_pkt{
@@ -117,7 +121,7 @@ TEST_F(PipelineTest, MixedTrafficScenario) {
         .dst_ip = "10.0.0.200",
         .ingress_port = 2
     };
-    pipeline_->process(l2_pkt);
+    pipeline.process(l2_pkt);
 
     // Test 2: L3 routing
     Packet l3_pkt{
@@ -127,7 +131,7 @@ TEST_F(PipelineTest, MixedTrafficScenario) {
         .dst_ip = "10.0.0.200",
         .ingress_port = 2
     };
-    pipeline_->process(l3_pkt);
+    pipeline.process(l3_pkt);
 
     // Test 3: Unknown destination (should be dropped)
     Packet drop_pkt{
@@ -137,10 +141,13 @@ TEST_F(PipelineTest, MixedTrafficScenario) {
         .dst_ip = "172.16.1.100",
         .ingress_port = 2
     };
-    pipeline_->process(drop_pkt);
+    pipeline.process(drop_pkt);
 }
 
-TEST_F(PipelineTest, BroadcastTraffic) {
+TEST_CASE("Pipeline BroadcastTraffic", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Learn a MAC first
     Packet learn_pkt{
         .src_mac = "aa:bb:cc:dd:ee:ff",
@@ -149,7 +156,7 @@ TEST_F(PipelineTest, BroadcastTraffic) {
         .dst_ip = "10.0.0.2",
         .ingress_port = 1
     };
-    pipeline_->process(learn_pkt);
+    pipeline.process(learn_pkt);
 
     // Send broadcast packet
     Packet broadcast_pkt{
@@ -161,10 +168,13 @@ TEST_F(PipelineTest, BroadcastTraffic) {
     };
 
     // Should be flooded by L2
-    pipeline_->process(broadcast_pkt);
+    pipeline.process(broadcast_pkt);
 }
 
-TEST_F(PipelineTest, MulticastTraffic) {
+TEST_CASE("Pipeline MulticastTraffic", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Send multicast packet
     Packet multicast_pkt{
         .src_mac = "aa:bb:cc:dd:ee:ff",
@@ -175,13 +185,16 @@ TEST_F(PipelineTest, MulticastTraffic) {
     };
 
     // Should be flooded by L2
-    pipeline_->process(multicast_pkt);
+    pipeline.process(multicast_pkt);
 }
 
-TEST_F(PipelineTest, HighVolumePackets) {
+TEST_CASE("Pipeline HighVolumePackets", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Setup routes
-    pipeline_->get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
-    pipeline_->get_l3().add_route("192.168.1.0", 24, "192.168.1.1");
+    pipeline.get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
+    pipeline.get_l3().add_route("192.168.1.0", 24, "192.168.1.1");
 
     // Process many packets to test performance
     for (int i = 0; i < 1000; ++i) {
@@ -192,16 +205,19 @@ TEST_F(PipelineTest, HighVolumePackets) {
             .dst_ip = (i % 2 == 0) ? "10.0.0.100" : "192.168.1.100",
             .ingress_port = (i % 4) + 1
         };
-        pipeline_->process(pkt);
+        pipeline.process(pkt);
     }
 }
 
-TEST_F(PipelineTest, ComplexRoutingScenario) {
+TEST_CASE("Pipeline ComplexRoutingScenario", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Setup complex routing table
-    pipeline_->get_l3().add_route("10.0.0.0", 16, "10.0.0.1");
-    pipeline_->get_l3().add_route("10.0.0.0", 24, "10.0.0.2");
-    pipeline_->get_l3().add_route("10.1.0.0", 16, "10.1.0.1");
-    pipeline_->get_l3().add_route("192.168.1.0", 24, "192.168.1.1");
+    pipeline.get_l3().add_route("10.0.0.0", 16, "10.0.0.1");
+    pipeline.get_l3().add_route("10.0.0.0", 24, "10.0.0.2");
+    pipeline.get_l3().add_route("10.1.0.0", 16, "10.1.0.1");
+    pipeline.get_l3().add_route("192.168.1.0", 24, "192.168.1.1");
 
     // Test various destinations
     std::vector<std::string> test_destinations = {
@@ -219,11 +235,14 @@ TEST_F(PipelineTest, ComplexRoutingScenario) {
             .dst_ip = dst_ip,
             .ingress_port = 1
         };
-        pipeline_->process(pkt);
+        pipeline.process(pkt);
     }
 }
 
-TEST_F(PipelineTest, StateConsistency) {
+TEST_CASE("Pipeline StateConsistency", "[pipeline][integration]") {
+    SimulatedSai sai;
+    Pipeline pipeline(sai);
+    
     // Test that pipeline maintains consistent state across multiple operations
     
     // Learn MAC
@@ -234,10 +253,10 @@ TEST_F(PipelineTest, StateConsistency) {
         .dst_ip = "10.0.0.2",
         .ingress_port = 1
     };
-    pipeline_->process(learn_pkt);
+    pipeline.process(learn_pkt);
 
     // Add route
-    pipeline_->get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
+    pipeline.get_l3().add_route("10.0.0.0", 24, "10.0.0.1");
 
     // Send multiple packets
     for (int i = 0; i < 10; ++i) {
@@ -248,7 +267,7 @@ TEST_F(PipelineTest, StateConsistency) {
             .dst_ip = "10.0.0.100",
             .ingress_port = 2
         };
-        pipeline_->process(pkt);
+        pipeline.process(pkt);
     }
 
     // Verify state is still consistent
@@ -259,5 +278,5 @@ TEST_F(PipelineTest, StateConsistency) {
         .dst_ip = "10.0.0.100",
         .ingress_port = 3
     };
-    pipeline_->process(test_pkt);
+    pipeline.process(test_pkt);
 }

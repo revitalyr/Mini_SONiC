@@ -14,6 +14,9 @@ module;
 #include <sstream>
 #include <algorithm>
 #include <mutex>
+#include <ranges>
+#include <span>
+#include <optional>
 
 export module MiniSonic.DataPlane;
 
@@ -35,6 +38,7 @@ using std::thread;
 using std::atomic;
 using std::chrono::high_resolution_clock;
 using std::move;
+namespace chrono = std::chrono;
 
 // Forward declarations
 class Packet;
@@ -43,8 +47,8 @@ class PipelineThread;
 
 /**
  * @brief Network packet representation
- * 
- * Represents a network packet with L2 and L3 headers.
+ *
+ * Represents a network packet with L2 and L3 headers using modern C++23.
  */
 export class Packet {
 public:
@@ -53,9 +57,9 @@ public:
     Types::IpAddress m_src_ip;
     Types::IpAddress m_dst_ip;
     Types::Port m_ingress_port;
-    
+
     // Timestamp for latency measurement
-    std::chrono::high_resolution_clock::time_point timestamp;
+    chrono::high_resolution_clock::time_point timestamp;
 
     // Default constructor
     Packet() = default;
@@ -72,7 +76,7 @@ public:
         m_src_ip(std::move(src_ip)),
         m_dst_ip(std::move(dst_ip)),
         m_ingress_port(ingress_port),
-        timestamp(std::chrono::high_resolution_clock::now()) {}
+        timestamp(chrono::high_resolution_clock::now()) {}
 
     // Move constructor
     Packet(Packet&& other) noexcept = default;
@@ -102,33 +106,47 @@ public:
     void setSrcIp(Types::IpAddress ip) { m_src_ip = std::move(ip); }
     void setDstIp(Types::IpAddress ip) { m_dst_ip = std::move(ip); }
     void setIngressPort(Types::Port port) { m_ingress_port = port; }
-    
+
     // Update timestamp
     void updateTimestamp() noexcept {
-        timestamp = std::chrono::high_resolution_clock::now();
+        timestamp = chrono::high_resolution_clock::now();
+    }
+
+    // C++23: Get packet as span for efficient data access
+    [[nodiscard]] std::span<const std::byte> asBytes() const noexcept {
+        return std::span<const std::byte>(
+            reinterpret_cast<const std::byte*>(this),
+            sizeof(Packet)
+        );
     }
 };
 
 /**
  * @brief Packet processing pipeline
- * 
- * Orchestrates the processing of packets through various stages.
+ *
+ * Orchestrates the processing of packets through various stages using modern C++23.
  */
 export class Pipeline {
 public:
     explicit Pipeline(SAI::SaiInterface& sai);
     ~Pipeline() = default;
-    
+
     /**
      * @brief Process a single packet
      * @param pkt Packet to process
      */
     void process(Packet& pkt);
-    
+
+    /**
+     * @brief Process multiple packets using ranges (C++23)
+     * @param packets Range of packets to process
+     */
+    void processBatch(std::span<Packet> packets);
+
     /**
      * @brief Get pipeline statistics
      */
-    [[nodiscard]] std::string getStats() const;
+    [[nodiscard]] string getStats() const;
 
 private:
     SAI::SaiInterface& m_sai;

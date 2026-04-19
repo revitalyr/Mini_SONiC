@@ -16,20 +16,10 @@ module;
 #include <random>
 #include <chrono>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")
-#else
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
-typedef int SOCKET;
-#endif
+// Boost.Asio includes
+#include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/udp.hpp>
 
 export module MiniSonic.Gossip;
 
@@ -48,6 +38,10 @@ using std::atomic;
 using std::mutex;
 using std::thread;
 using std::condition_variable;
+
+namespace asio = boost::asio;
+using asio::ip::tcp;
+using asio::ip::udp;
 
 export namespace MiniSonic::Gossip {
 

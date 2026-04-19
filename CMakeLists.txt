@@ -17,6 +17,18 @@ project(SONiC_Mini_Switch
 option(SONIC_ENABLE_DEBUG "Enable debug features" OFF)
 option(SONIC_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(SONIC_STATIC_ANALYSIS "Enable static analysis tools" OFF)
+option(SONIC_USE_NINJA "Use Ninja generator if available" ON)
+
+# Configure Ninja generator if requested and available
+if(SONIC_USE_NINJA AND NOT CMAKE_GENERATOR MATCHES "Ninja")
+    find_program(NINJA_EXECUTABLE ninja)
+    if(NINJA_EXECUTABLE)
+        message(STATUS "Ninja found at ${NINJA_EXECUTABLE}")
+        message(STATUS "To use Ninja, run: cmake -G Ninja -B build -S .")
+    else()
+        message(WARNING "Ninja not found. Install Ninja for faster builds.")
+    endif()
+endif()
 
 # =============================================================================
 # COMPILER FLAGS
@@ -305,10 +317,8 @@ target_sources(MiniSonic.Gossip
         src/protocols/gossip.cpp
 )
 target_include_directories(MiniSonic.Gossip PUBLIC src)
-target_link_libraries(MiniSonic.Gossip MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
-if(WIN32)
-    target_link_libraries(MiniSonic.Gossip ws2_32)
-endif()
+target_include_directories(MiniSonic.Gossip PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(MiniSonic.Gossip MiniSonic.Protocol MiniSonic.Utils Threads::Threads ${Boost_LIBRARIES})
 set_target_properties(MiniSonic.Gossip PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON

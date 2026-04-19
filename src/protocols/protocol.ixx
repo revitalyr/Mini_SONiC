@@ -9,6 +9,9 @@ module;
 #include <mutex>
 #include <variant>
 #include <cstdint>
+#include <ranges>
+#include <span>
+#include <optional>
 
 export module MiniSonic.Protocol;
 
@@ -59,24 +62,34 @@ struct MessageHeader {
 };
 
 /**
- * @brief Protocol message with header and payload
+ * @brief Protocol message with header and payload using modern C++23
  */
 class Message {
 public:
     Message() = default;
-    
+
     explicit Message(MessageType type, vector<byte> payload)
         : m_header{type, static_cast<uint32_t>(payload.size()), 0, 0}
         , m_payload(std::move(payload)) {}
-    
+
     [[nodiscard]] const MessageHeader& header() const noexcept { return m_header; }
     [[nodiscard]] const vector<byte>& payload() const noexcept { return m_payload; }
     [[nodiscard]] vector<byte>& payload() noexcept { return m_payload; }
-    
+
+    // C++23: Get payload as span for efficient read-only access
+    [[nodiscard]] std::span<const byte> payloadSpan() const noexcept {
+        return std::span<const byte>(m_payload);
+    }
+
+    // C++23: Get payload as span for efficient read-write access
+    [[nodiscard]] std::span<byte> payloadSpan() noexcept {
+        return std::span<byte>(m_payload);
+    }
+
     void setType(MessageType type) noexcept { m_header.type = type; }
     void setSequence(uint32_t seq) noexcept { m_header.sequence = seq; }
     void setTimestamp(uint64_t ts) noexcept { m_header.timestamp = ts; }
-    
+
     [[nodiscard]] bool isValid() const noexcept { return m_header.isValid(); }
 
 private:
