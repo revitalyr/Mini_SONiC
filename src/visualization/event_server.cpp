@@ -309,6 +309,13 @@ private:
         packet_exited["packet_id"] = "TEST-" + std::to_string(packet_counter);
         packet_exited["egress_port"] = "eth1";
         packet_exited["next_hop"] = next_switch;
+        packet_exited["src_ip"] = "10.0.1.2";
+        packet_exited["dst_ip"] = "10.0.3.7";
+        packet_exited["src_port"] = 443;
+        packet_exited["dst_port"] = 51832;
+        packet_exited["dscp"] = 46;
+        packet_exited["ttl"] = 62;
+        packet_exited["state"] = "normal";
         handleJsonEvent(packet_exited);
     }
 

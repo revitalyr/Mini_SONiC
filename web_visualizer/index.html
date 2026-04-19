@@ -516,7 +516,16 @@
                 if (this.switches.has(switchId) && this.switches.has(nextHop)) {
                     const fromSwitch = this.switches.get(switchId);
                     const toSwitch = this.switches.get(nextHop);
-                    this.createLinkAnimation(packetId, fromSwitch, toSwitch);
+                    const packetDetails = {
+                        src_ip: event.src_ip || '10.0.1.2',
+                        dst_ip: event.dst_ip || '10.0.3.7',
+                        src_port: event.src_port || '443',
+                        dst_port: event.dst_port || '51832',
+                        dscp: event.dscp || '46',
+                        ttl: event.ttl || '62',
+                        state: event.state || 'normal'
+                    };
+                    this.createLinkAnimation(packetId, fromSwitch, toSwitch, packetDetails);
                 }
             }
 
@@ -528,7 +537,7 @@
                 this.logEvent('PortStateChanged', `Port ${port} on ${switchId} changed to ${state}`, 'switch');
             }
 
-            createLinkAnimation(packetId, fromSwitch, toSwitch) {
+            createLinkAnimation(packetId, fromSwitch, toSwitch, packetDetails) {
                 // Calculate center points of switches
                 const fromX = fromSwitch.x + fromSwitch.width / 2;
                 const fromY = fromSwitch.y + fromSwitch.height / 2;
@@ -542,7 +551,14 @@
                     targetX: toX,
                     targetY: toY,
                     progress: 0,
-                    speed: 0.005 // Slower animation
+                    speed: 0.005, // Slower animation
+                    src_ip: packetDetails.src_ip || '10.0.1.2',
+                    dst_ip: packetDetails.dst_ip || '10.0.3.7',
+                    src_port: packetDetails.src_port || '443',
+                    dst_port: packetDetails.dst_port || '51832',
+                    dscp: packetDetails.dscp || '46',
+                    ttl: packetDetails.ttl || '62',
+                    state: packetDetails.state || 'normal'
                 });
             }
 
@@ -621,17 +637,54 @@
                     ctx.fillText(sw.role, sw.x + 10, sw.y + 45);
                 });
                 
-                // Draw animated packets
+                // Draw animated packets as cards
                 this.activePackets.forEach(packet => {
-                    ctx.fillStyle = '#76ff03';
+                    const cardWidth = 120;
+                    const cardHeight = 60;
+                    const x = packet.x - cardWidth / 2;
+                    const y = packet.y - cardHeight / 2;
+                    const radius = 8;
+
+                    // Draw rounded rectangle background
+                    ctx.fillStyle = packet.state === 'drop' ? '#f44336' :
+                                   packet.state === 'queued' ? '#ff9800' :
+                                   packet.state === 'remarked' ? '#9c27b0' :
+                                   packet.state === 'ecmp' ? '#2196f3' : '#4caf50';
                     ctx.beginPath();
-                    ctx.arc(packet.x, packet.y, 15, 0, Math.PI * 2);
+                    ctx.moveTo(x + radius, y);
+                    ctx.lineTo(x + cardWidth - radius, y);
+                    ctx.quadraticCurveTo(x + cardWidth, y, x + cardWidth, y + radius);
+                    ctx.lineTo(x + cardWidth, y + cardHeight - radius);
+                    ctx.quadraticCurveTo(x + cardWidth, y + cardHeight, x + cardWidth - radius, y + cardHeight);
+                    ctx.lineTo(x + radius, y + cardHeight);
+                    ctx.quadraticCurveTo(x, y + cardHeight, x, y + cardHeight - radius);
+                    ctx.lineTo(x, y + radius);
+                    ctx.quadraticCurveTo(x, y, x + radius, y);
                     ctx.fill();
 
-                    // Draw packet ID
+                    // Draw packet details
                     ctx.fillStyle = 'white';
-                    ctx.font = '11px Segoe UI';
-                    ctx.fillText(packet.id, packet.x + 18, packet.y + 4);
+                    ctx.font = 'bold 11px Segoe UI';
+                    ctx.fillText(`ID: ${packet.id}`, x + 8, y + 16);
+                    ctx.font = '10px Segoe UI';
+                    ctx.fillText(`${packet.src_ip} → ${packet.dst_ip}`, x + 8, y + 30);
+                    ctx.fillText(`${packet.src_port} → ${packet.dst_port}`, x + 8, y + 44);
+                    ctx.fillText(`DSCP: ${packet.dscp}  TTL: ${packet.ttl}`, x + 8, y + 56);
+
+                    // Draw status icon if needed
+                    if (packet.state === 'queued') {
+                        ctx.fillStyle = 'white';
+                        ctx.font = '14px Segoe UI';
+                        ctx.fillText('⏳', x + cardWidth - 20, y + 18);
+                    } else if (packet.state === 'drop') {
+                        ctx.fillStyle = 'white';
+                        ctx.font = '14px Segoe UI';
+                        ctx.fillText('❌', x + cardWidth - 20, y + 18);
+                    } else if (packet.state === 'ecmp') {
+                        ctx.fillStyle = 'white';
+                        ctx.font = '14px Segoe UI';
+                        ctx.fillText('🔀', x + cardWidth - 20, y + 18);
+                    }
                 });
                 
                 document.getElementById('switchCount').textContent = this.switches.size;
