@@ -379,6 +379,41 @@ Types::Count calculateChecksum(const std::vector<uint8_t>& data) {
     return checksum & 0xFFFF; // 16-bit checksum
 }
 
+uint16_t htons(uint16_t hostshort) {
+    // Convert host byte order to network byte order (big-endian)
+    #if defined(_WIN32) || defined(_WIN64)
+    return _byteswap_ushort(hostshort);
+    #elif defined(__linux__)
+    return __builtin_bswap16(hostshort);
+    #else
+    return ((hostshort & 0xFF) << 8) | ((hostshort >> 8) & 0xFF);
+    #endif
+}
+
+uint32_t htonl(uint32_t hostlong) {
+    // Convert host byte order to network byte order (big-endian)
+    #if defined(_WIN32) || defined(_WIN64)
+    return _byteswap_ulong(hostlong);
+    #elif defined(__linux__)
+    return __builtin_bswap32(hostlong);
+    #else
+    return ((hostlong & 0xFF) << 24) | 
+           ((hostlong & 0xFF00) << 8) | 
+           ((hostlong >> 8) & 0xFF00) | 
+           ((hostlong >> 24) & 0xFF);
+    #endif
+}
+
+uint16_t ntohs(uint16_t netshort) {
+    // Convert network byte order to host byte order
+    return htons(netshort); // Same operation
+}
+
+uint32_t ntohl(uint32_t netlong) {
+    // Convert network byte order to host byte order
+    return htonl(netlong); // Same operation
+}
+
 } // namespace NetworkUtils
 
 } // export namespace MiniSonic::Utils

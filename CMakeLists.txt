@@ -73,8 +73,10 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         message(STATUS "Debug features enabled")
     endif()
     
-    # Define Windows version
-    add_definitions(-D_WIN32_WINNT=0x0601)
+    # Define Windows version (Windows 8 for WaitOnAddress API support)
+    add_definitions(-D_WIN32_WINNT=0x0602)
+    add_definitions(-DWINVER=0x0602)
+    add_definitions(-DNTDDI_VERSION=0x06020000)
 
     # Force include portability header for MSVC to handle GCC-specific attributes and Linux constants
     add_compile_options("/FI" "${CMAKE_SOURCE_DIR}/examples/mini_switch/include/cross_platform.h")
@@ -578,9 +580,58 @@ set_target_properties(mini_sonic_demo PROPERTIES
     C_EXTENSIONS OFF
 )
 
-# 6. Protocol Stack Tests
+# 6. Unit Tests
 enable_testing()
 
+# Core/Utils Unit Tests
+set(CORE_TEST_SOURCES
+    tests/unit/test_events.cpp
+    tests/unit/test_utils.cpp
+)
+
+add_executable(mini_sonic_core_tests ${CORE_TEST_SOURCES})
+target_link_libraries(mini_sonic_core_tests
+    MiniSonic.Events
+    MiniSonic.Utils
+    nlohmann_json::nlohmann_json
+    Threads::Threads
+    Catch2::Catch2WithMain
+)
+set_target_properties(mini_sonic_core_tests PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+add_test(NAME CoreTests COMMAND mini_sonic_core_tests)
+
+# Switching Unit Tests
+set(SWITCHING_TEST_SOURCES
+    tests/unit/test_sai.cpp
+    tests/unit/test_l2_service.cpp
+    tests/unit/test_l3_service.cpp
+    tests/unit/test_arp_pending_queue.cpp
+    tests/unit/test_packet_enhanced.cpp
+    tests/unit/test_lpm_trie.cpp
+)
+
+add_executable(mini_sonic_switching_tests ${SWITCHING_TEST_SOURCES})
+target_link_libraries(mini_sonic_switching_tests
+    MiniSonic.SAI
+    MiniSonic.DataPlane
+    MiniSonic.DataPlane.PacketEnhanced
+    MiniSonic.L3.ArpPendingQueue
+    MiniSonic.Boost.Wrappers
+    Threads::Threads
+    Catch2::Catch2WithMain
+)
+set_target_properties(mini_sonic_switching_tests PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+add_test(NAME SwitchingTests COMMAND mini_sonic_switching_tests)
+
+# Protocol Unit Tests
 set(PROTOCOL_TEST_SOURCES
     tests/unit/test_protocol.cpp
     tests/unit/test_serialization.cpp
@@ -598,8 +649,29 @@ set_target_properties(mini_sonic_protocol_tests PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
-
 add_test(NAME ProtocolTests COMMAND mini_sonic_protocol_tests)
+
+# Integration Tests
+set(INTEGRATION_TEST_SOURCES
+    tests/integration/test_pipeline.cpp
+    tests/integration/test_end_to_end.cpp
+)
+
+add_executable(mini_sonic_integration_tests ${INTEGRATION_TEST_SOURCES})
+target_link_libraries(mini_sonic_integration_tests
+    MiniSonic.DataPlane
+    MiniSonic.SAI
+    MiniSonic.L2L3
+    MiniSonic.Utils
+    Threads::Threads
+    Catch2::Catch2WithMain
+)
+set_target_properties(mini_sonic_integration_tests PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+add_test(NAME IntegrationTests COMMAND mini_sonic_integration_tests)
 
 # 7. Protocol Stack Demo
 add_executable(mini_sonic_protocol_demo examples/demo/protocol_stack_demo.cpp)
