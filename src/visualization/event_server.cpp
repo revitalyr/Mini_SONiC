@@ -87,16 +87,78 @@ private:
     void handleMessage(const string& data) {
         try {
             auto json = ::nlohmann::json::parse(data);
-            if (json.contains("type") && json["type"] == "speed_control") {
-                if (json.contains("speed") && m_speed_callback) {
-                    int speed = json["speed"];
-                    m_speed_callback(speed);
-                    std::cout << "[Session] Speed control received: " << speed << "x\n";
+            if (json.contains("type")) {
+                if (json["type"] == "speed_control") {
+                    if (json.contains("speed") && m_speed_callback) {
+                        int speed = json["speed"];
+                        m_speed_callback(speed);
+                        std::cout << "[Session] Speed control received: " << speed << "x\n";
+                    }
+                } else if (json["type"] == "topology_query") {
+                    // Send topology information
+                    sendTopology();
                 }
             }
         } catch (const std::exception& e) {
             std::cerr << "[Session] Failed to parse message: " << e.what() << "\n";
         }
+    }
+
+    void sendTopology() {
+        // Send topology information
+        nlohmann::json topology;
+        topology["type"] = "topology";
+        topology["switches"] = {
+            {
+                {"id", "TOR1"},
+                {"name", "TOR1"},
+                {"role", "Top-of-Rack"},
+                {"x", 50},
+                {"y", 50}
+            },
+            {
+                {"id", "Spine1"},
+                {"name", "Spine1"},
+                {"role", "Spine"},
+                {"x", 450},
+                {"y", 20}
+            },
+            {
+                {"id", "Spine2"},
+                {"name", "Spine2"},
+                {"role", "Spine"},
+                {"x", 450},
+                {"y", 280}
+            },
+            {
+                {"id", "TOR2"},
+                {"name", "TOR2"},
+                {"role", "Top-of-Rack"},
+                {"x", 850},
+                {"y", 50}
+            },
+            {
+                {"id", "Leaf1"},
+                {"name", "Leaf1"},
+                {"role", "Leaf"},
+                {"x", 850},
+                {"y", 280}
+            }
+        };
+        topology["links"] = {
+            {{"from", "TOR1"}, {"to", "Spine1"}},
+            {{"from", "TOR1"}, {"to", "Spine2"}},
+            {{"from", "TOR2"}, {"to", "Spine1"}},
+            {{"from", "TOR2"}, {"to", "Spine2"}},
+            {{"from", "Spine1"}, {"to", "Spine2"}},
+            {{"from", "Leaf1"}, {"to", "Spine1"}},
+            {{"from", "Leaf1"}, {"to", "Spine2"}}
+        };
+
+        string topology_data = topology.dump();
+        topology_data += "\n";
+        m_ws.write(boost::asio::buffer(topology_data));
+        std::cout << "[Session] Sent topology information\n";
     }
 
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket> m_ws;
@@ -256,9 +318,9 @@ private:
         packet_counter++;
 
         // Use switches that exist in the web visualizer topology
-        static const char* switch_names[] = {"TOR1", "Spine1", "Spine2", "TOR2"};
-        const char* current_switch = switch_names[packet_counter % 4];
-        const char* next_switch = switch_names[(packet_counter + 1) % 4];
+        static const char* switch_names[] = {"TOR1", "Spine1", "Spine2", "TOR2", "Leaf1"};
+        const char* current_switch = switch_names[packet_counter % 5];
+        const char* next_switch = switch_names[(packet_counter + 1) % 5];
 
         // Send PacketGenerated event
         nlohmann::json packet_gen;

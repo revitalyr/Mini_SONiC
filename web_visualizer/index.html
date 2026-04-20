@@ -287,19 +287,34 @@
     <div class="main-container">
         <div class="visualization-panel">
             <canvas id="networkCanvas"></canvas>
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Event Log</h2>
+                    <div class="stats">
+                        <span id="eventCount">0</span> events
+                    </div>
+                </div>
+                <div class="event-list" id="eventList">
+                    <div class="event-item">
+                        <div class="event-time">--:--:--</div>
+                        <div class="event-type">System</div>
+                        <div class="event-details">Visualizer initialized. Click Connect to start.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Packet Traversal History</h2>
+                    <div class="stats">
+                        <span id="packetHistoryCount">0</span> packets
+                    </div>
+                </div>
+                <div class="event-list" id="packetHistoryList"></div>
+            </div>
         </div>
 
         <div class="event-panel">
-            <div class="event-header">
-                <h2>Event Log</h2>
-            </div>
-            <div id="eventList" class="event-list">
-                <div class="event-item">
-                    <div class="event-time">--:--:--</div>
-                    <div class="event-type">System</div>
-                    <div class="event-details">Visualizer initialized. Click Connect to start.</div>
-                </div>
-            </div>
             <div class="stats-panel">
                 <div class="stat-item">
                     <span class="stat-label">Events Received:</span>
@@ -335,11 +350,12 @@
                 this.eventCount = 0;
                 this.packetCount = 0;
                 this.speed = 1; // Speed multiplier (1x, 2x, 3x, etc.)
-                
+
                 this.switches = new Map();
                 this.links = [];
                 this.packets = new Map();
                 this.activePackets = [];
+                this.packetHistory = new Map(); // Track packet traversal history
                 
                 this.initTopology();
                 this.resizeCanvas();
@@ -348,17 +364,107 @@
             }
 
             initTopology() {
-                // Initialize network topology
-                this.switches.set('TOR1', { x: 100, y: 200, width: 120, height: 80, name: 'TOR1', role: 'Top-of-Rack', active: false });
-                this.switches.set('Spine1', { x: 400, y: 100, width: 120, height: 80, name: 'Spine1', role: 'Spine', active: false });
-                this.switches.set('Spine2', { x: 400, y: 300, width: 120, height: 80, name: 'Spine2', role: 'Spine', active: false });
-                this.switches.set('TOR2', { x: 700, y: 200, width: 120, height: 80, name: 'TOR2', role: 'Top-of-Rack', active: false });
-                
+                // Define initial switches with detailed information - spread out layout
+                this.switches.set('TOR1', {
+                    name: 'TOR1',
+                    role: 'Top-of-Rack',
+                    x: 50,
+                    y: 50,
+                    width: 200,
+                    height: 180,
+                    active: false,
+                    ports: [
+                        { name: 'Eth0', speed: '100G', state: 'UP', type: '', queue: 40 },
+                        { name: 'Eth4', speed: '100G', state: 'UP', type: 'LAG1', queue: 60 },
+                        { name: 'Eth8', speed: '100G', state: 'DOWN', type: '', queue: 0 }
+                    ],
+                    routing: 'ECMP: hash=0xA3 → Eth4',
+                    acl: 'permit tcp dst 443',
+                    qos: 'DSCP 46 → Q3',
+                    stats: { packets: 12400, drops: 42, cpu: 3 }
+                });
+                this.switches.set('Spine1', {
+                    name: 'Spine1',
+                    role: 'Spine',
+                    x: 450,
+                    y: 20,
+                    width: 200,
+                    height: 180,
+                    active: false,
+                    ports: [
+                        { name: 'Eth0', speed: '400G', state: 'UP', type: '', queue: 30 },
+                        { name: 'Eth4', speed: '400G', state: 'UP', type: '', queue: 45 },
+                        { name: 'Eth8', speed: '400G', state: 'UP', type: '', queue: 35 }
+                    ],
+                    routing: 'Route: 10.0.3.0/24 via TOR2',
+                    acl: '',
+                    qos: '',
+                    stats: { packets: 45000, drops: 12, cpu: 5 }
+                });
+                this.switches.set('Spine2', {
+                    name: 'Spine2',
+                    role: 'Spine',
+                    x: 450,
+                    y: 280,
+                    width: 200,
+                    height: 180,
+                    active: false,
+                    ports: [
+                        { name: 'Eth0', speed: '400G', state: 'UP', type: '', queue: 25 },
+                        { name: 'Eth4', speed: '400G', state: 'UP', type: '', queue: 40 },
+                        { name: 'Eth8', speed: '400G', state: 'UP', type: '', queue: 30 }
+                    ],
+                    routing: 'Route: 10.0.1.0/24 via TOR1',
+                    acl: '',
+                    qos: '',
+                    stats: { packets: 42000, drops: 8, cpu: 4 }
+                });
+                this.switches.set('TOR2', {
+                    name: 'TOR2',
+                    role: 'Top-of-Rack',
+                    x: 850,
+                    y: 50,
+                    width: 200,
+                    height: 180,
+                    active: false,
+                    ports: [
+                        { name: 'Eth0', speed: '100G', state: 'UP', type: '', queue: 35 },
+                        { name: 'Eth4', speed: '100G', state: 'UP', type: 'LAG2', queue: 50 },
+                        { name: 'Eth8', speed: '100G', state: 'DOWN', type: '', queue: 0 }
+                    ],
+                    routing: 'ECMP: hash=0xB7 → Eth4',
+                    acl: 'permit tcp dst 443',
+                    qos: 'DSCP 46 → Q3',
+                    stats: { packets: 11800, drops: 35, cpu: 3 }
+                });
+                this.switches.set('Leaf1', {
+                    name: 'Leaf1',
+                    role: 'Leaf',
+                    x: 850,
+                    y: 280,
+                    width: 200,
+                    height: 180,
+                    active: false,
+                    ports: [
+                        { name: 'Eth0', speed: '100G', state: 'UP', type: '', queue: 28 },
+                        { name: 'Eth4', speed: '100G', state: 'UP', type: '', queue: 32 },
+                        { name: 'Eth8', speed: '100G', state: 'UP', type: '', queue: 38 }
+                    ],
+                    routing: 'Route: 10.0.5.0/24 via Spine1',
+                    acl: '',
+                    qos: '',
+                    stats: { packets: 9500, drops: 15, cpu: 2 }
+                });
+
+                // Define links between switches with more complex topology
                 this.links = [
                     { from: 'TOR1', to: 'Spine1', active: false },
                     { from: 'TOR1', to: 'Spine2', active: false },
-                    { from: 'Spine1', to: 'TOR2', active: false },
-                    { from: 'Spine2', to: 'TOR2', active: false }
+                    { from: 'TOR2', to: 'Spine1', active: false },
+                    { from: 'TOR2', to: 'Spine2', active: false },
+                    { from: 'Spine1', to: 'Spine2', active: false }, // Spine-to-Spine link
+                    { from: 'Leaf1', to: 'Spine1', active: false },
+                    { from: 'Leaf1', to: 'Spine2', active: false }
                 ];
             }
 
@@ -379,37 +485,60 @@
 
             connect() {
                 if (this.connected) return;
-                
-                try {
-                    this.ws = new WebSocket('ws://127.0.0.1:8080');
-                    
-                    this.ws.onopen = () => {
-                        this.connected = true;
-                        this.connectionStatus.textContent = 'Connected';
-                        this.connectionStatus.className = 'status connected';
-                        this.connectBtn.disabled = true;
-                        this.disconnectBtn.disabled = false;
-                        this.logEvent('System', 'Connected to event stream');
+
+                this.ws = new WebSocket('ws://127.0.0.1:8080');
+                this.ws.binaryType = 'arraybuffer';
+
+                this.ws.onopen = () => {
+                    this.connected = true;
+                    this.connectionStatus.textContent = 'Connected';
+                    this.connectionStatus.style.color = '#4caf50';
+                    this.connectBtn.disabled = true;
+                    this.disconnectBtn.disabled = false;
+                    this.logEvent('Connection', 'WebSocket connected', 'system');
+
+                    // Request topology from server
+                    this.queryTopology();
+                };
+
+                this.ws.onmessage = (event) => {
+                    try {
+                        const data = event.data.trim();
+                        if (!data) return;
+
+                        // Handle multiple JSON objects in one message
+                        const lines = data.split('\n');
+                        lines.forEach(line => {
+                            if (!line.trim()) return;
+                            const json = JSON.parse(line);
+                            this.handleEvent(json);
+                        });
+                    } catch (e) {
+                        console.error('Failed to parse message:', e);
+                    }
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    this.logEvent('Error', 'WebSocket connection error', 'system');
+                };
+
+                this.ws.onclose = () => {
+                    this.connected = false;
+                    this.connectionStatus.textContent = 'Disconnected';
+                    this.connectionStatus.style.color = '#f44336';
+                    this.connectBtn.disabled = false;
+                    this.disconnectBtn.disabled = true;
+                    this.logEvent('Connection', 'WebSocket disconnected', 'system');
+                };
+            }
+
+            queryTopology() {
+                if (this.connected && this.ws) {
+                    const message = {
+                        type: 'topology_query'
                     };
-                    
-                    this.ws.onmessage = (event) => {
-                        this.handleEvent(JSON.parse(event.data));
-                    };
-                    
-                    this.ws.onerror = (error) => {
-                        this.logEvent('Error', 'WebSocket error: ' + error.message, 'error');
-                    };
-                    
-                    this.ws.onclose = () => {
-                        this.connected = false;
-                        this.connectionStatus.textContent = 'Disconnected';
-                        this.connectionStatus.className = 'status disconnected';
-                        this.connectBtn.disabled = false;
-                        this.disconnectBtn.disabled = true;
-                        this.logEvent('System', 'Disconnected from event stream');
-                    };
-                } catch (error) {
-                    this.logEvent('Error', 'Failed to connect: ' + error.message, 'error');
+                    this.ws.send(JSON.stringify(message));
                 }
             }
 
@@ -442,8 +571,11 @@
             handleEvent(event) {
                 this.eventCount++;
                 document.getElementById('eventCount').textContent = this.eventCount;
-                
+
                 switch (event.type) {
+                    case 'topology':
+                        this.handleTopology(event);
+                        break;
                     case 'PacketGenerated':
                         this.handlePacketGenerated(event);
                         break;
@@ -464,6 +596,41 @@
                 }
             }
 
+            handleTopology(event) {
+                // Update switches from topology
+                this.switches.clear();
+                event.switches.forEach(sw => {
+                    this.switches.set(sw.id, {
+                        name: sw.name,
+                        role: sw.role,
+                        x: sw.x,
+                        y: sw.y,
+                        width: 200,
+                        height: 180,
+                        active: false,
+                        ports: [
+                            { name: 'Eth0', speed: '100G', state: 'UP', type: '', queue: 40 },
+                            { name: 'Eth4', speed: '100G', state: 'UP', type: 'LAG1', queue: 60 },
+                            { name: 'Eth8', speed: '100G', state: 'DOWN', type: '', queue: 0 }
+                        ],
+                        routing: 'ECMP: hash=0xA3 → Eth4',
+                        acl: 'permit tcp dst 443',
+                        qos: 'DSCP 46 → Q3',
+                        stats: { packets: 12400, drops: 42, cpu: 3 }
+                    });
+                });
+
+                // Update links from topology
+                this.links = event.links.map(link => ({
+                    from: link.from,
+                    to: link.to,
+                    active: false
+                }));
+
+                this.logEvent('Topology', `Updated topology: ${event.switches.length} switches, ${event.links.length} links`, 'system');
+                this.draw();
+            }
+
             handlePacketGenerated(event) {
                 const packet = event.packet;
                 this.logEvent('PacketGenerated', `Packet ${packet.id}: ${packet.src_ip} -> ${packet.dst_ip}`, 'packet');
@@ -474,9 +641,26 @@
             handlePacketEnteredSwitch(event) {
                 const switchId = event.switch_id;
                 const packetId = event.packet_id;
-                const ingressPort = event.ingress_port;
+                const ingressPort = event.ingressPort;
 
                 this.logEvent('PacketEnteredSwitch', `Packet ${packetId} entered ${switchId} on ${ingressPort}`, 'switch');
+
+                // Track packet traversal history
+                if (!this.packetHistory.has(packetId)) {
+                    this.packetHistory.set(packetId, {
+                        id: packetId,
+                        path: [],
+                        startTime: new Date()
+                    });
+                }
+                const history = this.packetHistory.get(packetId);
+                history.path.push({
+                    switch: switchId,
+                    action: 'entered',
+                    port: ingressPort,
+                    timestamp: new Date()
+                });
+                this.updatePacketHistoryDisplay();
 
                 // Highlight switch
                 if (this.switches.has(switchId)) {
@@ -507,10 +691,23 @@
             handlePacketExitedSwitch(event) {
                 const switchId = event.switch_id;
                 const packetId = event.packet_id;
-                const egressPort = event.egress_port;
+                const egressPort = event.egressPort;
                 const nextHop = event.next_hop;
 
                 this.logEvent('PacketExitedSwitch', `Packet ${packetId} exited ${switchId} via ${egressPort} to ${nextHop}`, 'switch');
+
+                // Track packet traversal history
+                if (this.packetHistory.has(packetId)) {
+                    const history = this.packetHistory.get(packetId);
+                    history.path.push({
+                        switch: switchId,
+                        action: 'exited',
+                        port: egressPort,
+                        nextHop: nextHop,
+                        timestamp: new Date()
+                    });
+                    this.updatePacketHistoryDisplay();
+                }
 
                 // Animate packet moving along link to next switch
                 if (this.switches.has(switchId) && this.switches.has(nextHop)) {
@@ -572,11 +769,33 @@
                     <div class="event-details">${details}</div>
                 `;
                 this.eventList.insertBefore(eventItem, this.eventList.firstChild);
-                
+
                 // Keep only last 100 events
                 while (this.eventList.children.length > 100) {
                     this.eventList.removeChild(this.eventList.lastChild);
                 }
+            }
+
+            updatePacketHistoryDisplay() {
+                const historyList = document.getElementById('packetHistoryList');
+                historyList.innerHTML = '';
+
+                // Show last 20 packets
+                const recentPackets = Array.from(this.packetHistory.entries()).slice(-20).reverse();
+
+                recentPackets.forEach(([packetId, history]) => {
+                    const pathStr = history.path.map(p => `${p.switch} (${p.action})`).join(' → ');
+                    const item = document.createElement('div');
+                    item.className = 'event-item packet';
+                    item.innerHTML = `
+                        <div class="event-time">${history.startTime.toLocaleTimeString()}</div>
+                        <div class="event-type">Packet ${packetId}</div>
+                        <div class="event-details">${pathStr}</div>
+                    `;
+                    historyList.appendChild(item);
+                });
+
+                document.getElementById('packetHistoryCount').textContent = this.packetHistory.size;
             }
 
             startAnimation() {
@@ -591,6 +810,16 @@
             updatePackets() {
                 this.activePackets = this.activePackets.filter(packet => {
                     packet.progress += packet.speed;
+
+                    // Handle fade out for dropped packets
+                    if (packet.state === 'drop') {
+                        if (!packet.opacity) packet.opacity = 1.0;
+                        packet.opacity -= 0.05;
+                        if (packet.opacity <= 0) {
+                            return false;
+                        }
+                    }
+
                     if (packet.progress >= 1) {
                         return false;
                     }
@@ -618,7 +847,7 @@
                     }
                 });
                 
-                // Draw switches
+                // Draw switches with detailed information
                 this.switches.forEach(sw => {
                     // Draw switch box
                     ctx.fillStyle = sw.active ? '#66bb6a' : '#1976d2';
@@ -626,15 +855,82 @@
                     ctx.lineWidth = 2;
                     ctx.fillRect(sw.x, sw.y, sw.width, sw.height);
                     ctx.strokeRect(sw.x, sw.y, sw.width, sw.height);
-                    
-                    // Draw switch name
+
+                    // Draw switch name and role
                     ctx.fillStyle = 'white';
                     ctx.font = 'bold 12px Segoe UI';
-                    ctx.fillText(sw.name, sw.x + 10, sw.y + 25);
-                    
-                    // Draw switch role
-                    ctx.font = '10px Segoe UI';
-                    ctx.fillText(sw.role, sw.x + 10, sw.y + 45);
+                    ctx.fillText(`${sw.name} (${sw.role})`, sw.x + 10, sw.y + 18);
+
+                    // Draw ports section
+                    ctx.fillStyle = '#e3f2fd';
+                    ctx.font = 'bold 10px Segoe UI';
+                    ctx.fillText('Ports:', sw.x + 10, sw.y + 35);
+
+                    sw.ports.forEach((port, i) => {
+                        const portY = sw.y + 50 + i * 18;
+                        const stateColor = port.state === 'UP' ? '#4caf50' :
+                                         port.state === 'DOWN' ? '#f44336' : '#ff9800';
+
+                        // Port name and speed
+                        ctx.fillStyle = 'white';
+                        ctx.font = '9px Segoe UI';
+                        ctx.fillText(`${port.name} ${port.speed} ${port.type}`, sw.x + 10, portY);
+
+                        // Port state indicator
+                        ctx.fillStyle = stateColor;
+                        ctx.beginPath();
+                        ctx.arc(sw.x + 130, portY - 3, 4, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Queue utilization bar
+                        const queueWidth = 50;
+                        const queueHeight = 6;
+                        const queueX = sw.x + 140;
+                        const queueY = portY - 8;
+
+                        // Background
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(queueX, queueY, queueWidth, queueHeight);
+
+                        // Fill based on queue percentage
+                        ctx.fillStyle = port.queue > 70 ? '#f44336' : port.queue > 40 ? '#ff9800' : '#4caf50';
+                        ctx.fillRect(queueX, queueY, queueWidth * (port.queue / 100), queueHeight);
+                    });
+
+                    // Draw routing section
+                    if (sw.routing) {
+                        ctx.fillStyle = '#e3f2fd';
+                        ctx.font = 'bold 10px Segoe UI';
+                        ctx.fillText('Routing:', sw.x + 10, sw.y + 105);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '9px Segoe UI';
+                        ctx.fillText(sw.routing, sw.x + 10, sw.y + 118);
+                    }
+
+                    // Draw ACL section
+                    if (sw.acl) {
+                        ctx.fillStyle = '#e3f2fd';
+                        ctx.font = 'bold 10px Segoe UI';
+                        ctx.fillText('ACL:', sw.x + 10, sw.y + 133);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '9px Segoe UI';
+                        ctx.fillText(sw.acl, sw.x + 10, sw.y + 146);
+                    }
+
+                    // Draw QoS section
+                    if (sw.qos) {
+                        ctx.fillStyle = '#e3f2fd';
+                        ctx.font = 'bold 10px Segoe UI';
+                        ctx.fillText('QoS:', sw.x + 10, sw.y + 161);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '9px Segoe UI';
+                        ctx.fillText(sw.qos, sw.x + 10, sw.y + 174);
+                    }
+
+                    // Draw stats section
+                    ctx.fillStyle = '#e3f2fd';
+                    ctx.font = 'bold 10px Segoe UI';
+                    ctx.fillText(`Stats: ${sw.stats.packets}pps, drops ${sw.stats.drops}, CPU ${sw.stats.cpu}%`, sw.x + 10, sw.y + 190);
                 });
                 
                 // Draw animated packets as cards
@@ -645,46 +941,77 @@
                     const y = packet.y - cardHeight / 2;
                     const radius = 8;
 
+                    // Calculate tilt angle based on movement direction
+                    const dx = packet.targetX - packet.x;
+                    const dy = packet.targetY - packet.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    let tiltAngle = 0;
+                    if (distance > 0) {
+                        tiltAngle = Math.atan2(dy, dx) * 0.1; // Slight tilt based on direction
+                    }
+
+                    // Apply vibration if queued
+                    let vibrationX = 0;
+                    let vibrationY = 0;
+                    if (packet.state === 'queued') {
+                        vibrationX = (Math.random() - 0.5) * 4;
+                        vibrationY = (Math.random() - 0.5) * 4;
+                    }
+
+                    // Save context and apply transformations
+                    ctx.save();
+                    ctx.translate(x + cardWidth / 2 + vibrationX, y + cardHeight / 2 + vibrationY);
+                    ctx.rotate(tiltAngle);
+                    ctx.translate(-cardWidth / 2, -cardHeight / 2);
+
+                    // Apply opacity for fade out
+                    if (packet.opacity !== undefined) {
+                        ctx.globalAlpha = packet.opacity;
+                    }
+
                     // Draw rounded rectangle background
                     ctx.fillStyle = packet.state === 'drop' ? '#f44336' :
                                    packet.state === 'queued' ? '#ff9800' :
                                    packet.state === 'remarked' ? '#9c27b0' :
                                    packet.state === 'ecmp' ? '#2196f3' : '#4caf50';
                     ctx.beginPath();
-                    ctx.moveTo(x + radius, y);
-                    ctx.lineTo(x + cardWidth - radius, y);
-                    ctx.quadraticCurveTo(x + cardWidth, y, x + cardWidth, y + radius);
-                    ctx.lineTo(x + cardWidth, y + cardHeight - radius);
-                    ctx.quadraticCurveTo(x + cardWidth, y + cardHeight, x + cardWidth - radius, y + cardHeight);
-                    ctx.lineTo(x + radius, y + cardHeight);
-                    ctx.quadraticCurveTo(x, y + cardHeight, x, y + cardHeight - radius);
-                    ctx.lineTo(x, y + radius);
-                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                    ctx.moveTo(radius, 0);
+                    ctx.lineTo(cardWidth - radius, 0);
+                    ctx.quadraticCurveTo(cardWidth, 0, cardWidth, radius);
+                    ctx.lineTo(cardWidth, cardHeight - radius);
+                    ctx.quadraticCurveTo(cardWidth, cardHeight, cardWidth - radius, cardHeight);
+                    ctx.lineTo(radius, cardHeight);
+                    ctx.quadraticCurveTo(0, cardHeight, 0, cardHeight - radius);
+                    ctx.lineTo(0, radius);
+                    ctx.quadraticCurveTo(0, 0, radius, 0);
                     ctx.fill();
 
                     // Draw packet details
                     ctx.fillStyle = 'white';
                     ctx.font = 'bold 11px Segoe UI';
-                    ctx.fillText(`ID: ${packet.id}`, x + 8, y + 16);
+                    ctx.fillText(`ID: ${packet.id}`, 8, 16);
                     ctx.font = '10px Segoe UI';
-                    ctx.fillText(`${packet.src_ip} → ${packet.dst_ip}`, x + 8, y + 30);
-                    ctx.fillText(`${packet.src_port} → ${packet.dst_port}`, x + 8, y + 44);
-                    ctx.fillText(`DSCP: ${packet.dscp}  TTL: ${packet.ttl}`, x + 8, y + 56);
+                    ctx.fillText(`${packet.src_ip} → ${packet.dst_ip}`, 8, 30);
+                    ctx.fillText(`${packet.src_port} → ${packet.dst_port}`, 8, 44);
+                    ctx.fillText(`DSCP: ${packet.dscp}  TTL: ${packet.ttl}`, 8, 56);
 
                     // Draw status icon if needed
                     if (packet.state === 'queued') {
                         ctx.fillStyle = 'white';
                         ctx.font = '14px Segoe UI';
-                        ctx.fillText('⏳', x + cardWidth - 20, y + 18);
+                        ctx.fillText('⏳', cardWidth - 20, 18);
                     } else if (packet.state === 'drop') {
                         ctx.fillStyle = 'white';
                         ctx.font = '14px Segoe UI';
-                        ctx.fillText('❌', x + cardWidth - 20, y + 18);
+                        ctx.fillText('❌', cardWidth - 20, 18);
                     } else if (packet.state === 'ecmp') {
                         ctx.fillStyle = 'white';
                         ctx.font = '14px Segoe UI';
-                        ctx.fillText('🔀', x + cardWidth - 20, y + 18);
+                        ctx.fillText('🔀', cardWidth - 20, 18);
                     }
+
+                    // Restore context
+                    ctx.restore();
                 });
                 
                 document.getElementById('switchCount').textContent = this.switches.size;
