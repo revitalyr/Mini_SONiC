@@ -106,6 +106,8 @@ private:
 
     void sendTopology() {
         // Send topology information
+        // TODO: This should query the actual Mini_SONiC system for real topology data
+        // Currently using test topology for demonstration purposes
         nlohmann::json topology;
         topology["type"] = "topology";
         topology["switches"] = {
@@ -113,46 +115,115 @@ private:
                 {"id", "TOR1"},
                 {"name", "TOR1"},
                 {"role", "Top-of-Rack"},
-                {"x", 50},
-                {"y", 50}
+                {"x", 200},
+                {"y", 100},
+                {"ports", nlohmann::json::array({
+                    {{"name", "Eth0"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 40}},
+                    {{"name", "Eth4"}, {"speed", "100G"}, {"state", "UP"}, {"type", "LAG1"}, {"queue", 60}},
+                    {{"name", "Eth8"}, {"speed", "100G"}, {"state", "DOWN"}, {"type", ""}, {"queue", 0}}
+                })},
+                {"routing", "ECMP: hash=0xA3 → Eth4"},
+                {"acl", "permit tcp dst 443"},
+                {"qos", "DSCP 46 → Q3"},
+                {"stats", {{"packets", 12400}, {"drops", 42}, {"cpu", 3}}}
             },
             {
                 {"id", "Spine1"},
                 {"name", "Spine1"},
                 {"role", "Spine"},
-                {"x", 450},
-                {"y", 20}
+                {"x", 600},
+                {"y", 20},
+                {"ports", nlohmann::json::array({
+                    {{"name", "Eth0"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 30}},
+                    {{"name", "Eth4"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 45}},
+                    {{"name", "Eth8"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 35}}
+                })},
+                {"routing", "Route: 10.0.3.0/24 via TOR2"},
+                {"acl", ""},
+                {"qos", ""},
+                {"stats", {{"packets", 45000}, {"drops", 12}, {"cpu", 5}}}
             },
             {
                 {"id", "Spine2"},
                 {"name", "Spine2"},
                 {"role", "Spine"},
-                {"x", 450},
-                {"y", 280}
+                {"x", 600},
+                {"y", 280},
+                {"ports", nlohmann::json::array({
+                    {{"name", "Eth0"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 25}},
+                    {{"name", "Eth4"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 40}},
+                    {{"name", "Eth8"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 30}}
+                })},
+                {"routing", "Route: 10.0.1.0/24 via TOR1"},
+                {"acl", ""},
+                {"qos", ""},
+                {"stats", {{"packets", 42000}, {"drops", 8}, {"cpu", 4}}}
             },
             {
                 {"id", "TOR2"},
                 {"name", "TOR2"},
                 {"role", "Top-of-Rack"},
-                {"x", 850},
-                {"y", 50}
+                {"x", 1000},
+                {"y", 100},
+                {"ports", nlohmann::json::array({
+                    {{"name", "Eth0"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 35}},
+                    {{"name", "Eth4"}, {"speed", "100G"}, {"state", "UP"}, {"type", "LAG2"}, {"queue", 50}},
+                    {{"name", "Eth8"}, {"speed", "100G"}, {"state", "DOWN"}, {"type", ""}, {"queue", 0}}
+                })},
+                {"routing", "ECMP: hash=0xB7 → Eth4"},
+                {"acl", "permit tcp dst 443"},
+                {"qos", "DSCP 46 → Q3"},
+                {"stats", {{"packets", 11800}, {"drops", 35}, {"cpu", 3}}}
             },
             {
                 {"id", "Leaf1"},
                 {"name", "Leaf1"},
                 {"role", "Leaf"},
-                {"x", 850},
-                {"y", 280}
+                {"x", 1000},
+                {"y", 280},
+                {"ports", nlohmann::json::array({
+                    {{"name", "Eth0"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 28}},
+                    {{"name", "Eth4"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 32}},
+                    {{"name", "Eth8"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 38}}
+                })},
+                {"routing", "Route: 10.0.5.0/24 via Spine1"},
+                {"acl", ""},
+                {"qos", ""},
+                {"stats", {{"packets", 9500}, {"drops", 15}, {"cpu", 2}}}
             }
         };
         topology["links"] = {
-            {{"from", "TOR1"}, {"to", "Spine1"}},
-            {{"from", "TOR1"}, {"to", "Spine2"}},
-            {{"from", "TOR2"}, {"to", "Spine1"}},
-            {{"from", "TOR2"}, {"to", "Spine2"}},
-            {{"from", "Spine1"}, {"to", "Spine2"}},
-            {{"from", "Leaf1"}, {"to", "Spine1"}},
-            {{"from", "Leaf1"}, {"to", "Spine2"}}
+            {{"from", "TOR1"}, {"to", "Spine1"}, {"bandwidth", "100G"}, {"utilization", 0.4}, {"state", "up"}},
+            {{"from", "TOR1"}, {"to", "Spine2"}, {"bandwidth", "100G"}, {"utilization", 0.35}, {"state", "up"}},
+            {{"from", "TOR2"}, {"to", "Spine1"}, {"bandwidth", "100G"}, {"utilization", 0.3}, {"state", "up"}},
+            {{"from", "TOR2"}, {"to", "Spine2"}, {"bandwidth", "100G"}, {"utilization", 0.45}, {"state", "up"}},
+            {{"from", "Spine1"}, {"to", "Spine2"}, {"bandwidth", "400G"}, {"utilization", 0.25}, {"state", "up"}},
+            {{"from", "Leaf1"}, {"to", "Spine1"}, {"bandwidth", "100G"}, {"utilization", 0.2}, {"state", "up"}},
+            {{"from", "Leaf1"}, {"to", "Spine2"}, {"bandwidth", "100G"}, {"utilization", 0.15}, {"state", "up"}},
+            {{"from", "H1"}, {"to", "TOR1"}, {"bandwidth", "10G"}, {"utilization", 0.3}, {"state", "up"}},
+            {{"from", "H2"}, {"to", "TOR2"}, {"bandwidth", "10G"}, {"utilization", 0.25}, {"state", "up"}}
+        };
+        topology["hosts"] = {
+            {
+                {"id", "H1"},
+                {"name", "H1"},
+                {"ip", "10.0.1.2"},
+                {"mac", "00:11:22:33:44:55"},
+                {"x", 20},
+                {"y", 100},
+                {"connected_to", "TOR1"},
+                {"stats", {{"sent", 1500}, {"received", 1200}}}
+            },
+            {
+                {"id", "H2"},
+                {"name", "H2"},
+                {"ip", "10.0.3.7"},
+                {"mac", "00:11:22:33:44:56"},
+                {"x", 1180},
+                {"y", 100},
+                {"connected_to", "TOR2"},
+                {"stats", {{"sent", 1200}, {"received", 1500}}}
+            }
         };
 
         string topology_data = topology.dump();

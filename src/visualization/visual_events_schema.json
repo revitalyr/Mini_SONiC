@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Mini_SONiC Visual Events Schema",
+  "description": "JSON schema for visualization events sent to the web visualizer",
+  "definitions": {
+    "Node": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "enum": ["host", "switch", "router"] },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "ip": { "type": "string" },
+        "mac": { "type": "string" },
+        "connected_to": { "type": "string" },
+        "role": { "type": "string" }
+      },
+      "required": ["id", "name", "type", "x", "y"]
+    },
+    "Link": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "bandwidth": { "type": "string" },
+        "latency_ms": { "type": "number" },
+        "loss_percent": { "type": "number" },
+        "state": { "enum": ["up", "down", "congested"] },
+        "utilization": { "type": "number", "minimum": 0, "maximum": 1 },
+        "queue_depth": { "type": "number" }
+      },
+      "required": ["id", "from", "to", "bandwidth", "state"]
+    },
+    "Packet": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "protocol": { "enum": ["ARP", "ICMP", "TCP", "UDP", "BGP", "LLDP"] },
+        "src_ip": { "type": "string" },
+        "dst_ip": { "type": "string" },
+        "src_port": { "type": "number" },
+        "dst_port": { "type": "number" },
+        "src_mac": { "type": "string" },
+        "dst_mac": { "type": "string" },
+        "dscp": { "type": "number" },
+        "ttl": { "type": "number" },
+        "size_bytes": { "type": "number" }
+      },
+      "required": ["id", "protocol", "src_ip", "dst_ip"]
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "TopologyUpdated" },
+        "timestamp": { "type": "number" },
+        "nodes": { "type": "array", "items": { "$ref": "#/definitions/Node" } },
+        "links": { "type": "array", "items": { "$ref": "#/definitions/Link" } }
+      },
+      "required": ["type", "timestamp", "nodes", "links"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "PacketSpawned" },
+        "timestamp": { "type": "number" },
+        "packet": { "$ref": "#/definitions/Packet" },
+        "src_node": { "type": "string" },
+        "dst_node": { "type": "string" }
+      },
+      "required": ["type", "timestamp", "packet", "src_node", "dst_node"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "PacketHop" },
+        "timestamp": { "type": "number" },
+        "packet_id": { "type": "string" },
+        "from_node": { "type": "string" },
+        "to_node": { "type": "string" },
+        "via_link_id": { "type": "string" },
+        "latency_ms": { "type": "number" }
+      },
+      "required": ["type", "timestamp", "packet_id", "from_node", "to_node", "via_link_id"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "PacketDropped" },
+        "timestamp": { "type": "number" },
+        "packet_id": { "type": "string" },
+        "at_node": { "type": "string" },
+        "reason": { "type": "string" },
+        "reason_code": { "type": "string" }
+      },
+      "required": ["type", "timestamp", "packet_id", "at_node", "reason"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "PacketDelivered" },
+        "timestamp": { "type": "number" },
+        "packet_id": { "type": "string" },
+        "dst_node": { "type": "string" }
+      },
+      "required": ["type", "timestamp", "packet_id", "dst_node"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "LinkStatsUpdated" },
+        "timestamp": { "type": "number" },
+        "link_id": { "type": "string" },
+        "utilization": { "type": "number", "minimum": 0, "maximum": 1 },
+        "state": { "enum": ["up", "down", "congested"] },
+        "queue_depth": { "type": "number" }
+      },
+      "required": ["type", "timestamp", "link_id", "utilization", "state"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "LinkStateChange" },
+        "timestamp": { "type": "number" },
+        "link_id": { "type": "string" },
+        "old_state": { "enum": ["up", "down", "congested"] },
+        "new_state": { "enum": ["up", "down", "congested"] }
+      },
+      "required": ["type", "timestamp", "link_id", "old_state", "new_state"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "PacketForwarded" },
+        "timestamp": { "type": "number" },
+        "packet_id": { "type": "string" },
+        "switch_id": { "type": "string" },
+        "next_hop": { "type": "string" },
+        "egress_port": { "type": "string" }
+      },
+      "required": ["type", "timestamp", "packet_id", "switch_id", "next_hop", "egress_port"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "PacketToCPU" },
+        "timestamp": { "type": "number" },
+        "packet_id": { "type": "string" },
+        "switch_id": { "type": "string" },
+        "reason": { "type": "string" }
+      },
+      "required": ["type", "timestamp", "packet_id", "switch_id", "reason"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "PacketMirrored" },
+        "timestamp": { "type": "number" },
+        "packet_id": { "type": "string" },
+        "switch_id": { "type": "string" },
+        "session_id": { "type": "string" }
+      },
+      "required": ["type", "timestamp", "packet_id", "switch_id", "session_id"]
+    }
+  ]
+}
