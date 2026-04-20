@@ -230,8 +230,24 @@ target_sources(MiniSonic.Utils
         src/core/utils.cpp
 )
 target_include_directories(MiniSonic.Utils PUBLIC src)
-target_link_libraries(MiniSonic.Utils MiniSonic.Constants MiniSonic.Events)
+target_include_directories(MiniSonic.Utils PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(MiniSonic.Utils ${Boost_LIBRARIES})
 set_target_properties(MiniSonic.Utils PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.Boost.Wrappers
+add_library(MiniSonic.Boost.Wrappers STATIC)
+target_sources(MiniSonic.Boost.Wrappers
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/core/boost_wrappers.ixx
+)
+target_include_directories(MiniSonic.Boost.Wrappers PUBLIC src)
+target_include_directories(MiniSonic.Boost.Wrappers PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(MiniSonic.Boost.Wrappers ${Boost_LIBRARIES})
+set_target_properties(MiniSonic.Boost.Wrappers PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
@@ -264,6 +280,48 @@ target_sources(MiniSonic.DataPlane
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
 target_link_libraries(MiniSonic.DataPlane MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Events)
 set_target_properties(MiniSonic.DataPlane PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.DataPlane.PacketEnhanced
+add_library(MiniSonic.DataPlane.PacketEnhanced STATIC)
+target_sources(MiniSonic.DataPlane.PacketEnhanced
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/switching/dataplane/packet_enhanced.ixx
+)
+target_include_directories(MiniSonic.DataPlane.PacketEnhanced PUBLIC src)
+target_link_libraries(MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Common.Types)
+set_target_properties(MiniSonic.DataPlane.PacketEnhanced PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.L3.ArpPendingQueue
+add_library(MiniSonic.L3.ArpPendingQueue STATIC)
+target_sources(MiniSonic.L3.ArpPendingQueue
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/switching/l3/arp_pending_queue.ixx
+)
+target_include_directories(MiniSonic.L3.ArpPendingQueue PUBLIC src)
+target_link_libraries(MiniSonic.L3.ArpPendingQueue MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers)
+set_target_properties(MiniSonic.L3.ArpPendingQueue PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+# Module: MiniSonic.DataPlane.PipelineTracing
+add_library(MiniSonic.DataPlane.PipelineTracing STATIC)
+target_sources(MiniSonic.DataPlane.PipelineTracing
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/switching/dataplane/pipeline_tracing.ixx
+)
+target_include_directories(MiniSonic.DataPlane.PipelineTracing PUBLIC src)
+target_link_libraries(MiniSonic.DataPlane.PipelineTracing MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Events)
+set_target_properties(MiniSonic.DataPlane.PipelineTracing PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
