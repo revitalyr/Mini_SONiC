@@ -66,9 +66,9 @@ public:
 class NetworkProviderFactory {
 public:
     static std::unique_ptr<INetworkProvider> createTcpLink(
-        Types::Port listen_port,
+        Types::PortId listen_port,
         const std::string& peer_ip,
-        Types::Port peer_port
+        Types::PortId peer_port
     );
     
     static bool hasBoostSupport() noexcept {
@@ -87,9 +87,9 @@ public:
     
     BoostTcpLink(
         boost::asio::io_context& io_context,
-        Types::Port listen_port,
+        Types::PortId listen_port,
         const std::string& peer_ip,
-        Types::Port peer_port
+        Types::PortId peer_port
     );
     
     ~BoostTcpLink() override;
@@ -119,10 +119,10 @@ private:
     boost::asio::ip::tcp::socket m_socket;
     boost::asio::ip::tcp::endpoint m_peer_endpoint;
     boost::asio::strand<boost::asio::io_context::executor_type> m_strand;
-    
-    Types::Port m_listen_port;
+
+    Types::PortId m_listen_port;
     std::string m_peer_ip;
-    Types::Port m_peer_port;
+    Types::PortId m_peer_port;
     std::atomic<bool> m_running{false};
     std::atomic<bool> m_connected{false};
     PacketHandler m_handler;
@@ -139,9 +139,9 @@ private:
 
 // Implementation of factory method
 inline std::unique_ptr<INetworkProvider> NetworkProviderFactory::createTcpLink(
-    Types::Port listen_port,
+    Types::PortId listen_port,
     const std::string& peer_ip,
-    Types::Port peer_port
+    Types::PortId peer_port
 ) {
     static boost::asio::io_context io_context;
     return std::make_unique<BoostTcpLink>(io_context, listen_port, peer_ip, peer_port);

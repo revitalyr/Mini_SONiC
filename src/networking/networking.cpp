@@ -25,9 +25,9 @@ namespace MiniSonic::Networking {
 // BoostTcpLink Implementation
 BoostTcpLink::BoostTcpLink(
     boost::asio::io_context& io_context,
-    Types::Port listen_port,
+    Types::PortId listen_port,
     const std::string& peer_ip,
-    Types::Port peer_port
+    Types::PortId peer_port
 ) : m_io_context(io_context),
     m_acceptor(io_context),
     m_socket(io_context),
@@ -259,20 +259,21 @@ std::string BoostTcpLink::serializePacket(const Packet& pkt) {
 Packet BoostTcpLink::deserializePacket(const std::string& data) {
     std::istringstream iss(data);
     std::string src_mac, dst_mac, src_ip, dst_ip;
-    Types::Port ingress_port;
-    
+    Types::PortId ingress_port;
+
     std::getline(iss, src_mac, '|');
     std::getline(iss, dst_mac, '|');
     std::getline(iss, src_ip, '|');
     std::getline(iss, dst_ip, '|');
     iss >> ingress_port;
-    
+
     return Packet(src_mac, dst_mac, src_ip, dst_ip, ingress_port);
 }
 
 #endif
 
-// FallbackTcpLink Implementation
+// FallbackTcpLink Implementation - DISABLED (Boost is now required)
+/*
 FallbackTcpLink::FallbackTcpLink(
     Types::Port listen_port,
     const std::string& peer_ip,
@@ -280,7 +281,7 @@ FallbackTcpLink::FallbackTcpLink(
 ) : m_listen_port(listen_port),
     m_peer_ip(peer_ip),
     m_peer_port(peer_port) {
-    
+
     std::cout << "[NETWORK] Creating fallback TCP link (no Boost.Asio)\n";
     std::cout << "  Listen Port: " << listen_port << "\n";
     std::cout << "  Peer: " << peer_ip << ":" << peer_port << "\n";
@@ -294,10 +295,10 @@ void FallbackTcpLink::start() {
     if (m_running.load()) {
         return;
     }
-    
+
     m_running.store(true);
     m_connected.store(true); // Simulate connection
-    
+
     std::cout << "[NETWORK] Fallback TCP link started (simulated)\n";
 }
 
@@ -305,10 +306,10 @@ void FallbackTcpLink::stop() {
     if (!m_running.load()) {
         return;
     }
-    
+
     m_running.store(false);
     m_connected.store(false);
-    
+
     std::cout << "[NETWORK] Fallback TCP link stopped\n";
 }
 
@@ -320,26 +321,27 @@ void FallbackTcpLink::send(const Packet& pkt) {
     if (!isConnected()) {
         return;
     }
-    
+
     // Simulate sending
     m_packets_sent.fetch_add(1, std::memory_order_relaxed);
-    
-    // Simulate processing delay
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
+
+    std::cout << "[NETWORK] Fallback: Sent packet (simulated)\n";
 }
 
 void FallbackTcpLink::setPacketHandler(std::function<void(const Packet&)> handler) {
-    m_handler = std::move(handler);
+    m_handler = handler;
 }
 
-std::string FallbackTcpLink::getStats() const {
+std::string FallbackTcpLink::getStats() {
     std::ostringstream oss;
-    oss << "Fallback TCP Link Stats:\n"
+    oss << "FallbackTcpLink Statistics:\n"
          << "  Running: " << (m_running.load() ? "Yes" : "No") << "\n"
          << "  Connected: " << (m_connected.load() ? "Yes" : "No") << "\n"
          << "  Packets Sent: " << m_packets_sent.load() << "\n"
          << "  Packets Received: " << m_packets_received.load() << "\n";
+
     return oss.str();
 }
+*/
 
 } // export namespace MiniSonic::Networking

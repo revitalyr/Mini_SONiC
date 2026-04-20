@@ -14,7 +14,6 @@
 export module MiniSonic.L3.ArpPendingQueue;
 
 import MiniSonic.DataPlane.PacketEnhanced;
-import MiniSonic.Common.Types;
 import MiniSonic.Boost.Wrappers;
 
 import <chrono>;
