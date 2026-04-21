@@ -217,8 +217,8 @@ add_library(MiniSonic.Utils STATIC)
 target_sources(MiniSonic.Utils
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/core/utils.ixx
-        src/core/utils.cpp
 )
+target_sources(MiniSonic.Utils PRIVATE src/core/utils.cpp)
 target_include_directories(MiniSonic.Utils PUBLIC src)
 target_link_libraries(MiniSonic.Utils PRIVATE sonic_common_options Boost::filesystem Boost::system)
 
@@ -236,8 +236,8 @@ add_library(MiniSonic.SAI STATIC)
 target_sources(MiniSonic.SAI
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/switching/sai.ixx
-        src/switching/sai.cpp
 )
+target_sources(MiniSonic.SAI PRIVATE src/switching/sai.cpp)
 target_include_directories(MiniSonic.SAI PUBLIC src)
 target_link_libraries(MiniSonic.SAI PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.Events)
 
@@ -246,8 +246,8 @@ add_library(MiniSonic.DataPlane STATIC)
 target_sources(MiniSonic.DataPlane
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/switching/dataplane.ixx
-        src/switching/dataplane.cpp
 )
+target_sources(MiniSonic.DataPlane PRIVATE src/switching/dataplane.cpp)
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
 target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Events)
 
@@ -283,8 +283,8 @@ add_library(MiniSonic.L2L3 STATIC)
 target_sources(MiniSonic.L2L3
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/switching/l2l3.ixx
-        src/switching/l2l3.cpp
 )
+target_sources(MiniSonic.L2L3 PRIVATE src/switching/l2l3.cpp)
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
 target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Constants MiniSonic.Events)
 
@@ -293,8 +293,8 @@ add_library(MiniSonic.Networking STATIC)
 target_sources(MiniSonic.Networking
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/networking/networking.ixx
-        src/networking/networking.cpp
 )
+target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
 target_include_directories(MiniSonic.Networking PUBLIC src)
 target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Utils Boost::asio)
 
@@ -303,8 +303,8 @@ add_library(MiniSonic.Protocol STATIC)
 target_sources(MiniSonic.Protocol
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/protocols/protocol.ixx
-        src/protocols/protocol.cpp
 )
+target_sources(MiniSonic.Protocol PRIVATE src/protocols/protocol.cpp)
 target_include_directories(MiniSonic.Protocol PUBLIC src)
 target_link_libraries(MiniSonic.Protocol PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.Constants)
 
@@ -322,8 +322,8 @@ add_library(MiniSonic.WebSocket STATIC)
 target_sources(MiniSonic.WebSocket
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/protocols/websocket.ixx
-        src/protocols/websocket.cpp
 )
+target_sources(MiniSonic.WebSocket PRIVATE src/protocols/websocket.cpp)
 target_include_directories(MiniSonic.WebSocket PUBLIC src)
 target_link_libraries(MiniSonic.WebSocket PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
 if(WIN32)
@@ -335,8 +335,8 @@ add_library(MiniSonic.Gossip STATIC)
 target_sources(MiniSonic.Gossip
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/protocols/gossip.ixx
-        src/protocols/gossip.cpp
 )
+target_sources(MiniSonic.Gossip PRIVATE src/protocols/gossip.cpp)
 target_include_directories(MiniSonic.Gossip PUBLIC src)
 target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Utils MiniSonic.Constants Threads::Threads Boost::asio)
 
@@ -345,8 +345,8 @@ add_library(MiniSonic.App STATIC)
 target_sources(MiniSonic.App
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/applications/app.ixx
-        src/applications/app.cpp
 )
+target_sources(MiniSonic.App PRIVATE src/applications/app.cpp)
 target_include_directories(MiniSonic.App PUBLIC src)
 target_link_libraries(MiniSonic.App
     PRIVATE sonic_common_options
