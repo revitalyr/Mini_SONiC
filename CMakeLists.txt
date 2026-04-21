@@ -10,6 +10,11 @@ project(SONiC_Mini_Switch
     LANGUAGES C CXX
 )
 
+# Set policy CMP0167 to NEW to use BoostConfig instead of FindBoost
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 NEW)
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Global standards configuration
@@ -132,18 +137,16 @@ else()
     message(WARNING "Curses/ncurses not found. Dashboard features will be limited.")
 endif()
 
-# Find Celero for benchmarking - temporarily disabled due to build issues
-message(STATUS "Celero temporarily disabled")
-# include(FetchContent)
-# FetchContent_Declare(
-#     Celero
-#     GIT_REPOSITORY https://github.com/DigitalInBlue/Celero.git
-#     GIT_TAG        master
-# )
-# FetchContent_MakeAvailable(Celero)
-# message(STATUS "Celero downloaded via FetchContent")
-# # Create alias for Celero
-# add_library(Celero::Celero ALIAS celero)
+include(FetchContent)
+FetchContent_Declare(
+    Celero
+    GIT_REPOSITORY https://github.com/DigitalInBlue/Celero.git
+    GIT_TAG        master
+)
+FetchContent_MakeAvailable(Celero)
+message(STATUS "Celero downloaded via FetchContent")
+# Create alias for Celero
+add_library(Celero::Celero ALIAS celero)
 
 include(FetchContent)
 
@@ -224,15 +227,14 @@ target_sources(MiniSonic.Core.Utils PRIVATE src/core/utils.cpp)
 target_include_directories(MiniSonic.Core.Utils PUBLIC src)
 target_link_libraries(MiniSonic.Core.Utils PRIVATE sonic_common_options Boost::filesystem Boost::system)
 
-# TEMPORARILY DISABLED - Boost.Asio compatibility issue with MSVC C++20 modules
 # Module: MiniSonic.Boost.Wrappers
-# add_library(MiniSonic.Boost.Wrappers STATIC)
-# target_sources(MiniSonic.Boost.Wrappers
-#     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-#         src/core/boost_wrappers.ixx
-# )
-# target_include_directories(MiniSonic.Boost.Wrappers PUBLIC src)
-# target_link_libraries(MiniSonic.Boost.Wrappers PRIVATE sonic_common_options Boost::asio Boost::serialization)
+add_library(MiniSonic.Boost.Wrappers STATIC)
+target_sources(MiniSonic.Boost.Wrappers
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/core/boost_wrappers.ixx
+)
+target_include_directories(MiniSonic.Boost.Wrappers PUBLIC src)
+target_link_libraries(MiniSonic.Boost.Wrappers PRIVATE sonic_common_options Boost::asio Boost::serialization)
 
 # Module: MiniSonic.SAI
 add_library(MiniSonic.SAI STATIC)
@@ -253,7 +255,6 @@ target_sources(MiniSonic.DataPlane
 target_sources(MiniSonic.DataPlane PRIVATE src/switching/dataplane.cpp)
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
 target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.SAI MiniSonic.Core.Events)
-# NOTE: MiniSonic.Networking temporarily disabled due to Boost.System compatibility
 
 # Module: MiniSonic.DataPlane.PacketEnhanced
 add_library(MiniSonic.DataPlane.PacketEnhanced STATIC)
@@ -280,7 +281,7 @@ target_sources(MiniSonic.DataPlane.PipelineTracing
         src/switching/dataplane/pipeline_tracing.ixx
 )
 target_include_directories(MiniSonic.DataPlane.PipelineTracing PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane.PipelineTracing PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Core.Events MiniSonic.Core.Utils)
+target_link_libraries(MiniSonic.DataPlane.PipelineTracing PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Core.Events MiniSonic.Core.Utils Boost::asio)
 
 # Module: MiniSonic.L2L3
 add_library(MiniSonic.L2L3 STATIC)
@@ -292,15 +293,14 @@ target_sources(MiniSonic.L2L3 PRIVATE src/switching/l2l3.cpp)
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
 target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Core.Utils MiniSonic.Core.Constants MiniSonic.Core.Events)
 
-# TEMPORARILY DISABLED - Boost.Asio compatibility issue with MSVC C++20 modules
-# add_library(MiniSonic.Networking STATIC)
-# target_sources(MiniSonic.Networking
-#     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-#         src/networking/networking.ixx
-# )
-# target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
-# target_include_directories(MiniSonic.Networking PUBLIC src)
-# target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Core.Utils Boost::asio)
+add_library(MiniSonic.Networking STATIC)
+target_sources(MiniSonic.Networking
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/networking/networking.ixx
+)
+target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
+target_include_directories(MiniSonic.Networking PUBLIC src)
+target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Core.Utils Boost::asio)
 
 # Module: MiniSonic.Protocol
 add_library(MiniSonic.Protocol STATIC)
@@ -334,16 +334,15 @@ if(WIN32)
     target_link_libraries(MiniSonic.WebSocket PRIVATE ws2_32)
 endif()
 
-# TEMPORARILY DISABLED - Boost.Asio compatibility issue with MSVC C++20 modules
 # Module: MiniSonic.Gossip
-# add_library(MiniSonic.Gossip STATIC)
-# target_sources(MiniSonic.Gossip
-#     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-#         src/protocols/gossip.ixx
-# )
-# target_sources(MiniSonic.Gossip PRIVATE src/protocols/gossip.cpp)
-# target_include_directories(MiniSonic.Gossip PUBLIC src)
-# target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Core.Utils MiniSonic.Core.Constants Threads::Threads Boost::asio)
+add_library(MiniSonic.Gossip STATIC)
+target_sources(MiniSonic.Gossip
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/protocols/gossip.ixx
+)
+target_sources(MiniSonic.Gossip PRIVATE src/protocols/gossip.cpp)
+target_include_directories(MiniSonic.Gossip PUBLIC src)
+target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Core.Utils MiniSonic.Core.Constants Threads::Threads Boost::asio)
 
 # Module: MiniSonic.App
 add_library(MiniSonic.App STATIC)
@@ -422,19 +421,18 @@ set_target_properties(mini_switch_core PROPERTIES
 # =============================================================================
 
 # 1. C++ Modular SONiC (Main Application)
-# TEMPORARILY DISABLED - depends on old header files that don't match new C++20 modules architecture
-# add_executable(mini_sonic_modular)
-# target_sources(mini_sonic_modular PRIVATE src/main.cpp)
-# target_link_libraries(mini_sonic_modular PRIVATE
-#     sonic_common_options
-#     MiniSonic.App
-#     MiniSonic.Networking
-#     MiniSonic.DataPlane
-#     MiniSonic.SAI
-#     MiniSonic.L2L3
-#     MiniSonic.Utils
-#     Threads::Threads
-# )
+add_executable(mini_sonic_modular)
+target_sources(mini_sonic_modular PRIVATE src/main.cpp)
+target_link_libraries(mini_sonic_modular PRIVATE
+    sonic_common_options
+    MiniSonic.App
+    MiniSonic.Networking
+    MiniSonic.DataPlane
+    MiniSonic.SAI
+    MiniSonic.L2L3
+    MiniSonic.Utils
+    Threads::Threads
+)
 
 # 2. C-based SONiC Core
 add_executable(mini_sonic_c examples/mini_switch/src/main.c)
@@ -461,23 +459,22 @@ set(BENCHMARK_SOURCES
     tools/benchmarks/benchmark_celero_simple_working.cpp
 )
 
-# TEMPORARILY DISABLED - celero library is not installed
-# add_executable(mini_sonic_benchmarks ${BENCHMARK_SOURCES})
-# target_link_libraries(mini_sonic_benchmarks PRIVATE
-#     Threads::Threads
-# )
-#
-# if(TARGET Celero::Celero)
-#     target_link_libraries(mini_sonic_benchmarks PRIVATE Celero::Celero)
-#     message(STATUS "Linking benchmarks with Celero::Celero")
-# endif()
-#
-# set_target_properties(mini_sonic_benchmarks PROPERTIES
-#     CXX_STANDARD 20
-#     CXX_STANDARD_REQUIRED ON
-#     CXX_EXTENSIONS OFF
-# )
-# target_link_libraries(mini_sonic_benchmarks PRIVATE sonic_common_options)
+add_executable(mini_sonic_benchmarks ${BENCHMARK_SOURCES})
+target_link_libraries(mini_sonic_benchmarks PRIVATE
+    Threads::Threads
+)
+
+if(TARGET Celero::Celero)
+    target_link_libraries(mini_sonic_benchmarks PRIVATE Celero::Celero)
+    message(STATUS "Linking benchmarks with Celero::Celero")
+endif()
+
+set_target_properties(mini_sonic_benchmarks PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+target_link_libraries(mini_sonic_benchmarks PRIVATE sonic_common_options)
 
 # 5. Real-time Demo (C)
 add_executable(mini_sonic_demo src/realtime_demo.c)
@@ -504,7 +501,7 @@ add_executable(mini_sonic_switching_tests
     tests/unit/test_l3_service.cpp
     tests/unit/test_arp_pending_queue.cpp
     tests/unit/test_packet_enhanced.cpp
-    # tests/unit/test_lpm_trie.cpp  # TEMPORARILY DISABLED - depends on old header l3/lpm_trie.h
+    tests/unit/test_lpm_trie.cpp  
 )
 target_link_libraries(mini_sonic_switching_tests
     PRIVATE sonic_common_options
@@ -517,32 +514,30 @@ target_link_libraries(mini_sonic_switching_tests
 )
 add_test(NAME SwitchingTests COMMAND mini_sonic_switching_tests)
 
-# TEMPORARILY DISABLED - depends on Boost components
-# add_executable(mini_sonic_protocol_tests
-#     tests/unit/test_protocol.cpp
-#     tests/unit/test_serialization.cpp
-#     tests/unit/test_websocket.cpp
-#     tests/unit/test_gossip.cpp
-# )
-# target_link_libraries(mini_sonic_protocol_tests
-#     PRIVATE sonic_common_options
-#     Threads::Threads
-#     Catch2::Catch2WithMain
-# )
-# add_test(NAME ProtocolTests COMMAND mini_sonic_protocol_tests)
+add_executable(mini_sonic_protocol_tests
+    tests/unit/test_protocol.cpp
+    tests/unit/test_serialization.cpp
+    tests/unit/test_websocket.cpp
+    tests/unit/test_gossip.cpp
+)
+target_link_libraries(mini_sonic_protocol_tests
+    PRIVATE sonic_common_options
+    Threads::Threads
+    Catch2::Catch2WithMain
+)
+add_test(NAME ProtocolTests COMMAND mini_sonic_protocol_tests)
 
-# TEMPORARILY DISABLED - integration tests depend on old header files that don't exist in new modular architecture
-# add_executable(mini_sonic_integration_tests tests/integration/test_pipeline.cpp tests/integration/test_end_to_end.cpp)
-# target_link_libraries(mini_sonic_integration_tests
-#     PRIVATE sonic_common_options
-#     MiniSonic.DataPlane
-#     MiniSonic.SAI
-#     MiniSonic.L2L3
-#     MiniSonic.Utils
-#     Threads::Threads
-#     Catch2::Catch2WithMain
-# )
-# add_test(NAME IntegrationTests COMMAND mini_sonic_integration_tests)
+add_executable(mini_sonic_integration_tests tests/integration/test_pipeline.cpp tests/integration/test_end_to_end.cpp)
+target_link_libraries(mini_sonic_integration_tests
+    PRIVATE sonic_common_options
+    MiniSonic.DataPlane
+    MiniSonic.SAI
+    MiniSonic.L2L3
+    MiniSonic.Utils
+    Threads::Threads
+    Catch2::Catch2WithMain
+)
+add_test(NAME IntegrationTests COMMAND mini_sonic_integration_tests)
 
 add_executable(mini_sonic_protocol_demo examples/demo/protocol_stack_demo.cpp)
 target_link_libraries(mini_sonic_protocol_demo PRIVATE sonic_common_options Threads::Threads)
@@ -558,19 +553,18 @@ if(Qt6_FOUND)
     message(STATUS "  ✓ mini_sonic_qt_visualizer - Qt6 visualizer application")
 endif()
 
-# TEMPORARILY DISABLED - Boost.Asio compatibility issue with MSVC C++20 modules
 # Event Server (standalone WebSocket server for event streaming)
-# add_executable(mini_sonic_event_server src/visualization/event_server.cpp)
-# target_link_libraries(mini_sonic_event_server
-#     MiniSonic.Core.Events
-#     sonic_common_options
-#     nlohmann_json::nlohmann_json
-#     Boost::system Boost::asio Boost::filesystem
-# )
-# if(WIN32)
-#     target_link_libraries(mini_sonic_event_server ws2_32)
-# endif()
-# message(STATUS "  ✓ mini_sonic_event_server - WebSocket event streaming server")
+add_executable(mini_sonic_event_server src/visualization/event_server.cpp)
+target_link_libraries(mini_sonic_event_server
+    MiniSonic.Core.Events
+    sonic_common_options
+    nlohmann_json::nlohmann_json
+    Boost::system Boost::asio Boost::filesystem
+)
+if(WIN32)
+    target_link_libraries(mini_sonic_event_server ws2_32)
+endif()
+message(STATUS "  ✓ mini_sonic_event_server - WebSocket event streaming server")
 
 # =============================================================================
 # INFORMATION

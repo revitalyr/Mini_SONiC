@@ -8,6 +8,10 @@ module;
 #include <atomic>
 #include <queue>
 #include <chrono>
+#include <mutex>
+#include <condition_variable>
+#include <iostream>
+#include <utility>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -34,7 +38,7 @@ namespace MiniSonic::WebSocket {
 // WEBSOCKET CONNECTION IMPLEMENTATION
 // =============================================================================
 
-WebSocketConnection::WebSocketConnection(string connection_id)
+WebSocketConnection::WebSocketConnection(std::string connection_id)
     : m_connection_id(std::move(connection_id)) {}
 
 // =============================================================================
@@ -137,7 +141,7 @@ void WebSocketGateway::stop() {
     }
     
     // Close all connections
-    lock_guard<mutex> lock(m_connections_mutex);
+    std::lock_guard<std::mutex> lock(m_connections_mutex);
     m_connections.clear();
     
     // Close server socket
@@ -169,7 +173,7 @@ void WebSocketGateway::send(const Protocol::Message& msg) {
 void WebSocketGateway::broadcast(const Protocol::Message& msg) {
     auto data = serializeMessage(msg);
     
-    lock_guard<mutex> lock(m_connections_mutex);
+    std::lock_guard<std::mutex> lock(m_connections_mutex);
     for (auto& [id, conn] : m_connections) {
         if (conn->isActive()) {
             // In real implementation, send via WebSocket protocol
@@ -182,7 +186,7 @@ void WebSocketGateway::broadcast(const Protocol::Message& msg) {
 void WebSocketGateway::sendToConnection(const string& connection_id, const Protocol::Message& msg) {
     auto data = serializeMessage(msg);
     
-    lock_guard<mutex> lock(m_connections_mutex);
+    std::lock_guard<std::mutex> lock(m_connections_mutex);
     auto it = m_connections.find(connection_id);
     if (it != m_connections.end() && it->second->isActive()) {
         m_total_bytes_sent.fetch_add(data.size());
@@ -191,12 +195,12 @@ void WebSocketGateway::sendToConnection(const string& connection_id, const Proto
 }
 
 void WebSocketGateway::closeConnection(const string& connection_id) {
-    lock_guard<mutex> lock(m_connections_mutex);
+    std::lock_guard<std::mutex> lock(m_connections_mutex);
     removeConnection(connection_id);
 }
 
 size_t WebSocketGateway::activeConnections() const {
-    lock_guard<mutex> lock(m_connections_mutex);
+    std::lock_guard<std::mutex> lock(m_connections_mutex);
     size_t count = 0;
     for (const auto& [id, conn] : m_connections) {
         if (conn->isActive()) {
@@ -226,7 +230,7 @@ string WebSocketGateway::getStats() const {
 
 void WebSocketGateway::serverLoop() {
     while (m_running.load()) {
-        unique_lock<mutex> lock(m_cv_mutex);
+        std::unique_lock<std::mutex> lock(m_cv_mutex);
         m_cv.wait_for(lock, std::chrono::milliseconds(100));
     }
 }
@@ -240,7 +244,7 @@ void WebSocketGateway::acceptLoop() {
         socklen_t addr_len = sizeof(client_addr);
 #endif
         
-        SOCKET client_socket = accept(m_server_socket, 
+        SOCKET client_socket = accept(m_server_socket,
                                       reinterpret_cast<sockaddr*>(&client_addr), 
                                       &addr_len);
         
@@ -263,7 +267,7 @@ void WebSocketGateway::acceptLoop() {
         conn->setState(ConnectionState::CONNECTED);
         
         {
-            lock_guard<mutex> lock(m_connections_mutex);
+            std::lock_guard<std::mutex> lock(m_connections_mutex);
             m_connections[conn_id] = conn;
             m_connection_count.fetch_add(1);
         }
@@ -290,7 +294,7 @@ void WebSocketGateway::processIncomingMessage(const string& connection_id,
     }
 }
 
-vector<uint8_t> WebSocketGateway::serializeMessage(const Protocol::Message& msg) {
+std::vector<uint8_t> WebSocketGateway::serializeMessage(const Protocol::Message& msg) {
     // Simplified serialization - in real implementation use proper WebSocket framing
     vector<uint8_t> buffer;
     
@@ -306,7 +310,7 @@ vector<uint8_t> WebSocketGateway::serializeMessage(const Protocol::Message& msg)
     return buffer;
 }
 
-Protocol::Message WebSocketGateway::deserializeMessage(const vector<uint8_t>& data) {
+Protocol::Message WebSocketGateway::deserializeMessage(const std::vector<uint8_t>& data) {
     Protocol::Message msg;
     
     if (data.size() < sizeof(uint32_t)) {
@@ -325,13 +329,13 @@ Protocol::Message WebSocketGateway::deserializeMessage(const vector<uint8_t>& da
     return msg;
 }
 
-string WebSocketGateway::generateConnectionId() {
+std::string WebSocketGateway::generateConnectionId() {
     static atomic<uint64_t> counter{0};
     return "ws_conn_" + std::to_string(counter.fetch_add(1));
 }
 
 void WebSocketGateway::removeConnection(const string& connection_id) {
-    auto it = m_connections.find(connection_id);
+    auto it = m_connections.find(connection_id); // Use member mutex
     if (it != m_connections.end()) {
         it->second->setState(ConnectionState::DISCONNECTED);
         m_connections.erase(it);
@@ -344,7 +348,7 @@ void WebSocketGateway::removeConnection(const string& connection_id) {
 // WEBSOCKET CLIENT IMPLEMENTATION
 // =============================================================================
 
-WebSocketClient::WebSocketClient(string server_url)
+WebSocketClient::WebSocketClient(std::string server_url)
     : m_server_url(std::move(server_url)) {}
 
 WebSocketClient::~WebSocketClient() {
@@ -355,7 +359,7 @@ void WebSocketClient::connect() {
     // Simplified connection logic
     m_connected.store(true);
     m_running.store(true);
-    m_client_thread = thread(&WebSocketClient::clientLoop, this);
+    m_client_thread = std::thread(&WebSocketClient::clientLoop, this);
     std::cout << "[WebSocketClient] Connected to " << m_server_url << "\n";
 }
 
@@ -402,11 +406,11 @@ void WebSocketClient::processIncomingData(const vector<uint8_t>& data) {
 // WEBSOCKET FACTORY IMPLEMENTATION
 // =============================================================================
 
-unique_ptr<WebSocketGateway> WebSocketFactory::createGateway(const Protocol::HandlerConfig& config) {
+std::unique_ptr<WebSocketGateway> WebSocketFactory::createGateway(const Protocol::HandlerConfig& config) {
     return std::make_unique<WebSocketGateway>(config);
 }
 
-unique_ptr<WebSocketClient> WebSocketFactory::createClient(const string& server_url) {
+std::unique_ptr<WebSocketClient> WebSocketFactory::createClient(const std::string& server_url) {
     return std::make_unique<WebSocketClient>(server_url);
 }
 

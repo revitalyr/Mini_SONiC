@@ -1,20 +1,20 @@
 module;
 
-#include <memory>
-#include <string>
-#include <functional>
-#include <vector>
-#include <map>
-#include <unordered_map>
-#include <set>
-#include <atomic>
-#include <mutex>
-#include <thread>
-#include <condition_variable>
-#include <cstdint>
-#include <cstring>
-#include <random>
-#include <chrono>
+#include <memory> // For std::unique_ptr, std::shared_ptr
+#include <string> // For std::string
+#include <functional> // For std::function
+#include <vector> // For std::vector
+#include <map> // For std::map
+#include <unordered_map> // For std::unordered_map
+#include <set> // For std::set
+#include <atomic> // For std::atomic
+#include <mutex> // For std::mutex, std::lock_guard
+#include <thread> // For std::thread
+#include <condition_variable> // For std::condition_variable
+#include <cstdint> // For uint32_t, uint64_t
+#include <cstring> // For std::memcpy
+#include <random> // For std::random_device, std::mt19937
+#include <chrono> // For std::chrono
 
 // Boost.Asio includes
 #include <boost/asio.hpp>

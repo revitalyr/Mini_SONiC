@@ -1,17 +1,17 @@
 module;
 
-#include <memory>
-#include <string>
-#include <functional>
-#include <vector>
-#include <map>
-#include <atomic>
-#include <mutex>
-#include <variant>
-#include <cstdint>
-#include <ranges>
-#include <span>
-#include <optional>
+#include <memory> // For std::unique_ptr, std::shared_ptr
+#include <string> // For std::string
+#include <functional> // For std::function
+#include <vector> // For std::vector
+#include <map> // For std::map
+#include <atomic> // For std::atomic
+#include <mutex> // For std::mutex
+#include <variant> // For std::variant
+#include <cstdint> // For uint32_t, uint64_t
+#include <ranges> // For C++20 ranges
+#include <span> // For C++20 std::span
+#include <optional> // For std::optional
 
 export module MiniSonic.Protocol;
 

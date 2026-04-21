@@ -1,5 +1,7 @@
 #include "core/event_loop.h"
 #include <chrono>
+#include <thread>
+#include <atomic>
 
 namespace MiniSonic::Core {
 

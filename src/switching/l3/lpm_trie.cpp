@@ -1,6 +1,8 @@
 #include "l3/lpm_trie.h"
 #include <sstream>
 #include <array>
+#include <memory>
+#include <string>
 
 namespace MiniSonic::L3 {
 

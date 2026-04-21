@@ -1,6 +1,6 @@
 module;
 
-#include <boost/system/error_code.hpp> // Must be at the very top for ADL on MSVC
+#include <boost/system/error_code.hpp> // Must be at the absolute top for ADL on MSVC
 
 #include <memory>
 #include <string>
@@ -9,11 +9,6 @@ module;
 #include <chrono>
 #include <iostream>
 #include <sstream>
-#ifdef HAS_BOOST_ASIO
-#include <boost/asio.hpp>
-#include <boost/system/error_code.hpp>
-#endif
-
 module MiniSonic.Networking;
 
 // Import local modules

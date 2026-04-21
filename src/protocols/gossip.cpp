@@ -21,6 +21,10 @@ module;
 #pragma comment(lib, "ws2_32.lib")
 #endif
 
+using std::string;
+using std::thread;
+using std::atomic;
+using std::mutex;
 module MiniSonic.Gossip;
 
 import MiniSonic.Core.Utils;

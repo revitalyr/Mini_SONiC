@@ -1,16 +1,16 @@
 module;
 
-#include <string>
-#include <functional>
-#include <memory>
-#include <vector>
-#include <map>
-#include <atomic>
-#include <mutex>
-#include <variant>
-#include <cstddef>
-#include <iostream>
-#include <utility>
+#include <string> // For std::string
+#include <functional> // For std::function
+#include <memory> // For std::unique_ptr, std::shared_ptr
+#include <vector> // For std::vector
+#include <map> // For std::map
+#include <atomic> // For std::atomic
+#include <mutex> // For std::mutex, std::lock_guard
+#include <variant> // For std::variant
+#include <cstddef> // For std::byte
+#include <iostream> // For std::cout, std::cerr
+#include <utility> // For std::move
 
 module MiniSonic.Protocol;
 

@@ -1,19 +1,14 @@
 module;
 
 // Use global module fragment for standard library includes to improve MSVC compatibility
-#include <memory>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <atomic>
-#include <mutex>
-#include <iostream>
-#include <sstream>
-#include <chrono>
-#include <cstdint>
-#include <ranges>
-#include <span>
-#include <optional>
+#include <memory> // For std::unique_ptr, std::shared_ptr
+#include <string> // For std::string
+#include <vector> // For std::vector
+#include <unordered_map> // For std::unordered_map
+#include <mutex> // For std::mutex, std::lock_guard
+#include <chrono> // For std::chrono
+#include <cstdint> // For uint32_t, uint64_t
+#include <optional> // For std::optional
 
 export module MiniSonic.SAI;
 
@@ -47,7 +42,7 @@ public:
     virtual bool deletePort(Types::PortId port_id) = 0;
     virtual bool setPortState(Types::PortId port_id, bool admin_state) = 0;
     virtual std::optional<bool> getPortState(Types::PortId port_id) const = 0;
-    virtual Types::vector<Types::PortId> getPortList() const = 0;
+    virtual vector<Types::PortId> getPortList() const = 0;
     virtual string getStats() const = 0;
 };
 
@@ -66,7 +61,7 @@ public:
     bool deletePort(Types::PortId port_id) override;
     bool setPortState(Types::PortId port_id, bool admin_state) override;
     std::optional<bool> getPortState(Types::PortId port_id) const override;
-    Types::vector<Types::PortId> getPortList() const override;
+    vector<Types::PortId> getPortList() const override;
     string getStats() const override;
 
     /**

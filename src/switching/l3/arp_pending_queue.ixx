@@ -17,23 +17,22 @@ module;
 #include <list>
 #include <memory>
 #include <vector>
-#include <boost/unordered/unordered_map.hpp>
+#include <mutex>
+#include <unordered_map>
+#include <boost/lockfree/queue.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
 #include <boost/uuid/uuid.hpp>
 
 export module MiniSonic.L3.ArpPendingQueue;
 
 import MiniSonic.DataPlane.PacketEnhanced;
-import MiniSonic.Boost.Wrappers;
 
 export namespace MiniSonic::L3 {
-
-using namespace MiniSonic::BoostWrapper;
-
 /**
  * @brief Pending packet entry with timeout
  */
 export struct PendingPacket {
-    Uuid packet_id;                          ///< Original packet ID for tracing
+    std::string packet_id;                   ///< Original packet ID for tracing
     std::shared_ptr<DataPlane::EnhancedPacket> packet;
     std::chrono::steady_clock::time_point queued_at;
     uint32_t pending_ip;                     ///< IP we're waiting ARP for
@@ -105,7 +104,7 @@ public:
      */
     template<typename ForwardCallback>
     size_t onArpResolved(uint32_t resolved_ip, ForwardCallback&& callback) {
-        LockGuard lock(m_ip_map_mutex);
+        std::lock_guard<std::mutex> lock(m_ip_map_mutex);
         
         auto it = m_ip_to_packets.find(resolved_ip);
         if (it == m_ip_to_packets.end()) {
@@ -134,7 +133,7 @@ public:
      * @return List of IPs that need ARP requests
      */
     std::vector<uint32_t> getPendingIps() {
-        LockGuard lock(m_ip_map_mutex);
+        std::lock_guard<std::mutex> lock(m_ip_map_mutex);
         
         std::vector<uint32_t> pending;
         for (const auto& [ip, packets] : m_ip_to_packets) {
@@ -155,7 +154,7 @@ public:
         auto now = std::chrono::steady_clock::now();
         size_t dropped = 0;
         
-        LockGuard lock(m_ip_map_mutex);
+        std::lock_guard<std::mutex> lock(m_ip_map_mutex);
         
         auto ip_it = m_ip_to_packets.begin();
         while (ip_it != m_ip_to_packets.end()) {
@@ -211,7 +210,7 @@ public:
     };
     
     Stats getStats() const {
-        LockGuard lock(m_ip_map_mutex);
+        std::lock_guard<std::mutex> lock(m_ip_map_mutex);
         
         Stats stats{};
         stats.unique_ips = m_ip_to_packets.size();
@@ -236,11 +235,11 @@ public:
     
 private:
     // Lockfree queue for high-performance enqueue
-    LockfreeQueue<PendingPacket*> m_pending_packets;
+    boost::lockfree::queue<PendingPacket*> m_pending_packets;
     
     // Map from IP to list of pending packets (needs mutex protection)
-    mutable Mutex m_ip_map_mutex;
-    UnorderedMap<uint32_t, std::list<PendingPacket*>> m_ip_to_packets;
+    mutable std::mutex m_ip_map_mutex;
+    std::unordered_map<uint32_t, std::list<PendingPacket*>> m_ip_to_packets;
 };
 
 /**
@@ -289,13 +288,13 @@ public:
     
 private:
     struct PendingEntry {
-        Uuid packet_id;
+        std::string packet_id;
         std::shared_ptr<DataPlane::EnhancedPacket> packet;
         uint32_t pending_ip;
         std::chrono::steady_clock::time_point queued_at;
     };
     
-    LockfreeSPSCQueue<PendingEntry> m_queue{Capacity};
+    boost::lockfree::spsc_queue<PendingEntry> m_queue{Capacity};
 };
 
 } // namespace MiniSonic::L3

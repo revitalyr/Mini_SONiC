@@ -1,18 +1,10 @@
 module;
 
 // MSVC: use traditional includes in global module fragment
-#include <boost/system/error_code.hpp>
 #include <memory>
 #include <string>
 #include <functional>
-#include <array>
-#include <atomic>
-#include <thread>
-#include <chrono>
-#include <iostream>
-#include <cstdint>
-#include <vector>
-#include <map>
+#include <boost/system/error_code.hpp>
 
 // Boost.Asio includes
 #include <boost/asio.hpp>
@@ -24,15 +16,6 @@ export module MiniSonic.Networking;
 import MiniSonic.Core.Utils;
 
 // Re-export common standard library types
-using std::string;
-using std::function;
-using std::unique_ptr;
-using std::shared_ptr;
-using std::vector;
-using std::map;
-using std::thread;
-using std::atomic;
-using std::chrono::milliseconds;
 
 export namespace MiniSonic::Networking {
 

@@ -1,23 +1,21 @@
 module;
 
 // Use global module fragment for standard library includes to improve MSVC compatibility
-#include <memory>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <atomic>
-#include <mutex>
-#include <iostream>
-#include <sstream>
-#include <chrono>
-#include <algorithm>
-#include <iomanip>
-#include <limits>
-#include <cstdint>
-#include <ranges>
-#include <expected>
-#include <span>
-#include <print>
+#include <memory> // For std::unique_ptr, std::shared_ptr
+#include <string> // For std::string
+#include <vector> // For std::vector
+#include <unordered_map> // For std::unordered_map
+#include <atomic> // For std::atomic
+#include <mutex> // For std::mutex, std::lock_guard
+#include <chrono> // For std::chrono
+#include <algorithm> // For std::sort, std::transform
+#include <iomanip> // For std::fixed, std::setprecision
+#include <limits> // For std::numeric_limits
+#include <cstdint> // For uint32_t, uint64_t
+#include <ranges> // For C++20 ranges
+#include <expected> // For C++23 std::expected
+#include <span> // For C++20 std::span
+#include <print> // For C++23 std::print
 
 export module MiniSonic.Core.Utils;
 

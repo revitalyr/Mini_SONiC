@@ -1,13 +1,10 @@
 module;
 
-#include <memory>
-#include <string>
-#include <vector>
-#include <cstdint>
-#include <cstring>
-#include <stdexcept>
-#include <sstream>
-
+#include <memory> // For std::unique_ptr
+#include <string> // For std::string
+#include <vector> // For std::vector
+#include <cstdint> // For uint32_t, uint8_t
+#include <cstring> // For std::memcpy
 // Boost.Serialization includes
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/vector.hpp>

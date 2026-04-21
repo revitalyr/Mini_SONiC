@@ -2,12 +2,12 @@
  * @file packet_enhanced.ixx
  * @brief Enhanced Packet structure with tracing support and full metadata
  *
- * Uses MiniSonic.Boost.Wrappers module for:
- * - UUID for packet identification
- * - Optional fields
+ * Uses C++ standard library for:
+ * - std::string for packet identification
+ * - std::optional for nullable fields
  *
  * Fixes identified issues:
- * - Added packet_id for end-to-end tracing
+ * - Transitioned from Boost.Wrappers to std library types
  * - Extended metadata (VLAN, DSCP, protocol, etc.)
  * - Pipeline stage tracking
  */
@@ -19,15 +19,13 @@ module;
 #include <sstream>
 #include <vector>
 #include <cstdint>
+#include <atomic>
+#include <optional>
 #include <utility>
 
 export module MiniSonic.DataPlane.PacketEnhanced;
 
-import MiniSonic.Boost.Wrappers;
-
 export namespace MiniSonic::DataPlane {
-
-using namespace MiniSonic::BoostWrapper;
 
 /**
  * @brief Protocol types for packet classification
@@ -68,13 +66,13 @@ export enum class PipelineStage : uint8_t {
  */
 export struct EnhancedPacket {
     // === Core Identification ===
-    Uuid packet_id;                         ///< Unique packet identifier
+    std::string packet_id;                   ///< Unique packet identifier
     uint64_t sequence_number;                ///< Global sequence number
 
     // === L2 Information ===
     uint64_t m_src_mac;                     ///< MAC address (using primitive type)
     uint64_t m_dst_mac;                     ///< MAC address (using primitive type)
-    Optional<uint16_t> m_vlan_id;            ///< VLAN tag (if present)
+    std::optional<uint16_t> m_vlan_id;       ///< VLAN tag (if present)
 
     // === L3 Information ===
     uint32_t m_src_ip;                      ///< IP address (using primitive type)
@@ -82,12 +80,12 @@ export struct EnhancedPacket {
     ProtocolType m_protocol;
     uint8_t m_tos;                           ///< Type of Service / DSCP
     uint8_t m_ttl;
-    Optional<uint16_t> m_src_port;           ///< L4 source port (if applicable)
-    Optional<uint16_t> m_dst_port;           ///< L4 destination port (if applicable)
+    std::optional<uint16_t> m_src_port;      ///< L4 source port (if applicable)
+    std::optional<uint16_t> m_dst_port;      ///< L4 destination port (if applicable)
 
     // === Pipeline Metadata ===
     uint16_t m_ingress_port;                ///< Port ID (using primitive type)
-    Optional<uint16_t> m_egress_port;        ///< Port ID (using primitive type)
+    std::optional<uint16_t> m_egress_port;   ///< Port ID (using primitive type)
     
     // === Tracing Information ===
     PipelineStage current_stage;
@@ -104,7 +102,7 @@ export struct EnhancedPacket {
     
     // === Default Constructor ===
     EnhancedPacket()
-        : packet_id(generateUuid())
+        : packet_id(generatePacketId())
         , sequence_number(0)
         , m_protocol(ProtocolType::UNKNOWN)
         , m_tos(0)
@@ -124,7 +122,7 @@ export struct EnhancedPacket {
         uint32_t dst_ip,
         uint16_t ingress_port,
         ProtocolType protocol = ProtocolType::UNKNOWN
-    ) : packet_id(generateUuid())
+    ) : packet_id(generatePacketId())
         , sequence_number(0)
         , m_src_mac(std::move(src_mac))
         , m_dst_mac(std::move(dst_mac))
@@ -162,11 +160,11 @@ export struct EnhancedPacket {
     [[nodiscard]] uint32_t srcIp() const noexcept { return m_src_ip; }
     [[nodiscard]] uint32_t dstIp() const noexcept { return m_dst_ip; }
     [[nodiscard]] uint16_t ingressPort() const noexcept { return m_ingress_port; }
-    [[nodiscard]] Optional<uint16_t> egressPort() const noexcept { return m_egress_port; }
+    [[nodiscard]] std::optional<uint16_t> egressPort() const noexcept { return m_egress_port; }
     [[nodiscard]] ProtocolType protocol() const noexcept { return m_protocol; }
     [[nodiscard]] uint8_t ttl() const noexcept { return m_ttl; }
     [[nodiscard]] uint8_t dscp() const noexcept { return m_tos >> 2; }
-    [[nodiscard]] Optional<uint16_t> vlanId() const noexcept { return m_vlan_id; }
+    [[nodiscard]] std::optional<uint16_t> vlanId() const noexcept { return m_vlan_id; }
 
     // === Setters ===
     void setSrcMac(uint64_t mac) { m_src_mac = mac; }
@@ -216,10 +214,10 @@ export struct EnhancedPacket {
     // === Serialization for Debug ===
     [[nodiscard]] std::string toString() const {
         std::ostringstream oss;
-        oss << "Packet[" << uuidToString(packet_id) << "] "
+        oss << "Packet[" << packet_id << "] "
             << "seq=" << sequence_number
-            << " mac=" << std::hex << m_src_mac << "->" << m_dst_mac << std::dec
-            << " ip=" << m_src_ip << "->" << m_dst_ip
+            << " mac=" << std::hex << m_src_mac << "->" << m_dst_mac
+            << " ip=" << std::dec << m_src_ip << "->" << m_dst_ip
             << " port=" << m_ingress_port
             << " stage=" << static_cast<int>(current_stage)
             << " latency=" << getLatencyUsec().count() << "us";
@@ -227,6 +225,12 @@ export struct EnhancedPacket {
             oss << " [DROPPED: " << drop_reason << "]";
         }
         return oss.str();
+    }
+
+private:
+    static std::string generatePacketId() {
+        static std::atomic<uint64_t> s_id_counter{0};
+        return "pkt-" + std::to_string(s_id_counter.fetch_add(1, std::memory_order_relaxed));
     }
 };
 
@@ -250,7 +254,7 @@ public:
     
 private:
     PacketSequenceCounter() = default;
-    AtomicUint64 m_counter{0};
+    std::atomic<uint64_t> m_counter{0};
 };
 
 /**

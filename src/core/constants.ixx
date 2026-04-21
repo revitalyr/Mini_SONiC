@@ -1,6 +1,7 @@
 module;
 
 #include <cstdint>
+#include <string>
 #include <cstddef>
 
 export module MiniSonic.Core.Constants;

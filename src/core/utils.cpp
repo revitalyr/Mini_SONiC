@@ -1,18 +1,18 @@
 module;
 
-#include <memory>
-#include <string>
-#include <vector>
-#include <atomic>
-#include <mutex>
-#include <iostream>
-#include <sstream>
-#include <chrono>
-#include <algorithm>
-#include <iomanip>
-#include <limits>
-#include <unordered_map>
-#include <cctype>
+#include <memory> // For std::unique_ptr, std::shared_ptr
+#include <string> // For std::string
+#include <vector> // For std::vector
+#include <atomic> // For std::atomic
+#include <mutex> // For std::mutex, std::lock_guard
+#include <iostream> // For std::cout, std::cerr
+#include <sstream> // For std::ostringstream
+#include <chrono> // For std::chrono
+#include <algorithm> // For std::sort, std::transform
+#include <iomanip> // For std::fixed, std::setprecision
+#include <limits> // For std::numeric_limits
+#include <unordered_map> // For std::unordered_map
+#include <cctype> // For std::isxdigit
 
 module MiniSonic.Core.Utils;
 

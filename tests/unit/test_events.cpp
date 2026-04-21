@@ -165,19 +165,19 @@ TEST_CASE("Events EventBus SubscribeAndPublish", "[events][bus]") {
     SECTION("Subscribe and publish event") {
         EventBus bus;
         bool callback_called = false;
-        nlohmann::json received_json;
+        ::nlohmann::json received_json;
         
-        bus.subscribe("TestEvent", [&](const nlohmann::json& json) {
+        bus.subscribe("TestEvent", [&](const ::nlohmann::json& json) {
             callback_called = true;
             received_json = json;
         });
         
-        nlohmann::json json_event = {{"type", "TestEvent"}, {"value", 42}};
+        ::nlohmann::json json_event = {{"type", "TestEvent"}, {"value", 42}};
         bus.publishJson(json_event);
         
         REQUIRE(callback_called);
-        REQUIRE(received_json["type"] == "TestEvent");
-        REQUIRE(received_json["value"] == 42);
+        REQUIRE(received_json["type"].get<std::string>() == "TestEvent");
+        REQUIRE(received_json["value"].get<int>() == 42);
     }
 }
 

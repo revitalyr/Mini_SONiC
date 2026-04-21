@@ -1,6 +1,8 @@
 #include "dataplane/pipeline_thread.h"
 #include <iostream>
 #include <algorithm>
+#include <vector>
+#include <chrono>
 
 namespace MiniSonic::DataPlane {
 

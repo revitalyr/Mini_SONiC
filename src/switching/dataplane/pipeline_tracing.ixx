@@ -23,16 +23,16 @@ module;
 #include <vector>
 #include <functional>
 #include <cstdint>
+#include <mutex>
+#include <atomic>
+#include <optional>
+#include <boost/asio.hpp>
 
 export module MiniSonic.DataPlane.PipelineTracing;
 
 import MiniSonic.DataPlane.PacketEnhanced;
-import MiniSonic.Core.Utils;
-import MiniSonic.Boost.Wrappers;
 
 export namespace MiniSonic::DataPlane {
-
-using namespace MiniSonic::BoostWrapper;
 
 /**
  * @brief Pipeline event types matching visualization schema
@@ -58,8 +58,8 @@ export enum class PipelineEventType : uint8_t {
  */
 export struct PipelineEvent {
     // Event identification
-    Uuid event_id;                       ///< Unique event ID
-    Uuid packet_id;                      ///< Related packet ID
+    std::string event_id;                ///< Unique event ID
+    std::string packet_id;               ///< Related packet ID
     
     // Event metadata
     PipelineEventType type;
@@ -67,13 +67,13 @@ export struct PipelineEvent {
     std::chrono::steady_clock::time_point timestamp;
     
     // Port information
-    Optional<Types::Port> ingress_port;
-    Optional<Types::Port> egress_port;
+    std::optional<Types::PortId> ingress_port;
+    std::optional<Types::PortId> egress_port;
     std::string next_hop_switch;         ///< For inter-switch links
     
     // Packet metadata at event time
-    Optional<uint16_t> vlan_id;
-    Optional<uint8_t> dscp;
+    std::optional<uint16_t> vlan_id;
+    std::optional<uint8_t> dscp;
     uint8_t ttl;
     ProtocolType protocol;
     
@@ -83,7 +83,7 @@ export struct PipelineEvent {
     
     // === Constructor ===
     PipelineEvent()
-        : event_id(generateUuid())
+        : event_id(generateEventId())
         , packet_id()
         , type(PipelineEventType::PACKET_GENERATED)
         , timestamp(std::chrono::steady_clock::now())
@@ -110,6 +110,12 @@ export struct PipelineEvent {
         event.protocol = packet.protocol();
         event.sequence_number = packet.sequence_number;
         return event;
+    }
+
+private:
+    static std::string generateEventId() {
+        static std::atomic<uint64_t> s_event_id_counter{0};
+        return "ev-" + std::to_string(s_event_id_counter.fetch_add(1, std::memory_order_relaxed));
     }
 };
 
@@ -158,9 +164,9 @@ private:
     void dispatchEvent(const PipelineEvent& event);
     
     // Thread-safe subscriber management
-    Mutex m_subscribers_mutex;
+    std::mutex m_subscribers_mutex;
     std::vector<std::pair<size_t, PipelineEventCallback>> m_subscribers;
-    AtomicSize m_next_subscriber_id{0};
+    std::atomic<size_t> m_next_subscriber_id{0};
 };
 
 /**
@@ -212,7 +218,7 @@ public:
  */
 export class AsyncEventDispatcher {
 public:
-    explicit AsyncEventDispatcher(IoContext& io_context);
+    explicit AsyncEventDispatcher(boost::asio::io_context& io_context);
     
     void start();
     void stop();
@@ -223,14 +229,14 @@ public:
 private:
     void processEvents();
     
-    IoContext& m_io_context;
-    Optional<SteadyTimer> m_timer;
+    boost::asio::io_context& m_io_context;
+    std::optional<boost::asio::steady_timer> m_timer;
     std::function<void(const std::string&)> m_output_callback;
     
     // Event buffer with mutex protection
-    Mutex m_buffer_mutex;
+    std::mutex m_buffer_mutex;
     std::vector<PipelineEvent> m_event_buffer;
-    AtomicSize m_dropped_count{0};  ///< Events dropped due to buffer full
+    std::atomic<size_t> m_dropped_count{0};  ///< Events dropped due to buffer full
 };
 
 } // namespace MiniSonic::DataPlane
