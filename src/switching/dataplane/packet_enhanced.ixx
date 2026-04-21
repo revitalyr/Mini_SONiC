@@ -1,26 +1,29 @@
 /**
  * @file packet_enhanced.ixx
  * @brief Enhanced Packet structure with tracing support and full metadata
- * 
+ *
  * Uses MiniSonic.Boost.Wrappers module for:
  * - UUID for packet identification
  * - Optional fields
- * 
+ *
  * Fixes identified issues:
  * - Added packet_id for end-to-end tracing
  * - Extended metadata (VLAN, DSCP, protocol, etc.)
  * - Pipeline stage tracking
  */
 
+module;
+
+#include <chrono>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <cstdint>
+#include <utility>
+
 export module MiniSonic.DataPlane.PacketEnhanced;
 
 import MiniSonic.Boost.Wrappers;
-
-import <chrono>;
-import <string>;
-import <sstream>;
-import <vector>;
-import <cstdint>;
 
 export namespace MiniSonic::DataPlane {
 
