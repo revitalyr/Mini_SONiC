@@ -20,48 +20,57 @@ int port_add(const char *ifname) {
     
     strncpy(p->name, ifname, sizeof(p->name) - 1);
     p->name[sizeof(p->name) - 1] = '\0';
-    
+
+#ifndef _WIN32
+    // Linux Raw Socket Code
     p->sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (p->sock < 0) {
         perror("socket");
         return -1;
     }
-    
+
     struct ifreq ifr = {0};
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
-    
+
     if (ioctl(p->sock, SIOCGIFINDEX, &ifr) < 0) {
         perror("ioctl SIOCGIFINDEX");
         close(p->sock);
         return -1;
     }
     p->ifindex = ifr.ifr_ifindex;
-    
+
     if (ioctl(p->sock, SIOCGIFFLAGS, &ifr) < 0) {
         perror("ioctl SIOCGIFFLAGS");
         close(p->sock);
         return -1;
     }
-    
+
     ifr.ifr_flags |= IFF_PROMISC;
     if (ioctl(p->sock, SIOCSIFFLAGS, &ifr) < 0) {
         perror("ioctl SIOCSIFFLAGS");
         close(p->sock);
         return -1;
     }
-    
+
     struct sockaddr_ll addr = {0};
     addr.sll_family = AF_PACKET;
     addr.sll_ifindex = p->ifindex;
     addr.sll_protocol = htons(ETH_P_ALL);
     addr.sll_pkttype = PACKET_HOST;
-    
+
     if (bind(p->sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         perror("bind");
         close(p->sock);
         return -1;
     }
-    
+#else
+    // Windows Mock/Simulation Code
+    (void)ifname;
+    p->sock = -1;
+    p->ifindex = port_count;
+    printf("[HAL] Raw sockets not supported on Windows, using simulation mode for port %s\n", p->name);
+#endif
+
     p->vlan = 1;
     p->active = 1;
     
