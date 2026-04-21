@@ -1,6 +1,31 @@
-#include "protocol.ixx"
+module;
 
-export namespace MiniSonic::Protocol {
+#include <string>
+#include <functional>
+#include <memory>
+#include <vector>
+#include <map>
+#include <atomic>
+#include <mutex>
+#include <variant>
+#include <cstddef>
+#include <iostream>
+#include <utility>
+
+export module MiniSonic.Protocol;
+
+namespace MiniSonic::Protocol {
+
+using std::string;
+using std::function;
+using std::unique_ptr;
+using std::shared_ptr;
+using std::vector;
+using std::map;
+using std::atomic;
+using std::mutex;
+using std::variant;
+using std::byte;
 
 // =============================================================================
 // PROTOCOL STACK IMPLEMENTATION

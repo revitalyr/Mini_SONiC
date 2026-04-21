@@ -1,32 +1,34 @@
 /**
  * @file pipeline_tracing.ixx
  * @brief Pipeline Event Tracing - Real packet flow events for visualization
- * 
+ *
  * Uses Boost.Asio for async event delivery to visualization.
  * Each packet generates trace events as it flows through the pipeline stages.
- * 
+ *
  * Events generated:
  * - packet_generated: New packet created
  * - packet_entered: Packet arrived at switch port
  * - packet_forward: Forwarding decision made
  * - packet_dropped: Packet was dropped
  * - packet_exited: Packet left switch
- * 
+ *
  * Uses Boost.UUID for packet identification.
  */
+
+module;
+
+#include <chrono>
+#include <string>
+#include <memory>
+#include <vector>
+#include <functional>
+#include <cstdint>
 
 export module MiniSonic.DataPlane.PipelineTracing;
 
 import MiniSonic.DataPlane.PacketEnhanced;
 import MiniSonic.Common.Types;
 import MiniSonic.Boost.Wrappers;
-
-import <chrono>;
-import <string>;
-import <memory>;
-import <vector>;
-import <functional>;
-import <cstdint>;
 
 export namespace MiniSonic::DataPlane {
 

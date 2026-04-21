@@ -1,11 +1,19 @@
 // Windows-compatible Mini Switch Demo
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef _WINSOCKAPI_
+#define _WINSOCKAPI_  // Prevent winsock.h inclusion
+#endif
+
+#include <winsock2.h>
+#include <windows.h>
+#include <ws2tcpip.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
