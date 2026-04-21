@@ -1,6 +1,31 @@
-#include "gossip.ixx"
+module;
 
-export namespace MiniSonic::Gossip {
+#include <string>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <random>
+#include <chrono>
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
+#include <mutex>
+#include <atomic>
+#include <queue>
+#include <thread>
+#include <condition_variable>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#pragma comment(lib, "ws2_32.lib")
+#endif
+
+module MiniSonic.Gossip;
+
+import MiniSonic.Core.Utils;
+
+namespace MiniSonic::Gossip {
 
 // =============================================================================
 // GOSSIP PROTOCOL IMPLEMENTATION

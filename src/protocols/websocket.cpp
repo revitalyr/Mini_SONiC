@@ -1,4 +1,13 @@
-#include "websocket.ixx"
+module;
+
+#include <string>
+#include <vector>
+#include <functional>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <queue>
+#include <chrono>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -15,7 +24,11 @@
 typedef int SOCKET;
 #endif
 
-export namespace MiniSonic::WebSocket {
+module MiniSonic.WebSocket;
+
+import MiniSonic.Core.Utils;
+
+namespace MiniSonic::WebSocket {
 
 // =============================================================================
 // WEBSOCKET CONNECTION IMPLEMENTATION
