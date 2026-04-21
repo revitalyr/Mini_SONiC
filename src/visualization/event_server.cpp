@@ -220,7 +220,7 @@ private:
                 {"ip", "10.0.3.7"},
                 {"mac", "00:11:22:33:44:56"},
                 {"x", 1180},
-                {"y", 100},
+                {"y", 20},
                 {"connected_to", "TOR2"},
                 {"stats", {{"sent", 1200}, {"received", 1500}}}
             }
@@ -388,36 +388,65 @@ private:
         static int packet_counter = 0;
         packet_counter++;
 
-        // Use switches that exist in the web visualizer topology
-        static const char* switch_names[] = {"TOR1", "Spine1", "Spine2", "TOR2", "Leaf1"};
-        const char* current_switch = switch_names[packet_counter % 5];
-        const char* next_switch = switch_names[(packet_counter + 1) % 5];
-
-        // Send PacketGenerated event
-        nlohmann::json packet_gen;
-        packet_gen["type"] = "PacketGenerated";
-        packet_gen["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()
-        ).count();
-        packet_gen["packet"] = {
-            {"id", "TEST-" + std::to_string(packet_counter)},
-            {"src_ip", "192.168.1.100"},
-            {"dst_ip", "192.168.1.200"},
-            {"src_port", 12345},
-            {"dst_port", 80},
-            {"protocol", "TCP"}
+        // Create realistic host-to-host packet flows
+        // Flow 1: H1 -> TOR1 -> Spine1 -> TOR2 -> H2
+        // Flow 2: H1 -> TOR1 -> Spine2 -> TOR2 -> H2
+        static const std::vector<std::vector<const char*>> packet_flows = {
+            {"H1", "TOR1", "Spine1", "TOR2", "H2"},
+            {"H1", "TOR1", "Spine2", "TOR2", "H2"},
+            {"H2", "TOR2", "Spine1", "TOR1", "H1"},
+            {"H2", "TOR2", "Spine2", "TOR1", "H1"}
         };
-        handleJsonEvent(packet_gen);
 
-        // Send PacketEnteredSwitch event (this triggers visualization)
+        const auto& flow = packet_flows[packet_counter % packet_flows.size()];
+        int hop_index = packet_counter % (flow.size() - 1); // Don't include final destination as a "hop"
+
+        const char* from_node = flow[hop_index];
+        const char* to_node = flow[hop_index + 1];
+
+        // Skip if source is a host (hosts don't process packets, switches do)
+        if (std::string(from_node) == "H1" || std::string(from_node) == "H2") {
+            return;
+        }
+
+        // Determine egress port based on topology
+        std::string egress_port = "eth0";
+        if (std::string(from_node) == "TOR1" && std::string(to_node) == "Spine1") egress_port = "Eth4";
+        else if (std::string(from_node) == "TOR1" && std::string(to_node) == "Spine2") egress_port = "Eth8";
+        else if (std::string(from_node) == "TOR2" && std::string(to_node) == "Spine1") egress_port = "Eth4";
+        else if (std::string(from_node) == "TOR2" && std::string(to_node) == "Spine2") egress_port = "Eth8";
+        else if (std::string(from_node) == "Spine1" && std::string(to_node) == "TOR1") egress_port = "Eth0";
+        else if (std::string(from_node) == "Spine1" && std::string(to_node) == "TOR2") egress_port = "Eth4";
+        else if (std::string(from_node) == "Spine2" && std::string(to_node) == "TOR1") egress_port = "Eth0";
+        else if (std::string(from_node) == "Spine2" && std::string(to_node) == "TOR2") egress_port = "Eth4";
+
+        // Send PacketGenerated event (only for first hop)
+        if (hop_index == 1) { // First switch in flow
+            nlohmann::json packet_gen;
+            packet_gen["type"] = "PacketGenerated";
+            packet_gen["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()
+            ).count();
+            packet_gen["packet"] = {
+                {"id", "TEST-" + std::to_string(packet_counter)},
+                {"src_ip", "10.0.1.2"},
+                {"dst_ip", "10.0.3.7"},
+                {"src_port", 12345},
+                {"dst_port", 80},
+                {"protocol", "TCP"}
+            };
+            handleJsonEvent(packet_gen);
+        }
+
+        // Send PacketEnteredSwitch event
         nlohmann::json packet_entered;
         packet_entered["type"] = "PacketEnteredSwitch";
         packet_entered["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now().time_since_epoch()
         ).count();
-        packet_entered["switch_id"] = current_switch;
+        packet_entered["switch_id"] = from_node;
         packet_entered["packet_id"] = "TEST-" + std::to_string(packet_counter);
-        packet_entered["ingress_port"] = "eth0";
+        packet_entered["ingress_port"] = "Eth0";
         handleJsonEvent(packet_entered);
 
         // Send PacketForwardDecision event
@@ -426,10 +455,10 @@ private:
         packet_forward["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now().time_since_epoch()
         ).count();
-        packet_forward["switch_id"] = current_switch;
+        packet_forward["switch_id"] = from_node;
         packet_forward["packet_id"] = "TEST-" + std::to_string(packet_counter);
-        packet_forward["egress_port"] = "eth1";
-        packet_forward["next_hop"] = next_switch;
+        packet_forward["egress_port"] = egress_port;
+        packet_forward["next_hop"] = to_node;
         handleJsonEvent(packet_forward);
 
         // Send PacketExitedSwitch event (triggers packet movement along link)
@@ -438,10 +467,10 @@ private:
         packet_exited["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now().time_since_epoch()
         ).count();
-        packet_exited["switch_id"] = current_switch;
+        packet_exited["switch_id"] = from_node;
         packet_exited["packet_id"] = "TEST-" + std::to_string(packet_counter);
-        packet_exited["egress_port"] = "eth1";
-        packet_exited["next_hop"] = next_switch;
+        packet_exited["egress_port"] = egress_port;
+        packet_exited["next_hop"] = to_node;
         packet_exited["src_ip"] = "10.0.1.2";
         packet_exited["dst_ip"] = "10.0.3.7";
         packet_exited["src_port"] = 443;

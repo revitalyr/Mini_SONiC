@@ -12,6 +12,8 @@
 module;
 
 // Global module fragment - include headers here
+#include <boost/system/error_code.hpp>
+#include <boost/system/system_error.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -24,7 +26,8 @@ module;
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/atomic.hpp>
 #include <boost/optional.hpp>
-#include <boost/unordered_map.hpp>
+#include <boost/unordered/unordered_map.hpp>
+#include <boost/unordered/detail/implementation.hpp>
 
 export module MiniSonic.Boost.Wrappers;
 
