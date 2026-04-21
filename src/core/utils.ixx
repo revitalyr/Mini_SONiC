@@ -19,7 +19,7 @@ module;
 #include <span>
 #include <print>
 
-export module MiniSonic.Utils;
+export module MiniSonic.Core.Utils;
 
 /**
  * @brief Internal types for the modular system

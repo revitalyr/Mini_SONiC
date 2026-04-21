@@ -13,7 +13,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QMap>
 #include <QColor>
 #include <QBrush>
@@ -106,7 +106,7 @@ private:
 
         // Right panel: Event log
         auto* rightPanel = new QVBoxLayout();
-        m_eventLog = new QTextEdit();
+        m_eventLog = new QPlainTextEdit();
         m_eventLog->setReadOnly(true);
         m_eventLog->setMaximumBlockCount(1000);
         
@@ -193,19 +193,19 @@ private:
         m_links.append(line);
     }
 
-    void processEvent(const QByteArray& data) {
+    void processEvent(const QByteArray& eventData) {
         QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+        QJsonDocument doc = QJsonDocument::fromJson(eventData, &error);
         
         if (error.error != QJsonParseError::NoError) {
-            m_eventLog->append("Error parsing JSON: " + error.errorString());
+            m_eventLog->appendPlainText("Error parsing JSON: " + error.errorString());
             return;
         }
 
         QJsonObject obj = doc.object();
         QString type = obj["type"].toString();
 
-        m_eventLog->append(QString("[%1] %2").arg(
+        m_eventLog->appendPlainText(QString("[%1] %2").arg(
             QTime::currentTime().toString(),
             type
         ));
@@ -229,7 +229,7 @@ private:
         QString src_ip = packet["src_ip"].toString();
         QString dst_ip = packet["dst_ip"].toString();
 
-        m_eventLog->append(QString("  Packet %1: %2 -> %3").arg(id).arg(src_ip, dst_ip));
+        m_eventLog->appendPlainText(QString("  Packet %1: %2 -> %3").arg(id).arg(src_ip, dst_ip));
     }
 
     void handlePacketEnteredSwitch(const QJsonObject& obj) {
@@ -237,7 +237,7 @@ private:
         QString ingress_port = obj["ingress_port"].toString();
         uint64_t packet_id = obj["packet_id"].toInteger();
 
-        m_eventLog->append(QString("  Packet %1 entered %2 on %3").arg(packet_id).arg(switch_id, ingress_port));
+        m_eventLog->appendPlainText(QString("  Packet %1 entered %2 on %3").arg(packet_id).arg(switch_id, ingress_port));
 
         // Highlight switch
         if (m_switches.contains(switch_id)) {
@@ -256,7 +256,7 @@ private:
         QString egress_port = obj["egress_port"].toString();
         QString next_hop = obj["next_hop"].toString();
 
-        m_eventLog->append(QString("  Forward decision: %1 -> %2 via %3").arg(switch_id, next_hop, egress_port));
+        m_eventLog->appendPlainText(QString("  Forward decision: %1 -> %2 via %3").arg(switch_id, next_hop, egress_port));
     }
 
     void handlePacketExitedSwitch(const QJsonObject& obj) {
@@ -264,7 +264,7 @@ private:
         QString egress_port = obj["egress_port"].toString();
         uint64_t packet_id = obj["packet_id"].toInteger();
 
-        m_eventLog->append(QString("  Packet %1 exited %2 via %3").arg(packet_id).arg(switch_id, egress_port));
+        m_eventLog->appendPlainText(QString("  Packet %1 exited %2 via %3").arg(packet_id).arg(switch_id, egress_port));
     }
 
     void handlePortStateChanged(const QJsonObject& obj) {
@@ -272,7 +272,7 @@ private:
         QString port = obj["port"].toString();
         QString state = obj["state"].toString();
 
-        m_eventLog->append(QString("  Port %1 on %2 changed to %3").arg(port, switch_id, state));
+        m_eventLog->appendPlainText(QString("  Port %1 on %2 changed to %3").arg(port, switch_id, state));
     }
 
 private:
@@ -280,7 +280,7 @@ private:
     QTcpSocket* m_socket = nullptr;
     QPushButton* m_connectButton = nullptr;
     QLabel* m_statusLabel = nullptr;
-    QTextEdit* m_eventLog = nullptr;
+    QPlainTextEdit* m_eventLog = nullptr;
     
     QMap<QString, QGraphicsRectItem*> m_switches;
     QMap<QString, QGraphicsRectItem*> m_hosts;

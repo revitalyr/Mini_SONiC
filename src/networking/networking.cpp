@@ -1,5 +1,7 @@
 module;
 
+#include <boost/system/error_code.hpp> // Must be at the very top for ADL on MSVC
+
 #include <memory>
 #include <string>
 #include <functional>
@@ -7,7 +9,6 @@ module;
 #include <chrono>
 #include <iostream>
 #include <sstream>
-
 #ifdef HAS_BOOST_ASIO
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>

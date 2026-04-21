@@ -39,26 +39,26 @@ export namespace MiniSonic::Protocol {
  * @brief Protocol message types
  */
 enum class MessageType : uint32_t {
-    UNKNOWN = 0,
-    DATA = 1,
-    CONTROL = 2,
-    DISCOVERY = 3,
-    GOSSIP = 4,
-    HEARTBEAT = 5,
-    ERROR = 6
+    MSG_UNKNOWN = 0,
+    MSG_DATA = 1,
+    MSG_CONTROL = 2,
+    MSG_DISCOVERY = 3,
+    MSG_GOSSIP = 4,
+    MSG_HEARTBEAT = 5,
+    MSG_ERROR = 6
 };
 
 /**
  * @brief Protocol message header
  */
 struct MessageHeader {
-    MessageType type{MessageType::UNKNOWN};
+    MessageType type{MessageType::MSG_UNKNOWN};
     uint32_t length{0};
     Types::SequenceNumber sequence{0};  // semantic alias
     Types::Timestamp timestamp{0};       // semantic alias
 
     [[nodiscard]] bool isValid() const noexcept {
-        return type != MessageType::UNKNOWN && length > 0;
+        return type != MessageType::MSG_UNKNOWN && length > 0;
     }
 };
 

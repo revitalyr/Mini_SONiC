@@ -1,0 +1,130 @@
+﻿{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "23",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "CMAKE_CXX_EXTENSIONS": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "base-msvc",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl",
+        "MODULES_SUPPORT": "ON",
+        "BOOST_ROOT": "$env{BOOST_ROOT}",
+        "WIN32_LEAN_AND_MEAN": "1",
+        "_WINSOCKAPI_": "1"
+      }
+    },
+    {
+      "name": "base-clang",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "C:/Program Files/LLVM/bin/clang.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files/LLVM/bin/clang++.exe",
+        "CMAKE_CXX_STANDARD": "20",
+        "MODULES_SUPPORT": "OFF",
+        "BOOST_ROOT": "d:/work/vcpkg/installed/x64-windows"
+      }
+    },
+    {
+      "name": "msvc-release",
+      "displayName": "MSVC x64 Release",
+      "description": "Release build with MSVC",
+      "inherits": "base-msvc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "msvc-debug",
+      "displayName": "MSVC x64 Debug",
+      "description": "Debug build with MSVC",
+      "inherits": "base-msvc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "clang-release",
+      "displayName": "Clang x64 Release",
+      "description": "Release build with Clang",
+      "inherits": "base-clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "clang-debug",
+      "displayName": "Clang x64 Debug",
+      "description": "Debug build with Clang",
+      "inherits": "base-clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "clang-modules-release",
+      "displayName": "Clang x64 with Modules (Release)",
+      "description": "Release build with Clang and C++20 modules (experimental)",
+      "inherits": "clang-release",
+      "cacheVariables": {
+        "MODULES_SUPPORT": "ON",
+        "CMAKE_CXX_FLAGS": "-DOPENCV_SKIP_VISIBILITY_CONTROL -D_CRT_DECLARE_NONSTDC_NAMES=0"
+      }
+    },
+    {
+      "name": "clang-modules-debug",
+      "displayName": "Clang x64 with Modules (Debug)",
+      "description": "Debug build with Clang and C++20 modules (experimental)",
+      "inherits": "clang-debug",
+      "cacheVariables": {
+        "MODULES_SUPPORT": "ON",
+        "CMAKE_CXX_FLAGS": "-DOPENCV_SKIP_VISIBILITY_CONTROL -D_CRT_DECLARE_NONSTDC_NAMES=0"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-release",
+      "displayName": "Build (MSVC Release)",
+      "configurePreset": "msvc-release"
+    },
+    {
+      "name": "msvc-debug",
+      "displayName": "Build (MSVC Debug)",
+      "configurePreset": "msvc-debug"
+    },
+    {
+      "name": "clang-release",
+      "displayName": "Build (Clang Release)",
+      "configurePreset": "clang-release"
+    },
+    {
+      "name": "clang-debug",
+      "displayName": "Build (Clang Debug)",
+      "configurePreset": "clang-debug"
+    },
+    {
+      "name": "clang-modules-release",
+      "displayName": "Build (Clang with Modules Release)",
+      "configurePreset": "clang-modules-release"
+    },
+    {
+      "name": "clang-modules-debug",
+      "displayName": "Build (Clang with Modules Debug)",
+      "configurePreset": "clang-modules-debug"
+    }
+  ]
+}

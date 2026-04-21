@@ -1,3 +1,4 @@
+#include <boost/system/error_code.hpp>
 #include "core/app.h"
 #include <iostream>
 #include <chrono>

@@ -535,7 +535,7 @@ void GossipNode::setDataHandler(function<void(const string&, const vector<uint8_
     m_data_handler = std::move(handler);
     
     m_protocol->setMessageHandler([this](const Protocol::Message& msg) {
-        if (m_data_handler && msg.header().type == Protocol::MessageType::DATA) {
+        if (m_data_handler && msg.header().type == Protocol::MessageType::MSG_DATA) {
             m_data_handler(m_protocol->peerId(), msg.payload());
         }
     });

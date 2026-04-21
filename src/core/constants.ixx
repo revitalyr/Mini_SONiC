@@ -3,7 +3,7 @@ module;
 #include <cstdint>
 #include <cstddef>
 
-export module MiniSonic.Constants;
+export module MiniSonic.Core.Constants;
 
 namespace MiniSonic::Constants {
 

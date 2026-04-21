@@ -93,9 +93,9 @@ std::string Metrics::getLatencyStats() const {
     // Calculate percentiles
     std::sort(samples.begin(), samples.end());
     
-    Types::Count p50 = samples.empty() ? 0 : samples[samples.size() * 0.5];
-    Types::Count p95 = samples.empty() ? 0 : samples[samples.size() * 0.95];
-    Types::Count p99 = samples.empty() ? 0 : samples[samples.size() * 0.99];
+    Types::Count p50 = samples.empty() ? 0 : samples[static_cast<size_t>(samples.size() * 0.5)];
+    Types::Count p95 = samples.empty() ? 0 : samples[static_cast<size_t>(samples.size() * 0.95)];
+    Types::Count p99 = samples.empty() ? 0 : samples[static_cast<size_t>(samples.size() * 0.99)];
     
     std::ostringstream oss;
     oss << "Latency Statistics:\n"

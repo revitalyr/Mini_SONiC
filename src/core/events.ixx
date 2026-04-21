@@ -9,7 +9,7 @@ module;
 #include <mutex>
 #include <nlohmann/json.hpp>
 
-export module MiniSonic.Events;
+export module MiniSonic.Core.Events;
 
 export namespace MiniSonic::Events {
 

@@ -19,7 +19,7 @@ function check_dependencies() {
         fi
     done
 
-    if [ ! -f /usr/include/numa.h ]; then
+    if [[ "$OSTYPE" == "linux-gnu"* ]] && [ ! -f /usr/include/numa.h ]; then
         echo "[ОШИБКА] Библиотека libnuma-dev не найдена. Установите её (sudo apt install libnuma-dev)."
         exit 1
     fi
@@ -32,15 +32,20 @@ function build_project() {
     mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR"
 
-    # Явно задаем генератор "Unix Makefiles", так как ниже используем 'make'.
-    # Если возникнет ошибка генератора, очищаем папку и пробуем снова.
-    if ! cmake -G "Unix Makefiles" ..; then
-        echo "[ПРЕДУПРЕЖДЕНИЕ] Ошибка конфигурации (возможно конфликт генераторов). Очистка build..."
-        rm -rf ./*
-        cmake -G "Unix Makefiles" ..
+    # Определяем количество ядер для сборки (Linux/macOS)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        NPROC=$(sysctl -n hw.ncpu)
+    else
+        NPROC=$(nproc)
     fi
 
-    make -j$(nproc)
+    if ! cmake ..; then
+        echo "[ПРЕДУПРЕЖДЕНИЕ] Ошибка конфигурации (возможно конфликт генераторов). Очистка build..."
+        rm -rf ./*
+        cmake ..
+    fi
+
+    cmake --build . -j $NPROC
     cd - > /dev/null
 }
 

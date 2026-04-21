@@ -123,7 +123,7 @@ public:
     /**
      * @brief Get serialized size
      */
-    [[nodiscard]] size_t getSerializedSize(const void* data, size_t size) const override {
+    [[nodiscard]] size_t getSerializedSize([[maybe_unused]] const void* data, size_t size) const override {
         return size + sizeof(uint32_t);
     }
 };

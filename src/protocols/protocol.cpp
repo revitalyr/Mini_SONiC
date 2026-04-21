@@ -12,7 +12,7 @@ module;
 #include <iostream>
 #include <utility>
 
-export module MiniSonic.Protocol;
+module MiniSonic.Protocol;
 
 namespace MiniSonic::Protocol {
 
@@ -26,6 +26,7 @@ using std::atomic;
 using std::mutex;
 using std::variant;
 using std::byte;
+using std::lock_guard;
 
 // =============================================================================
 // PROTOCOL STACK IMPLEMENTATION

@@ -139,15 +139,22 @@ private:
     static string formatMac(Types::MacAddress mac) {
         char buf[18];
         snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
-                 (mac >> 40) & 0xFF, (mac >> 32) & 0xFF, (mac >> 24) & 0xFF,
-                 (mac >> 16) & 0xFF, (mac >> 8) & 0xFF, mac & 0xFF);
+                 static_cast<unsigned int>((mac >> 40) & 0xFF),
+                 static_cast<unsigned int>((mac >> 32) & 0xFF),
+                 static_cast<unsigned int>((mac >> 24) & 0xFF),
+                 static_cast<unsigned int>((mac >> 16) & 0xFF),
+                 static_cast<unsigned int>((mac >> 8) & 0xFF),
+                 static_cast<unsigned int>(mac & 0xFF));
         return string(buf);
     }
 
     static string formatIp(Types::IpAddress ip) {
         char buf[16];
         snprintf(buf, sizeof(buf), "%u.%u.%u.%u",
-                 (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF);
+                 static_cast<unsigned int>((ip >> 24) & 0xFF),
+                 static_cast<unsigned int>((ip >> 16) & 0xFF),
+                 static_cast<unsigned int>((ip >> 8) & 0xFF),
+                 static_cast<unsigned int>(ip & 0xFF));
         return string(buf);
     }
 

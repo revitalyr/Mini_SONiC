@@ -11,15 +11,19 @@
  * Uses MiniSonic.Boost.Wrappers for lock-free queue implementation.
  */
 
+module;
+
+#include <chrono>
+#include <list>
+#include <memory>
+#include <vector>
+#include <boost/unordered/unordered_map.hpp>
+#include <boost/uuid/uuid.hpp>
+
 export module MiniSonic.L3.ArpPendingQueue;
 
 import MiniSonic.DataPlane.PacketEnhanced;
 import MiniSonic.Boost.Wrappers;
-
-import <chrono>;
-import <list>;
-import <memory>;
-import <vector>;
 
 export namespace MiniSonic::L3 {
 

@@ -1,6 +1,7 @@
 module;
 
 // MSVC: use traditional includes in global module fragment
+#include <boost/system/error_code.hpp>
 #include <memory>
 #include <string>
 #include <functional>

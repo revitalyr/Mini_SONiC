@@ -4,6 +4,7 @@
  */
 
 #include <catch2/catch_all.hpp>
+#include <nlohmann/json.hpp>
 
 // Import the module
 import MiniSonic.Events;
@@ -202,7 +203,7 @@ TEST_CASE("Events GlobalEventBus", "[events][bus]") {
         auto& bus = getGlobalEventBus();
         bool callback_called = false;
         
-        bus.subscribe("GlobalTest", [&](const nlohmann::json& json) {
+        bus.subscribe("GlobalTest", [&]([[maybe_unused]] const nlohmann::json& json) {
             callback_called = true;
         });
         

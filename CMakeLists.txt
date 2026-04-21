@@ -75,8 +75,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
     
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /wd4251 /Zc:__cplusplus /Zc:preprocessor")
-    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi")
-    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /EHsc")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG /EHsc")
     
     # Enable AddressSanitizer if requested (MSVC version)
     if(SONIC_ENABLE_ASAN)
@@ -190,37 +190,39 @@ else()
     message(STATUS "Qt6 not found - visualizer components will not be built")
 endif()
 
+set(CMAKE_AUTOMOC ON)
+
 # =============================================================================
 # C++20 MODULES (MiniSonic Modular System)
 # =============================================================================
 
-# Module: MiniSonic.Constants
-add_library(MiniSonic.Constants STATIC)
-target_sources(MiniSonic.Constants
+# Module: MiniSonic.Core.Constants
+add_library(MiniSonic.Core.Constants STATIC)
+target_sources(MiniSonic.Core.Constants
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/core/constants.ixx
 )
-target_include_directories(MiniSonic.Constants PUBLIC src)
-target_link_libraries(MiniSonic.Constants PRIVATE sonic_common_options)
+target_include_directories(MiniSonic.Core.Constants PUBLIC src)
+target_link_libraries(MiniSonic.Core.Constants PRIVATE sonic_common_options)
 
-# Module: MiniSonic.Events
-add_library(MiniSonic.Events STATIC)
-target_sources(MiniSonic.Events
+# Module: MiniSonic.Core.Events
+add_library(MiniSonic.Core.Events STATIC)
+target_sources(MiniSonic.Core.Events
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/core/events.ixx
 )
-target_include_directories(MiniSonic.Events PUBLIC src)
-target_link_libraries(MiniSonic.Events PRIVATE sonic_common_options nlohmann_json::nlohmann_json)
+target_include_directories(MiniSonic.Core.Events PUBLIC src)
+target_link_libraries(MiniSonic.Core.Events PRIVATE sonic_common_options nlohmann_json::nlohmann_json)
 
-# Module: MiniSonic.Utils
-add_library(MiniSonic.Utils STATIC)
-target_sources(MiniSonic.Utils
+# Module: MiniSonic.Core.Utils
+add_library(MiniSonic.Core.Utils STATIC)
+target_sources(MiniSonic.Core.Utils
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/core/utils.ixx
 )
-target_sources(MiniSonic.Utils PRIVATE src/core/utils.cpp)
-target_include_directories(MiniSonic.Utils PUBLIC src)
-target_link_libraries(MiniSonic.Utils PRIVATE sonic_common_options Boost::filesystem Boost::system)
+target_sources(MiniSonic.Core.Utils PRIVATE src/core/utils.cpp)
+target_include_directories(MiniSonic.Core.Utils PUBLIC src)
+target_link_libraries(MiniSonic.Core.Utils PRIVATE sonic_common_options Boost::filesystem Boost::system)
 
 # Module: MiniSonic.Boost.Wrappers
 add_library(MiniSonic.Boost.Wrappers STATIC)
@@ -249,7 +251,7 @@ target_sources(MiniSonic.DataPlane
 )
 target_sources(MiniSonic.DataPlane PRIVATE src/switching/dataplane.cpp)
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.SAI MiniSonic.Events)
+target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Events)
 # MiniSonic.Networking temporarily disabled due to Boost.System compatibility
 
 # Module: MiniSonic.DataPlane.PacketEnhanced
@@ -268,7 +270,7 @@ target_sources(MiniSonic.L3.ArpPendingQueue
         src/switching/l3/arp_pending_queue.ixx
 )
 target_include_directories(MiniSonic.L3.ArpPendingQueue PUBLIC src)
-target_link_libraries(MiniSonic.L3.ArpPendingQueue PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers)
+target_link_libraries(MiniSonic.L3.ArpPendingQueue PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers Boost::system)
 
 # Module: MiniSonic.DataPlane.PipelineTracing
 add_library(MiniSonic.DataPlane.PipelineTracing STATIC)
@@ -277,7 +279,7 @@ target_sources(MiniSonic.DataPlane.PipelineTracing
         src/switching/dataplane/pipeline_tracing.ixx
 )
 target_include_directories(MiniSonic.DataPlane.PipelineTracing PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane.PipelineTracing PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Events)
+target_link_libraries(MiniSonic.DataPlane.PipelineTracing PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Events MiniSonic.Utils)
 
 # Module: MiniSonic.L2L3
 add_library(MiniSonic.L2L3 STATIC)
@@ -287,18 +289,16 @@ target_sources(MiniSonic.L2L3
 )
 target_sources(MiniSonic.L2L3 PRIVATE src/switching/l2l3.cpp)
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
-target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Constants MiniSonic.Events)
+target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Core.Constants MiniSonic.Events)
 
-# Module: MiniSonic.Networking
-# TEMPORARILY DISABLED - Boost.System compatibility issue with Windows SDK version
-# add_library(MiniSonic.Networking STATIC)
-# target_sources(MiniSonic.Networking
-#     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-#         src/networking/networking.ixx
-# )
-# target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
-# target_include_directories(MiniSonic.Networking PUBLIC src)
-# target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Utils Boost::asio)
+add_library(MiniSonic.Networking STATIC)
+target_sources(MiniSonic.Networking
+    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+        src/networking/networking.ixx
+)
+target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
+target_include_directories(MiniSonic.Networking PUBLIC src)
+target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Utils Boost::asio)
 
 # Module: MiniSonic.Protocol
 add_library(MiniSonic.Protocol STATIC)
@@ -308,7 +308,7 @@ target_sources(MiniSonic.Protocol
 )
 target_sources(MiniSonic.Protocol PRIVATE src/protocols/protocol.cpp)
 target_include_directories(MiniSonic.Protocol PUBLIC src)
-target_link_libraries(MiniSonic.Protocol PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.Constants)
+target_link_libraries(MiniSonic.Protocol PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.Core.Constants)
 
 # Module: MiniSonic.Serialization
 add_library(MiniSonic.Serialization STATIC)
@@ -340,7 +340,7 @@ target_sources(MiniSonic.Gossip
 )
 target_sources(MiniSonic.Gossip PRIVATE src/protocols/gossip.cpp)
 target_include_directories(MiniSonic.Gossip PUBLIC src)
-target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Utils MiniSonic.Constants Threads::Threads Boost::asio)
+target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Utils MiniSonic.Core.Constants Threads::Threads Boost::asio)
 
 # Module: MiniSonic.App
 add_library(MiniSonic.App STATIC)
@@ -491,6 +491,7 @@ target_link_libraries(mini_sonic_core_tests
     PRIVATE sonic_common_options
     MiniSonic.Events MiniSonic.Utils
     Threads::Threads
+    nlohmann_json::nlohmann_json
     Catch2::Catch2WithMain
 )
 add_test(NAME CoreTests COMMAND mini_sonic_core_tests)
