@@ -1,7 +1,9 @@
-export module MiniSonic.Constants;
+module;
 
-import <cstdint>;
-import <cstddef>;
+#include <cstdint>
+#include <cstddef>
+
+export module MiniSonic.Constants;
 
 namespace MiniSonic::Constants {
 

@@ -1,13 +1,15 @@
-export module MiniSonic.Events;
+module;
 
-import <string>;
-import <cstdint>;
-import <vector>;
-import <map>;
-import <functional>;
-import <memory>;
-import <mutex>;
-import <nlohmann/json.hpp>;
+#include <string>
+#include <cstdint>
+#include <vector>
+#include <map>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <nlohmann/json.hpp>
+
+export module MiniSonic.Events;
 
 export namespace MiniSonic::Events {
 
