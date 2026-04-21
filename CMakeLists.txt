@@ -249,7 +249,8 @@ target_sources(MiniSonic.DataPlane
 )
 target_sources(MiniSonic.DataPlane PRIVATE src/switching/dataplane.cpp)
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Events)
+target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.SAI MiniSonic.Events)
+# MiniSonic.Networking temporarily disabled due to Boost.System compatibility
 
 # Module: MiniSonic.DataPlane.PacketEnhanced
 add_library(MiniSonic.DataPlane.PacketEnhanced STATIC)
@@ -289,14 +290,15 @@ target_include_directories(MiniSonic.L2L3 PUBLIC src)
 target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Constants MiniSonic.Events)
 
 # Module: MiniSonic.Networking
-add_library(MiniSonic.Networking STATIC)
-target_sources(MiniSonic.Networking
-    PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
-        src/networking/networking.ixx
-)
-target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
-target_include_directories(MiniSonic.Networking PUBLIC src)
-target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Utils Boost::asio)
+# TEMPORARILY DISABLED - Boost.System compatibility issue with Windows SDK version
+# add_library(MiniSonic.Networking STATIC)
+# target_sources(MiniSonic.Networking
+#     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
+#         src/networking/networking.ixx
+# )
+# target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
+# target_include_directories(MiniSonic.Networking PUBLIC src)
+# target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Utils Boost::asio)
 
 # Module: MiniSonic.Protocol
 add_library(MiniSonic.Protocol STATIC)
