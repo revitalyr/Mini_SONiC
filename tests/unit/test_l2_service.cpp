@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
-#include "l2/l2_service.h"
-#include "sai/simulated_sai.h"
-#include "dataplane/packet.h"
+import MiniSonic.L2L3;
+import MiniSonic.SAI;
+import MiniSonic.DataPlane;
 
 TEST_CASE("L2Service HandlePacketLearnsMacAddress", "[l2]") {
     SimulatedSai sai;

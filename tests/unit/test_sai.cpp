@@ -1,6 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include "sai/sai_interface.h"
-#include "sai/simulated_sai.h"
+import MiniSonic.SAI;
 
 TEST_CASE("SaiInterface CreateAndRemovePort", "[sai]") {
     SimulatedSai sai;

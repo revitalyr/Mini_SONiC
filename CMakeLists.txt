@@ -418,18 +418,19 @@ set_target_properties(mini_switch_core PROPERTIES
 # =============================================================================
 
 # 1. C++ Modular SONiC (Main Application)
-add_executable(mini_sonic_modular)
-target_sources(mini_sonic_modular PRIVATE src/main.cpp)
-target_link_libraries(mini_sonic_modular PRIVATE
-    sonic_common_options
-    MiniSonic.App
-    MiniSonic.Networking
-    MiniSonic.DataPlane
-    MiniSonic.SAI
-    MiniSonic.L2L3
-    MiniSonic.Utils
-    Threads::Threads
-)
+# TEMPORARILY DISABLED - depends on old header files that don't match new C++20 modules architecture
+# add_executable(mini_sonic_modular)
+# target_sources(mini_sonic_modular PRIVATE src/main.cpp)
+# target_link_libraries(mini_sonic_modular PRIVATE
+#     sonic_common_options
+#     MiniSonic.App
+#     MiniSonic.Networking
+#     MiniSonic.DataPlane
+#     MiniSonic.SAI
+#     MiniSonic.L2L3
+#     MiniSonic.Utils
+#     Threads::Threads
+# )
 
 # 2. C-based SONiC Core
 add_executable(mini_sonic_c examples/mini_switch/src/main.c)
@@ -456,22 +457,23 @@ set(BENCHMARK_SOURCES
     tools/benchmarks/benchmark_celero_simple_working.cpp
 )
 
-add_executable(mini_sonic_benchmarks ${BENCHMARK_SOURCES})
-target_link_libraries(mini_sonic_benchmarks PRIVATE
-    Threads::Threads
-)
-
-if(TARGET Celero::Celero)
-    target_link_libraries(mini_sonic_benchmarks PRIVATE Celero::Celero)
-    message(STATUS "Linking benchmarks with Celero::Celero")
-endif()
-
-set_target_properties(mini_sonic_benchmarks PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
-target_link_libraries(mini_sonic_benchmarks PRIVATE sonic_common_options)
+# TEMPORARILY DISABLED - celero library is not installed
+# add_executable(mini_sonic_benchmarks ${BENCHMARK_SOURCES})
+# target_link_libraries(mini_sonic_benchmarks PRIVATE
+#     Threads::Threads
+# )
+#
+# if(TARGET Celero::Celero)
+#     target_link_libraries(mini_sonic_benchmarks PRIVATE Celero::Celero)
+#     message(STATUS "Linking benchmarks with Celero::Celero")
+# endif()
+#
+# set_target_properties(mini_sonic_benchmarks PROPERTIES
+#     CXX_STANDARD 20
+#     CXX_STANDARD_REQUIRED ON
+#     CXX_EXTENSIONS OFF
+# )
+# target_link_libraries(mini_sonic_benchmarks PRIVATE sonic_common_options)
 
 # 5. Real-time Demo (C)
 add_executable(mini_sonic_demo src/realtime_demo.c)

@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
-#include "l3/l3_service.h"
-#include "sai/simulated_sai.h"
-#include "dataplane/packet.h"
+import MiniSonic.L2L3;
+import MiniSonic.SAI;
+import MiniSonic.DataPlane;
 
 TEST_CASE("L3Service HandlePacketWithoutRoute", "[l3]") {
     SimulatedSai sai;
