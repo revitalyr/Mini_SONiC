@@ -219,8 +219,8 @@ add_library(MiniSonic.Core.Utils STATIC)
 target_sources(MiniSonic.Core.Utils
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/core/utils.ixx
+        src/core/utils.cpp
 )
-target_sources(MiniSonic.Core.Utils PRIVATE src/core/utils.cpp)
 target_include_directories(MiniSonic.Core.Utils PUBLIC src)
 target_link_libraries(MiniSonic.Core.Utils PRIVATE sonic_common_options Boost::filesystem Boost::system)
 
@@ -238,8 +238,8 @@ add_library(MiniSonic.SAI STATIC)
 target_sources(MiniSonic.SAI
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/switching/sai.ixx
+        src/switching/sai.cpp
 )
-target_sources(MiniSonic.SAI PRIVATE src/switching/sai.cpp)
 target_include_directories(MiniSonic.SAI PUBLIC src)
 target_link_libraries(MiniSonic.SAI PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.Core.Events)
 
@@ -248,8 +248,8 @@ add_library(MiniSonic.DataPlane STATIC)
 target_sources(MiniSonic.DataPlane
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/switching/dataplane.ixx
+        src/switching/dataplane.cpp
 )
-target_sources(MiniSonic.DataPlane PRIVATE src/switching/dataplane.cpp)
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
 target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Core.Events)
 # MiniSonic.Networking temporarily disabled due to Boost.System compatibility
@@ -286,8 +286,8 @@ add_library(MiniSonic.L2L3 STATIC)
 target_sources(MiniSonic.L2L3
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/switching/l2l3.ixx
+        src/switching/l2l3.cpp
 )
-target_sources(MiniSonic.L2L3 PRIVATE src/switching/l2l3.cpp)
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
 target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Core.Utils MiniSonic.Core.Constants MiniSonic.Core.Events)
 
@@ -295,8 +295,8 @@ add_library(MiniSonic.Networking STATIC)
 target_sources(MiniSonic.Networking
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/networking/networking.ixx
+        src/networking/networking.cpp
 )
-target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
 target_include_directories(MiniSonic.Networking PUBLIC src)
 target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Core.Utils Boost::asio)
 
@@ -305,8 +305,8 @@ add_library(MiniSonic.Protocol STATIC)
 target_sources(MiniSonic.Protocol
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/protocols/protocol.ixx
+        src/protocols/protocol.cpp
 )
-target_sources(MiniSonic.Protocol PRIVATE src/protocols/protocol.cpp)
 target_include_directories(MiniSonic.Protocol PUBLIC src)
 target_link_libraries(MiniSonic.Protocol PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.Core.Constants)
 
@@ -324,8 +324,8 @@ add_library(MiniSonic.WebSocket STATIC)
 target_sources(MiniSonic.WebSocket
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/protocols/websocket.ixx
+        src/protocols/websocket.cpp
 )
-target_sources(MiniSonic.WebSocket PRIVATE src/protocols/websocket.cpp)
 target_include_directories(MiniSonic.WebSocket PUBLIC src)
 target_link_libraries(MiniSonic.WebSocket PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Core.Utils Threads::Threads)
 if(WIN32)
@@ -337,8 +337,8 @@ add_library(MiniSonic.Gossip STATIC)
 target_sources(MiniSonic.Gossip
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/protocols/gossip.ixx
+        src/protocols/gossip.cpp
 )
-target_sources(MiniSonic.Gossip PRIVATE src/protocols/gossip.cpp)
 target_include_directories(MiniSonic.Gossip PUBLIC src)
 target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Core.Utils MiniSonic.Core.Constants Threads::Threads Boost::asio)
 
@@ -347,16 +347,16 @@ add_library(MiniSonic.App STATIC)
 target_sources(MiniSonic.App
     PUBLIC FILE_SET cxx_modules TYPE CXX_MODULES FILES
         src/applications/app.ixx
+        src/applications/app.cpp
 )
-target_sources(MiniSonic.App PRIVATE src/applications/app.cpp)
 target_include_directories(MiniSonic.App PUBLIC src)
 target_link_libraries(MiniSonic.App
     PRIVATE sonic_common_options
-    MiniSonic.Networking 
-    MiniSonic.DataPlane 
-    MiniSonic.SAI 
-    MiniSonic.L2L3 
-    MiniSonic.Utils
+    MiniSonic.Networking
+    MiniSonic.DataPlane
+    MiniSonic.SAI
+    MiniSonic.L2L3
+    MiniSonic.Core.Utils
     MiniSonic.Protocol
     MiniSonic.Serialization
 )
@@ -559,7 +559,7 @@ endif()
 # Event Server (standalone WebSocket server for event streaming)
 add_executable(mini_sonic_event_server src/visualization/event_server.cpp)
 target_link_libraries(mini_sonic_event_server
-    MiniSonic.Events
+    MiniSonic.Core.Events
     sonic_common_options
     nlohmann_json::nlohmann_json
     Boost::system Boost::asio Boost::filesystem
