@@ -10,6 +10,14 @@ project(SONiC_Mini_Switch
     LANGUAGES C CXX
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Global standards configuration
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # =============================================================================
 # OPTIONS
 # =============================================================================
@@ -34,23 +42,32 @@ endif()
 # COMPILER FLAGS
 # =============================================================================
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# Create a common interface for compiler settings to avoid duplication
+add_library(sonic_common_options INTERFACE)
+target_compile_features(sonic_common_options INTERFACE cxx_std_23)
+
+set(COMMON_CXX_FLAGS "")
+set(COMMON_EXE_LINKER_FLAGS "")
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    target_compile_options(sonic_common_options INTERFACE -Wall -Wextra -Wpedantic)
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
     
     # Enable AddressSanitizer if requested
     if(SONIC_ENABLE_ASAN)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+        target_compile_options(sonic_common_options INTERFACE -fsanitize=address)
+        target_link_options(sonic_common_options INTERFACE -fsanitize=address)
         message(STATUS "AddressSanitizer enabled")
     endif()
     
-    # Enable debug features if requested
+    # Static analysis tools
+    if(SONIC_STATIC_ANALYSIS)
+        target_compile_options(sonic_common_options INTERFACE -fanalyzer)
+        message(STATUS "Static analysis enabled")
+    endif()
+
+     # Enable debug features if requested
     if(SONIC_ENABLE_DEBUG)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG -g3")
         message(STATUS "Debug features enabled")
@@ -64,41 +81,27 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # Enable AddressSanitizer if requested (MSVC version)
     if(SONIC_ENABLE_ASAN)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
+        # MSVC ASan needs the library to be linked
+        target_link_options(sonic_common_options INTERFACE /fsanitize=address)
         message(STATUS "AddressSanitizer enabled")
     endif()
     
+    if(SONIC_STATIC_ANALYSIS)
+        target_compile_options(sonic_common_options INTERFACE /analyze)
+        message(STATUS "Static analysis enabled")
+    endif()
+
     # Enable debug features if requested
     if(SONIC_ENABLE_DEBUG)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DDEBUG /Zi")
         message(STATUS "Debug features enabled")
     endif()
     
-    # Define Windows version (Windows 8 for WaitOnAddress API support)
-    add_definitions(-D_WIN32_WINNT=0x0602)
-    add_definitions(-DWINVER=0x0602)
-    add_definitions(-DNTDDI_VERSION=0x06020000)
-
-    # Enable exception handling for MSVC to fix C4530 warning
-    add_compile_options(/EHsc)
+    target_compile_definitions(sonic_common_options INTERFACE _WIN32_WINNT=0x0602 WINVER=0x0602 NTDDI_VERSION=0x06020000)
+    target_compile_options(sonic_common_options INTERFACE /EHsc)
 
     # Force include portability header for MSVC to handle GCC-specific attributes and Linux constants
-    add_compile_options("/FI" "${CMAKE_SOURCE_DIR}/examples/mini_switch/include/cross_platform.h")
-endif()
-
-# Add FreeRTOS include directory if it exists (assuming it's in examples/mini_switch/include/FreeRTOS/Source/include)
-if(EXISTS "${CMAKE_SOURCE_DIR}/examples/mini_switch/include/FreeRTOS/Source/include")
-    include_directories("${CMAKE_SOURCE_DIR}/examples/mini_switch/include/FreeRTOS/Source/include")
-endif()
-
-# Static analysis tools
-if(SONIC_STATIC_ANALYSIS)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fanalyzer")
-        message(STATUS "Static analysis enabled")
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /analyze")
-        message(STATUS "Static analysis enabled")
-    endif()
+    target_compile_options(sonic_common_options INTERFACE "/FI${CMAKE_SOURCE_DIR}/examples/mini_switch/include/cross_platform.h")
 endif()
 
 # =============================================================================
@@ -116,8 +119,6 @@ find_package(Boost 1.85.0 REQUIRED COMPONENTS
 )
 if(Boost_FOUND)
     message(STATUS "Boost found: ${Boost_VERSION}")
-    message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
-    message(STATUS "Boost include dirs: ${Boost_INCLUDE_DIRS}")
     add_compile_definitions(BOOST_FOUND)
 else()
     message(FATAL_ERROR "Boost 1.85.0 or higher is required")
@@ -190,12 +191,6 @@ else()
 endif()
 
 # =============================================================================
-# INCLUDE DIRECTORIES
-# =============================================================================
-
-include_directories(src)
-
-# =============================================================================
 # C++20 MODULES (MiniSonic Modular System)
 # =============================================================================
 
@@ -206,11 +201,7 @@ target_sources(MiniSonic.Constants
         src/core/constants.ixx
 )
 target_include_directories(MiniSonic.Constants PUBLIC src)
-set_target_properties(MiniSonic.Constants PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.Constants PRIVATE sonic_common_options)
 
 # Module: MiniSonic.Events
 add_library(MiniSonic.Events STATIC)
@@ -219,12 +210,7 @@ target_sources(MiniSonic.Events
         src/core/events.ixx
 )
 target_include_directories(MiniSonic.Events PUBLIC src)
-target_link_libraries(MiniSonic.Events nlohmann_json::nlohmann_json)
-set_target_properties(MiniSonic.Events PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.Events PRIVATE sonic_common_options nlohmann_json::nlohmann_json)
 
 # Module: MiniSonic.Utils
 add_library(MiniSonic.Utils STATIC)
@@ -235,13 +221,7 @@ target_sources(MiniSonic.Utils
         src/core/utils.cpp
 )
 target_include_directories(MiniSonic.Utils PUBLIC src)
-target_include_directories(MiniSonic.Utils PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(MiniSonic.Utils ${Boost_LIBRARIES})
-set_target_properties(MiniSonic.Utils PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.Utils PRIVATE sonic_common_options Boost::filesystem Boost::system)
 
 # Module: MiniSonic.Boost.Wrappers
 add_library(MiniSonic.Boost.Wrappers STATIC)
@@ -250,13 +230,7 @@ target_sources(MiniSonic.Boost.Wrappers
         src/core/boost_wrappers.ixx
 )
 target_include_directories(MiniSonic.Boost.Wrappers PUBLIC src)
-target_include_directories(MiniSonic.Boost.Wrappers PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(MiniSonic.Boost.Wrappers ${Boost_LIBRARIES})
-set_target_properties(MiniSonic.Boost.Wrappers PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.Boost.Wrappers PRIVATE sonic_common_options Boost::asio Boost::serialization)
 
 # Module: MiniSonic.SAI
 add_library(MiniSonic.SAI STATIC)
@@ -267,12 +241,7 @@ target_sources(MiniSonic.SAI
         src/switching/sai.cpp
 )
 target_include_directories(MiniSonic.SAI PUBLIC src)
-target_link_libraries(MiniSonic.SAI MiniSonic.Utils MiniSonic.Events)
-set_target_properties(MiniSonic.SAI PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.SAI PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.Events)
 
 # Module: MiniSonic.DataPlane
 add_library(MiniSonic.DataPlane STATIC)
@@ -283,12 +252,7 @@ target_sources(MiniSonic.DataPlane
         src/switching/dataplane.cpp
 )
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Events)
-set_target_properties(MiniSonic.DataPlane PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Events)
 
 # Module: MiniSonic.DataPlane.PacketEnhanced
 add_library(MiniSonic.DataPlane.PacketEnhanced STATIC)
@@ -297,12 +261,7 @@ target_sources(MiniSonic.DataPlane.PacketEnhanced
         src/switching/dataplane/packet_enhanced.ixx
 )
 target_include_directories(MiniSonic.DataPlane.PacketEnhanced PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Common.Types)
-set_target_properties(MiniSonic.DataPlane.PacketEnhanced PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.DataPlane.PacketEnhanced PRIVATE sonic_common_options MiniSonic.Boost.Wrappers)
 
 # Module: MiniSonic.L3.ArpPendingQueue
 add_library(MiniSonic.L3.ArpPendingQueue STATIC)
@@ -311,12 +270,7 @@ target_sources(MiniSonic.L3.ArpPendingQueue
         src/switching/l3/arp_pending_queue.ixx
 )
 target_include_directories(MiniSonic.L3.ArpPendingQueue PUBLIC src)
-target_link_libraries(MiniSonic.L3.ArpPendingQueue MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers)
-set_target_properties(MiniSonic.L3.ArpPendingQueue PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.L3.ArpPendingQueue PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers)
 
 # Module: MiniSonic.DataPlane.PipelineTracing
 add_library(MiniSonic.DataPlane.PipelineTracing STATIC)
@@ -325,12 +279,7 @@ target_sources(MiniSonic.DataPlane.PipelineTracing
         src/switching/dataplane/pipeline_tracing.ixx
 )
 target_include_directories(MiniSonic.DataPlane.PipelineTracing PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane.PipelineTracing MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Events)
-set_target_properties(MiniSonic.DataPlane.PipelineTracing PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.DataPlane.PipelineTracing PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Events)
 
 # Module: MiniSonic.L2L3
 add_library(MiniSonic.L2L3 STATIC)
@@ -341,12 +290,7 @@ target_sources(MiniSonic.L2L3
         src/switching/l2l3.cpp
 )
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
-target_link_libraries(MiniSonic.L2L3 MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Constants MiniSonic.Events)
-set_target_properties(MiniSonic.L2L3 PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Constants MiniSonic.Events)
 
 # Module: MiniSonic.Networking
 add_library(MiniSonic.Networking STATIC)
@@ -357,13 +301,7 @@ target_sources(MiniSonic.Networking
         src/networking/networking.cpp
 )
 target_include_directories(MiniSonic.Networking PUBLIC src)
-target_include_directories(MiniSonic.Networking PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(MiniSonic.Networking MiniSonic.Utils ${Boost_LIBRARIES})
-set_target_properties(MiniSonic.Networking PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Utils Boost::asio)
 
 # Module: MiniSonic.Protocol
 add_library(MiniSonic.Protocol STATIC)
@@ -374,12 +312,7 @@ target_sources(MiniSonic.Protocol
         src/protocols/protocol.cpp
 )
 target_include_directories(MiniSonic.Protocol PUBLIC src)
-target_link_libraries(MiniSonic.Protocol MiniSonic.Utils MiniSonic.Constants)
-set_target_properties(MiniSonic.Protocol PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.Protocol PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.Constants)
 
 # Module: MiniSonic.Serialization
 add_library(MiniSonic.Serialization STATIC)
@@ -388,13 +321,7 @@ target_sources(MiniSonic.Serialization
         src/protocols/serialization.ixx
 )
 target_include_directories(MiniSonic.Serialization PUBLIC src)
-target_include_directories(MiniSonic.Serialization PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(MiniSonic.Serialization MiniSonic.Utils ${Boost_LIBRARIES})
-set_target_properties(MiniSonic.Serialization PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.Serialization PRIVATE sonic_common_options MiniSonic.Utils Boost::serialization)
 
 # Module: MiniSonic.WebSocket
 add_library(MiniSonic.WebSocket STATIC)
@@ -405,15 +332,10 @@ target_sources(MiniSonic.WebSocket
         src/protocols/websocket.cpp
 )
 target_include_directories(MiniSonic.WebSocket PUBLIC src)
-target_link_libraries(MiniSonic.WebSocket MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
+target_link_libraries(MiniSonic.WebSocket PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
 if(WIN32)
-    target_link_libraries(MiniSonic.WebSocket ws2_32)
+    target_link_libraries(MiniSonic.WebSocket PRIVATE ws2_32)
 endif()
-set_target_properties(MiniSonic.WebSocket PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 
 # Module: MiniSonic.Gossip
 add_library(MiniSonic.Gossip STATIC)
@@ -424,13 +346,7 @@ target_sources(MiniSonic.Gossip
         src/protocols/gossip.cpp
 )
 target_include_directories(MiniSonic.Gossip PUBLIC src)
-target_include_directories(MiniSonic.Gossip PRIVATE ${Boost_INCLUDE_DIRS})
-target_link_libraries(MiniSonic.Gossip MiniSonic.Protocol MiniSonic.Utils MiniSonic.Constants Threads::Threads ${Boost_LIBRARIES})
-set_target_properties(MiniSonic.Gossip PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Utils MiniSonic.Constants Threads::Threads Boost::asio)
 
 # Module: MiniSonic.App
 add_library(MiniSonic.App STATIC)
@@ -441,7 +357,8 @@ target_sources(MiniSonic.App
         src/applications/app.cpp
 )
 target_include_directories(MiniSonic.App PUBLIC src)
-target_link_libraries(MiniSonic.App 
+target_link_libraries(MiniSonic.App
+    PRIVATE sonic_common_options
     MiniSonic.Networking 
     MiniSonic.DataPlane 
     MiniSonic.SAI 
@@ -450,21 +367,10 @@ target_link_libraries(MiniSonic.App
     MiniSonic.Protocol
     MiniSonic.Serialization
 )
-set_target_properties(MiniSonic.App PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 
 # =============================================================================
 # C CODE (mini_switch Core)
 # =============================================================================
-
-# Include directories for C code
-include_directories(
-    examples/mini_switch/include
-    examples/mini_switch/src
-)
 
 # C Library for mini_switch core
 set(MINISWITCH_C_SOURCES
@@ -501,6 +407,11 @@ if(CURSES_FOUND)
     target_include_directories(mini_switch_core PRIVATE ${CURSES_INCLUDE_DIRS})
     target_compile_definitions(mini_switch_core PRIVATE HAS_CURSES)
 endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/examples/mini_switch/include/FreeRTOS/Source/include")
+    target_include_directories(mini_switch_core PUBLIC "${CMAKE_SOURCE_DIR}/examples/mini_switch/include/FreeRTOS/Source/include")
+endif()
+
 target_include_directories(mini_switch_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/mini_switch/include
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/mini_switch/src
@@ -518,7 +429,8 @@ set_target_properties(mini_switch_core PROPERTIES
 # 1. C++ Modular SONiC (Main Application)
 add_executable(mini_sonic_modular)
 target_sources(mini_sonic_modular PRIVATE src/main.cpp)
-target_link_libraries(mini_sonic_modular 
+target_link_libraries(mini_sonic_modular PRIVATE
+    sonic_common_options
     MiniSonic.App
     MiniSonic.Networking
     MiniSonic.DataPlane
@@ -526,11 +438,6 @@ target_link_libraries(mini_sonic_modular
     MiniSonic.L2L3
     MiniSonic.Utils
     Threads::Threads
-)
-set_target_properties(mini_sonic_modular PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
 )
 
 # 2. C-based SONiC Core
@@ -559,12 +466,12 @@ set(BENCHMARK_SOURCES
 )
 
 add_executable(mini_sonic_benchmarks ${BENCHMARK_SOURCES})
-target_link_libraries(mini_sonic_benchmarks
+target_link_libraries(mini_sonic_benchmarks PRIVATE
     Threads::Threads
 )
 
 if(TARGET Celero::Celero)
-    target_link_libraries(mini_sonic_benchmarks Celero::Celero)
+    target_link_libraries(mini_sonic_benchmarks PRIVATE Celero::Celero)
     message(STATUS "Linking benchmarks with Celero::Celero")
 endif()
 
@@ -573,42 +480,27 @@ set_target_properties(mini_sonic_benchmarks PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )
+target_link_libraries(mini_sonic_benchmarks PRIVATE sonic_common_options)
 
 # 5. Real-time Demo (C)
 add_executable(mini_sonic_demo src/realtime_demo.c)
+target_include_directories(mini_sonic_demo PRIVATE examples/mini_switch/include)
 target_link_libraries(mini_sonic_demo Threads::Threads)
-set_target_properties(mini_sonic_demo PROPERTIES
-    C_STANDARD 99
-    C_STANDARD_REQUIRED ON
-    C_EXTENSIONS OFF
-)
 
 # 6. Unit Tests
 enable_testing()
 
 # Core/Utils Unit Tests
-set(CORE_TEST_SOURCES
-    tests/unit/test_events.cpp
-    tests/unit/test_utils.cpp
-)
-
-add_executable(mini_sonic_core_tests ${CORE_TEST_SOURCES})
+add_executable(mini_sonic_core_tests tests/unit/test_events.cpp tests/unit/test_utils.cpp)
 target_link_libraries(mini_sonic_core_tests
-    MiniSonic.Events
-    MiniSonic.Utils
-    nlohmann_json::nlohmann_json
+    PRIVATE sonic_common_options
+    MiniSonic.Events MiniSonic.Utils
     Threads::Threads
     Catch2::Catch2WithMain
 )
-set_target_properties(mini_sonic_core_tests PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 add_test(NAME CoreTests COMMAND mini_sonic_core_tests)
 
-# Switching Unit Tests
-set(SWITCHING_TEST_SOURCES
+add_executable(mini_sonic_switching_tests 
     tests/unit/test_sai.cpp
     tests/unit/test_l2_service.cpp
     tests/unit/test_l3_service.cpp
@@ -616,9 +508,8 @@ set(SWITCHING_TEST_SOURCES
     tests/unit/test_packet_enhanced.cpp
     tests/unit/test_lpm_trie.cpp
 )
-
-add_executable(mini_sonic_switching_tests ${SWITCHING_TEST_SOURCES})
 target_link_libraries(mini_sonic_switching_tests
+    PRIVATE sonic_common_options
     MiniSonic.SAI
     MiniSonic.DataPlane
     MiniSonic.DataPlane.PacketEnhanced
@@ -627,41 +518,24 @@ target_link_libraries(mini_sonic_switching_tests
     Threads::Threads
     Catch2::Catch2WithMain
 )
-set_target_properties(mini_sonic_switching_tests PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 add_test(NAME SwitchingTests COMMAND mini_sonic_switching_tests)
 
-# Protocol Unit Tests
-set(PROTOCOL_TEST_SOURCES
+add_executable(mini_sonic_protocol_tests 
     tests/unit/test_protocol.cpp
     tests/unit/test_serialization.cpp
     tests/unit/test_websocket.cpp
     tests/unit/test_gossip.cpp
 )
-
-add_executable(mini_sonic_protocol_tests ${PROTOCOL_TEST_SOURCES})
 target_link_libraries(mini_sonic_protocol_tests
+    PRIVATE sonic_common_options
     Threads::Threads
     Catch2::Catch2WithMain
 )
-set_target_properties(mini_sonic_protocol_tests PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 add_test(NAME ProtocolTests COMMAND mini_sonic_protocol_tests)
 
-# Integration Tests
-set(INTEGRATION_TEST_SOURCES
-    tests/integration/test_pipeline.cpp
-    tests/integration/test_end_to_end.cpp
-)
-
-add_executable(mini_sonic_integration_tests ${INTEGRATION_TEST_SOURCES})
+add_executable(mini_sonic_integration_tests tests/integration/test_pipeline.cpp tests/integration/test_end_to_end.cpp)
 target_link_libraries(mini_sonic_integration_tests
+    PRIVATE sonic_common_options
     MiniSonic.DataPlane
     MiniSonic.SAI
     MiniSonic.L2L3
@@ -669,21 +543,10 @@ target_link_libraries(mini_sonic_integration_tests
     Threads::Threads
     Catch2::Catch2WithMain
 )
-set_target_properties(mini_sonic_integration_tests PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 add_test(NAME IntegrationTests COMMAND mini_sonic_integration_tests)
 
-# 7. Protocol Stack Demo
 add_executable(mini_sonic_protocol_demo examples/demo/protocol_stack_demo.cpp)
-target_link_libraries(mini_sonic_protocol_demo Threads::Threads)
-set_target_properties(mini_sonic_protocol_demo PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
+target_link_libraries(mini_sonic_protocol_demo PRIVATE sonic_common_options Threads::Threads)
 
 # =============================================================================
 # VISUALIZATION COMPONENTS
@@ -692,12 +555,7 @@ set_target_properties(mini_sonic_protocol_demo PROPERTIES
 # Qt6 Visualizer (only if Qt6 is found)
 if(Qt6_FOUND)
     add_executable(mini_sonic_qt_visualizer src/visualization/qt_visualizer.cpp)
-    target_link_libraries(mini_sonic_qt_visualizer Qt6::Core Qt6::Network Qt6::Widgets)
-    set_target_properties(mini_sonic_qt_visualizer PROPERTIES
-        CXX_STANDARD 23
-        CXX_STANDARD_REQUIRED ON
-        CXX_EXTENSIONS OFF
-    )
+    target_link_libraries(mini_sonic_qt_visualizer PRIVATE sonic_common_options Qt6::Core Qt6::Network Qt6::Widgets)
     message(STATUS "  ✓ mini_sonic_qt_visualizer - Qt6 visualizer application")
 endif()
 
@@ -705,23 +563,13 @@ endif()
 add_executable(mini_sonic_event_server src/visualization/event_server.cpp)
 target_link_libraries(mini_sonic_event_server
     MiniSonic.Events
+    sonic_common_options
     nlohmann_json::nlohmann_json
-    Boost::system
-    Boost::asio
-    Boost::filesystem
+    Boost::system Boost::asio Boost::filesystem
 )
 if(WIN32)
     target_link_libraries(mini_sonic_event_server ws2_32)
-    # Enable exception handling for boost.beast
-    target_compile_options(mini_sonic_event_server PRIVATE /EHsc)
-else()
-    target_compile_options(mini_sonic_event_server PRIVATE -fexceptions)
 endif()
-set_target_properties(mini_sonic_event_server PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 message(STATUS "  ✓ mini_sonic_event_server - WebSocket event streaming server")
 
 # =============================================================================

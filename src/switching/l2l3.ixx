@@ -2,7 +2,6 @@ module;
 
 // Use global module fragment for standard library includes to improve MSVC compatibility
 #include <memory>
-#include "cross_platform.h"
 #include <string>
 #include <vector>
 #include <unordered_map>
