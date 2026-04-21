@@ -78,6 +78,9 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_definitions(-DWINVER=0x0602)
     add_definitions(-DNTDDI_VERSION=0x06020000)
 
+    # Enable exception handling for MSVC to fix C4530 warning
+    add_compile_options(/EHsc)
+
     # Force include portability header for MSVC to handle GCC-specific attributes and Linux constants
     add_compile_options("/FI" "${CMAKE_SOURCE_DIR}/examples/mini_switch/include/cross_platform.h")
 endif()
