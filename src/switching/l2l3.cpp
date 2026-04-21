@@ -18,7 +18,7 @@ module MiniSonic.L2L3;
 using MiniSonic::DataPlane::Packet;
 
 // Import Events module
-import MiniSonic.Events;
+import MiniSonic.Core.Events;
 
 namespace MiniSonic::L2 {
 // L2Service Implementation

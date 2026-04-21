@@ -241,7 +241,7 @@ target_sources(MiniSonic.SAI
 )
 target_sources(MiniSonic.SAI PRIVATE src/switching/sai.cpp)
 target_include_directories(MiniSonic.SAI PUBLIC src)
-target_link_libraries(MiniSonic.SAI PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.Events)
+target_link_libraries(MiniSonic.SAI PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.Core.Events)
 
 # Module: MiniSonic.DataPlane
 add_library(MiniSonic.DataPlane STATIC)
@@ -251,7 +251,7 @@ target_sources(MiniSonic.DataPlane
 )
 target_sources(MiniSonic.DataPlane PRIVATE src/switching/dataplane.cpp)
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Events)
+target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.SAI MiniSonic.Networking MiniSonic.Core.Events)
 # MiniSonic.Networking temporarily disabled due to Boost.System compatibility
 
 # Module: MiniSonic.DataPlane.PacketEnhanced
@@ -279,7 +279,7 @@ target_sources(MiniSonic.DataPlane.PipelineTracing
         src/switching/dataplane/pipeline_tracing.ixx
 )
 target_include_directories(MiniSonic.DataPlane.PipelineTracing PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane.PipelineTracing PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Events MiniSonic.Utils)
+target_link_libraries(MiniSonic.DataPlane.PipelineTracing PRIVATE sonic_common_options MiniSonic.DataPlane.PacketEnhanced MiniSonic.Boost.Wrappers MiniSonic.Core.Events MiniSonic.Core.Utils)
 
 # Module: MiniSonic.L2L3
 add_library(MiniSonic.L2L3 STATIC)
@@ -289,7 +289,7 @@ target_sources(MiniSonic.L2L3
 )
 target_sources(MiniSonic.L2L3 PRIVATE src/switching/l2l3.cpp)
 target_include_directories(MiniSonic.L2L3 PUBLIC src)
-target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Utils MiniSonic.Core.Constants MiniSonic.Events)
+target_link_libraries(MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.DataPlane MiniSonic.Core.Utils MiniSonic.Core.Constants MiniSonic.Core.Events)
 
 add_library(MiniSonic.Networking STATIC)
 target_sources(MiniSonic.Networking
@@ -298,7 +298,7 @@ target_sources(MiniSonic.Networking
 )
 target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
 target_include_directories(MiniSonic.Networking PUBLIC src)
-target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Utils Boost::asio)
+target_link_libraries(MiniSonic.Networking PRIVATE sonic_common_options MiniSonic.Core.Utils Boost::asio)
 
 # Module: MiniSonic.Protocol
 add_library(MiniSonic.Protocol STATIC)
@@ -308,7 +308,7 @@ target_sources(MiniSonic.Protocol
 )
 target_sources(MiniSonic.Protocol PRIVATE src/protocols/protocol.cpp)
 target_include_directories(MiniSonic.Protocol PUBLIC src)
-target_link_libraries(MiniSonic.Protocol PRIVATE sonic_common_options MiniSonic.Utils MiniSonic.Core.Constants)
+target_link_libraries(MiniSonic.Protocol PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.Core.Constants)
 
 # Module: MiniSonic.Serialization
 add_library(MiniSonic.Serialization STATIC)
@@ -317,7 +317,7 @@ target_sources(MiniSonic.Serialization
         src/protocols/serialization.ixx
 )
 target_include_directories(MiniSonic.Serialization PUBLIC src)
-target_link_libraries(MiniSonic.Serialization PRIVATE sonic_common_options MiniSonic.Utils Boost::serialization)
+target_link_libraries(MiniSonic.Serialization PRIVATE sonic_common_options MiniSonic.Core.Utils Boost::serialization)
 
 # Module: MiniSonic.WebSocket
 add_library(MiniSonic.WebSocket STATIC)
@@ -327,7 +327,7 @@ target_sources(MiniSonic.WebSocket
 )
 target_sources(MiniSonic.WebSocket PRIVATE src/protocols/websocket.cpp)
 target_include_directories(MiniSonic.WebSocket PUBLIC src)
-target_link_libraries(MiniSonic.WebSocket PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Utils Threads::Threads)
+target_link_libraries(MiniSonic.WebSocket PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Core.Utils Threads::Threads)
 if(WIN32)
     target_link_libraries(MiniSonic.WebSocket PRIVATE ws2_32)
 endif()
@@ -340,7 +340,7 @@ target_sources(MiniSonic.Gossip
 )
 target_sources(MiniSonic.Gossip PRIVATE src/protocols/gossip.cpp)
 target_include_directories(MiniSonic.Gossip PUBLIC src)
-target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Utils MiniSonic.Core.Constants Threads::Threads Boost::asio)
+target_link_libraries(MiniSonic.Gossip PRIVATE sonic_common_options MiniSonic.Protocol MiniSonic.Core.Utils MiniSonic.Core.Constants Threads::Threads Boost::asio)
 
 # Module: MiniSonic.App
 add_library(MiniSonic.App STATIC)
@@ -489,7 +489,7 @@ enable_testing()
 add_executable(mini_sonic_core_tests tests/unit/test_events.cpp tests/unit/test_utils.cpp)
 target_link_libraries(mini_sonic_core_tests
     PRIVATE sonic_common_options
-    MiniSonic.Events MiniSonic.Utils
+    MiniSonic.Core.Events MiniSonic.Core.Utils
     Threads::Threads
     nlohmann_json::nlohmann_json
     Catch2::Catch2WithMain
@@ -598,7 +598,7 @@ message(STATUS "  ✓ MiniSonic.Networking  - Network communication abstraction"
 message(STATUS "  ✓ MiniSonic.DataPlane   - High-performance packet processing")
 message(STATUS "  ✓ MiniSonic.SAI         - Switch Abstraction Interface")
 message(STATUS "  ✓ MiniSonic.L2L3        - Layer 2/3 packet processing")
-message(STATUS "  ✓ MiniSonic.Utils       - Utility functions and metrics")
+message(STATUS "  ✓ MiniSonic.Core.Utils       - Utility functions and metrics")
 message(STATUS "  ✓ MiniSonic.Protocol    - Protocol handler interface (pluggable protocols)")
 message(STATUS "  ✓ MiniSonic.Serialization- FlatBuffers zero-copy serialization")
 message(STATUS "  ✓ MiniSonic.WebSocket   - Native C++ WebSocket gateway")

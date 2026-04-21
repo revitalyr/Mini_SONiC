@@ -21,7 +21,7 @@ module;
 export module MiniSonic.Networking;
 
 // Import Utils module for Types namespace
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 
 // Re-export common standard library types
 using std::string;

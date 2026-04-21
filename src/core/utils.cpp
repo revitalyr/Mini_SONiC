@@ -14,7 +14,7 @@ module;
 #include <unordered_map>
 #include <cctype>
 
-module MiniSonic.Utils;
+module MiniSonic.Core.Utils;
 
 namespace MiniSonic::Utils {
 // Metrics Implementation

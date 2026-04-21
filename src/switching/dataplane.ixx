@@ -26,10 +26,10 @@ import MiniSonic.Networking;
 import MiniSonic.SAI;
 
 // Import Utils module for Types namespace
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 
 // Import Events module for visualization events
-import MiniSonic.Events;
+import MiniSonic.Core.Events;
 
 export namespace MiniSonic::DataPlane {
 

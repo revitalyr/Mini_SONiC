@@ -6,7 +6,7 @@
 #include <catch2/catch_all.hpp>
 
 // Import the module
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 
 using namespace MiniSonic::Utils;
 using namespace Types;

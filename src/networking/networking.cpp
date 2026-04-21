@@ -17,7 +17,7 @@ module;
 module MiniSonic.Networking;
 
 // Import local modules
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 
 namespace MiniSonic::Networking {
 

@@ -13,7 +13,7 @@
 #include <nlohmann/json.hpp>
 
 // Import Events module
-import MiniSonic.Events;
+import MiniSonic.Core.Events; // Corrected module name
 
 namespace beast = boost::beast;
 namespace websocket = beast::websocket;
@@ -280,7 +280,7 @@ public:
         });
 
         // Subscribe to event bus - subscribe to all events using wildcard
-        auto& event_bus = Events::getGlobalEventBus();
+        auto& event_bus = MiniSonic::Events::getGlobalEventBus();
         event_bus.subscribe("*", [this](const nlohmann::json& json_event) {
             handleJsonEvent(json_event);
         });

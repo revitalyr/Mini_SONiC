@@ -6,7 +6,7 @@
 #include <catch2/catch_all.hpp>
 
 // Import the module
-import MiniSonic.Constants;
+import MiniSonic.Core.Constants;
 
 using namespace MiniSonic::Constants;
 

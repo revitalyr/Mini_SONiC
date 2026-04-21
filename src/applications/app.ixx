@@ -16,7 +16,7 @@ import MiniSonic.DataPlane;
 import MiniSonic.Networking;
 import MiniSonic.SAI;
 import MiniSonic.L2L3;
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 
 export namespace MiniSonic::Core {
 

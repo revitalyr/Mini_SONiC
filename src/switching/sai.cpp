@@ -15,9 +15,9 @@ module;
 module MiniSonic.SAI;
 
 // Import Utils module for Types namespace
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 // Import Events module
-import MiniSonic.Events;
+import MiniSonic.Core.Events;
 
 namespace MiniSonic::SAI {
 // SimulatedSai Implementation

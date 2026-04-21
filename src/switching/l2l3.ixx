@@ -23,13 +23,13 @@ import MiniSonic.DataPlane;
 import MiniSonic.SAI;
 
 // Import Utils module for Types namespace
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 
 // Import Constants module
-import MiniSonic.Constants;
+import MiniSonic.Core.Constants;
 
 // Import Events module for visualization events
-import MiniSonic.Events;
+import MiniSonic.Core.Events;
 
 export namespace MiniSonic::L2 {
 

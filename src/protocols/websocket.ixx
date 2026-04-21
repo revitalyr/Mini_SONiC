@@ -22,7 +22,7 @@ module;
 export module MiniSonic.WebSocket;
 
 import MiniSonic.Protocol;
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 
 using std::string;
 using std::function;

@@ -15,8 +15,8 @@ module;
 
 export module MiniSonic.Protocol;
 
-import MiniSonic.Utils;
-import MiniSonic.Constants;
+import MiniSonic.Core.Utils;
+import MiniSonic.Core.Constants;
 
 using std::string;
 using std::function;

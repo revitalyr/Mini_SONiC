@@ -18,10 +18,10 @@ module;
 export module MiniSonic.SAI;
 
 // Import Utils module for Types namespace
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils; // Corrected module name
 
 // Import Events module for visualization events
-import MiniSonic.Events;
+import MiniSonic.Core.Events; // Corrected module name
 
 export namespace MiniSonic::SAI {
 
@@ -29,11 +29,11 @@ export namespace MiniSonic::SAI {
 using std::vector;
 using std::string;
 using std::unordered_map;
-using std::mutex;
+using std::mutex; // Already present, but good to double check
 using std::chrono::steady_clock;
 namespace chrono = std::chrono;
 
-/**
+/** 
  * @brief Abstract SAI (Switch Abstraction Interface)
  *
  * Provides hardware abstraction for switch operations using modern C++23.
@@ -42,12 +42,12 @@ export class SaiInterface {
 public:
     virtual ~SaiInterface() = default;
 
-    // Virtual methods for hardware operations
-    virtual bool createPort(Types::PortId port_id) = 0;  // semantic alias
-    virtual bool deletePort(Types::PortId port_id) = 0;  // semantic alias
-    virtual bool setPortState(Types::PortId port_id, bool admin_state) = 0;  // semantic alias
-    virtual std::optional<bool> getPortState(Types::PortId port_id) const = 0;  // semantic alias
-    virtual vector<Types::PortId> getPortList() const = 0;  // semantic alias
+    // Virtual methods for hardware operations (using Types:: explicitly)
+    virtual bool createPort(Types::PortId port_id) = 0;
+    virtual bool deletePort(Types::PortId port_id) = 0;
+    virtual bool setPortState(Types::PortId port_id, bool admin_state) = 0;
+    virtual std::optional<bool> getPortState(Types::PortId port_id) const = 0;
+    virtual Types::vector<Types::PortId> getPortList() const = 0;
     virtual string getStats() const = 0;
 };
 
@@ -62,11 +62,11 @@ public:
     ~SimulatedSai() override = default;
 
     // SaiInterface implementation
-    bool createPort(Types::PortId port_id) override;  // semantic alias
-    bool deletePort(Types::PortId port_id) override;  // semantic alias
-    bool setPortState(Types::PortId port_id, bool admin_state) override;  // semantic alias
-    std::optional<bool> getPortState(Types::PortId port_id) const override;  // semantic alias
-    vector<Types::PortId> getPortList() const override;  // semantic alias
+    bool createPort(Types::PortId port_id) override;
+    bool deletePort(Types::PortId port_id) override;
+    bool setPortState(Types::PortId port_id, bool admin_state) override;
+    std::optional<bool> getPortState(Types::PortId port_id) const override;
+    Types::vector<Types::PortId> getPortList() const override;
     string getStats() const override;
 
     /**
@@ -79,8 +79,8 @@ private:
         bool admin_state = false;
         bool oper_state = false;
         chrono::steady_clock::time_point created_at;
-        Types::PacketCount packets_in = 0;  // semantic alias
-        Types::PacketCount packets_out = 0;  // semantic alias
+        Types::PacketCount packets_in = 0;
+        Types::PacketCount packets_out = 0;
     };
 
     std::string m_switch_id;
@@ -88,7 +88,7 @@ private:
     unordered_map<Types::PortId, PortInfo> m_ports;  // semantic alias
     mutable mutex m_ports_mutex;
 
-    void updateOperState(Types::PortId port_id);  // semantic alias
+    void updateOperState(Types::PortId port_id);
 };
 
 } // export namespace MiniSonic::SAI

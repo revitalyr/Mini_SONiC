@@ -17,7 +17,7 @@ module;
 
 export module MiniSonic.Serialization;
 
-import MiniSonic.Utils;
+import MiniSonic.Core.Utils;
 
 using std::string;
 using std::vector;

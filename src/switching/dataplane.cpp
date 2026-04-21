@@ -13,7 +13,7 @@ module MiniSonic.DataPlane;
 
 // Import local modules
 import MiniSonic.SAI;
-import MiniSonic.Events;
+import MiniSonic.Core.Events;
 
 namespace MiniSonic::DataPlane {
 

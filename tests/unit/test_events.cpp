@@ -7,7 +7,7 @@
 #include <nlohmann/json.hpp>
 
 // Import the module
-import MiniSonic.Events;
+import MiniSonic.Core.Events;
 
 using namespace MiniSonic::Events;
 
@@ -87,13 +87,13 @@ TEST_CASE("Events PacketForwardDecision", "[events][pipeline]") {
         
         REQUIRE(event.type == "PacketForwardDecision");
         REQUIRE(event.packet_id == 100);
-        REQUIRE(event.egress_port == "port2");
-        REQUIRE(event.next_hop == "10.0.0.1");
+        REQUIRE(static_cast<std::string>(event.egress_port) == "port2");
+        REQUIRE(static_cast<std::string>(event.next_hop) == "10.0.0.1");
         
         auto json = event.toJson();
-        REQUIRE(json["type"] == "PacketForwardDecision");
-        REQUIRE(json["egress_port"] == "port2");
-        REQUIRE(json["next_hop"] == "10.0.0.1");
+        REQUIRE(json["type"].get<std::string>() == "PacketForwardDecision");
+        REQUIRE(json["egress_port"].get<std::string>() == "port2");
+        REQUIRE(json["next_hop"].get<std::string>() == "10.0.0.1");
     }
 }
 
@@ -103,11 +103,11 @@ TEST_CASE("Events PacketExitedSwitch", "[events][pipeline]") {
         
         REQUIRE(event.type == "PacketExitedSwitch");
         REQUIRE(event.packet_id == 100);
-        REQUIRE(event.egress_port == "port2");
+        REQUIRE(static_cast<std::string>(event.egress_port) == "port2");
         
         auto json = event.toJson();
-        REQUIRE(json["type"] == "PacketExitedSwitch");
-        REQUIRE(json["egress_port"] == "port2");
+        REQUIRE(json["type"].get<std::string>() == "PacketExitedSwitch");
+        REQUIRE(json["egress_port"].get<std::string>() == "port2");
     }
 }
 
@@ -116,10 +116,10 @@ TEST_CASE("Events PipelineStageEntered", "[events][pipeline]") {
         PipelineStageEntered event(1234567890, "switch1", 100, "L2");
         
         REQUIRE(event.type == "PipelineStageEntered");
-        REQUIRE(event.stage == "L2");
+        REQUIRE(static_cast<std::string>(event.stage) == "L2");
         
         auto json = event.toJson();
-        REQUIRE(json["stage"] == "L2");
+        REQUIRE(json["stage"].get<std::string>() == "L2");
     }
 }
 
