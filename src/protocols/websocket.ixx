@@ -1,5 +1,8 @@
 module;
 
+#include <boost/asio.hpp>
+#include <boost/asio/strand.hpp>
+
 #include <memory>
 #include <string>
 #include <functional>
@@ -8,16 +11,8 @@ module;
 #include <atomic>
 #include <mutex>
 #include <thread>
-#include <condition_variable>
 #include <cstdint>
 #include <cstring>
-
-// WebSocket++ header-only library (to be added to dependencies)
-// For now, we'll create a simple native implementation
-#ifdef USE_WEBSOCKETPP
-#include <websocketpp/config/asio_no_tls.hpp>
-#include <websocketpp/server.hpp>
-#endif
 
 export module MiniSonic.WebSocket;
 
@@ -33,17 +28,16 @@ using std::map;
 using std::atomic;
 using std::mutex;
 using std::thread;
-using std::condition_variable;
 
 export namespace MiniSonic::WebSocket {
+
+namespace asio = boost::asio;
+using tcp = asio::ip::tcp;
 
 // =============================================================================
 // WEBSOCKET CONNECTION
 // =============================================================================
 
-/**
- * @brief WebSocket connection state
- */
 enum class ConnectionState {
     DISCONNECTED,
     CONNECTING,
@@ -51,43 +45,58 @@ enum class ConnectionState {
     CLOSING
 };
 
-/**
- * @brief Represents a WebSocket client connection
- */
-class WebSocketConnection {
+class WebSocketConnection : public std::enable_shared_from_this<WebSocketConnection> {
 public:
-    explicit WebSocketConnection(string connection_id);
-    ~WebSocketConnection() = default;
+    WebSocketConnection(string connection_id, asio::io_context& io_context);
+    ~WebSocketConnection();
     
     [[nodiscard]] string connectionId() const noexcept { return m_connection_id; }
     [[nodiscard]] ConnectionState state() const noexcept { return m_state; }
     [[nodiscard]] string remoteAddress() const noexcept { return m_remote_address; }
+    [[nodiscard]] tcp::socket& socket() noexcept { return m_socket; }
     
     void setState(ConnectionState state) noexcept { m_state = state; }
-    void setRemoteAddress(string address) { m_remote_address = std::move(address); }
+    void setRemoteAddress(const string& address) { m_remote_address = address; }
     
     [[nodiscard]] bool isActive() const noexcept {
         return m_state == ConnectionState::CONNECTED;
     }
+    
+    void start();
+    void stop();
+    void write(const vector<uint8_t>& data);
+    
+    void setMessageHandler(function<void(const vector<uint8_t>&)> handler);
+    void setCloseHandler(function<void()> handler);
 
 private:
+    void doRead();
+    void doWrite();
+    void handleError(const boost::system::error_code& ec);
+    
     string m_connection_id;
     ConnectionState m_state{ConnectionState::DISCONNECTED};
     string m_remote_address;
+    
+    tcp::socket m_socket;
+    asio::strand<asio::io_context::executor_type> m_strand;
+    
+    vector<uint8_t> m_read_buffer;
+    vector<uint8_t> m_write_buffer;
+    vector<uint8_t> m_pending_write;
+    
+    function<void(const vector<uint8_t>&)> m_message_handler;
+    function<void()> m_close_handler;
+    
+    atomic<bool> m_stopped{false};
     atomic<uint64_t> m_bytes_sent{0};
     atomic<uint64_t> m_bytes_received{0};
 };
 
 // =============================================================================
-// WEBSOCKET GATEWAY (PROTOCOL HANDLER IMPLEMENTATION)
+// WEBSOCKET GATEWAY
 // =============================================================================
 
-/**
- * @brief Native C++ WebSocket gateway implementing IProtocolHandler
- * 
- * Provides real-time bidirectional communication using WebSocket protocol.
- * Replaces the Python WebSocket demo with a native C++ implementation.
- */
 class WebSocketGateway : public Protocol::IProtocolHandler {
 public:
     explicit WebSocketGateway(const Protocol::HandlerConfig& config);
@@ -113,58 +122,46 @@ public:
     [[nodiscard]] size_t activeConnections() const;
 
 private:
-    // Server loop
-    void serverLoop();
-    void acceptLoop();
+    void doAccept();
+    void handleAccept(const boost::system::error_code& ec, shared_ptr<WebSocketConnection> conn);
+    void handleConnectionMessage(const string& conn_id, const vector<uint8_t>& data);
+    void handleConnectionClose(const string& conn_id);
+    void removeConnection(const string& connection_id);
+    string generateConnectionId();
     
-    // Message processing
-    void processIncomingMessage(const string& connection_id, const vector<uint8_t>& data);
     vector<uint8_t> serializeMessage(const Protocol::Message& msg);
     Protocol::Message deserializeMessage(const vector<uint8_t>& data);
     
-    // Connection management
-    string generateConnectionId();
-    void removeConnection(const string& connection_id);
-    
-    // Configuration
     Protocol::HandlerConfig m_config;
     
-    // Server state
-    atomic<bool> m_running{false};
-    thread m_server_thread;
-    thread m_accept_thread;
+    asio::io_context m_io_context;
+    unique_ptr<asio::io_context::work> m_work;
+    tcp::acceptor m_acceptor;
     
-    // Connections
+    thread m_io_thread;
+    atomic<bool> m_running{false};
+    
     map<string, shared_ptr<WebSocketConnection>> m_connections;
     mutable mutex m_connections_mutex;
     
-    // Callbacks
     MessageCallback m_message_handler;
     ErrorCallback m_error_handler;
     
-    // Statistics
     atomic<uint64_t> m_total_messages_sent{0};
     atomic<uint64_t> m_total_messages_received{0};
     atomic<uint64_t> m_total_bytes_sent{0};
     atomic<uint64_t> m_total_bytes_received{0};
     atomic<uint64_t> m_connection_count{0};
-    
-    // Native socket implementation (simplified for portability)
-    int m_server_socket{-1};
-    condition_variable m_cv;
-    mutex m_cv_mutex;
+    atomic<uint64_t> m_connection_id_counter{0};
 };
 
 // =============================================================================
 // WEBSOCKET CLIENT
 // =============================================================================
 
-/**
- * @brief WebSocket client for connecting to remote servers
- */
-class WebSocketClient {
+class WebSocketClient : public std::enable_shared_from_this<WebSocketClient> {
 public:
-    explicit WebSocketClient(string server_url);
+    explicit WebSocketClient(const string& server_url);
     ~WebSocketClient();
     
     void connect();
@@ -176,33 +173,47 @@ public:
     void setErrorHandler(function<void(const string&)> handler);
 
 private:
-    void clientLoop();
-    void processIncomingData(const vector<uint8_t>& data);
+    void doConnect();
+    void handleConnect(const boost::system::error_code& ec);
+    void doRead();
+    void handleRead(const boost::system::error_code& ec, size_t bytes_read);
+    void doWrite();
+    void handleWrite(const boost::system::error_code& ec, size_t bytes_written);
     
     string m_server_url;
+    string m_host;
+    string m_port;
+    string m_path;
+    
+    asio::io_context m_io_context;
+    unique_ptr<asio::io_context::work> m_work;
+    tcp::socket m_socket;
+    thread m_io_thread;
+    
     atomic<bool> m_connected{false};
     atomic<bool> m_running{false};
-    thread m_client_thread;
+    
+    vector<uint8_t> m_read_buffer;
+    vector<uint8_t> m_write_buffer;
+    mutex m_write_mutex;
     
     function<void(const Protocol::Message&)> m_message_handler;
     function<void(const string&)> m_error_handler;
     
     atomic<uint64_t> m_messages_sent{0};
     atomic<uint64_t> m_messages_received{0};
+    
+    bool parseUrl(const string& url);
 };
 
 // =============================================================================
 // WEBSOCKET FACTORY
 // =============================================================================
 
-/**
- * @brief Factory for creating WebSocket components
- */
 class WebSocketFactory {
 public:
     static unique_ptr<WebSocketGateway> createGateway(const Protocol::HandlerConfig& config);
     static unique_ptr<WebSocketClient> createClient(const string& server_url);
-    
     static Protocol::HandlerConfig defaultGatewayConfig();
 };
 

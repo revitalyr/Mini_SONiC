@@ -1,6 +1,7 @@
 module;
 
 #include <boost/system/error_code.hpp> // Must be at the absolute top for ADL on MSVC
+#include <boost/asio/error.hpp>       // Required for make_error_code in C++20 modules
 
 #include <memory>
 #include <string>

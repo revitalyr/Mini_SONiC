@@ -1,32 +1,19 @@
 module;
 
+#include <boost/asio.hpp>
+#include <boost/asio/strand.hpp>
+#include <boost/system/error_code.hpp>
+
+#include <iostream>
 #include <string>
 #include <vector>
 #include <functional>
 #include <thread>
 #include <mutex>
 #include <atomic>
-#include <queue>
 #include <chrono>
-#include <mutex>
-#include <condition_variable>
-#include <iostream>
 #include <utility>
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")
-#else
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR -1
-typedef int SOCKET;
-#endif
+#include <sstream>
 
 module MiniSonic.WebSocket;
 
@@ -42,19 +29,118 @@ using std::atomic;
 
 namespace MiniSonic::WebSocket {
 
-// =============================================================================
-// WEBSOCKET CONNECTION IMPLEMENTATION
-// =============================================================================
-
-WebSocketConnection::WebSocketConnection(std::string connection_id)
-    : m_connection_id(std::move(connection_id)) {}
+namespace asio = boost::asio;
+using tcp = asio::ip::tcp;
+using boost::system::error_code;
 
 // =============================================================================
-// WEBSOCKET GATEWAY IMPLEMENTATION
+// WEBSOCKET CONNECTION
+// =============================================================================
+
+WebSocketConnection::WebSocketConnection(string connection_id, asio::io_context& io_context)
+    : m_connection_id(std::move(connection_id))
+    , m_socket(io_context)
+    , m_strand(asio::make_strand(io_context))
+    , m_read_buffer(4096)
+{
+}
+
+WebSocketConnection::~WebSocketConnection() {
+    stop();
+}
+
+void WebSocketConnection::start() {
+    m_state = ConnectionState::CONNECTED;
+    doRead();
+}
+
+void WebSocketConnection::stop() {
+    m_stopped.store(true);
+    m_state = ConnectionState::DISCONNECTED;
+    
+    error_code ec;
+    m_socket.close(ec);
+    
+    if (m_close_handler) {
+        m_close_handler();
+    }
+}
+
+void WebSocketConnection::write(const vector<uint8_t>& data) {
+    if (m_stopped.load() || !m_socket.is_open()) {
+        return;
+    }
+    
+    asio::post(m_strand, [self = shared_from_this(), data]() {
+        bool write_in_progress = !self->m_write_buffer.empty();
+        self->m_write_buffer.insert(self->m_write_buffer.end(), data.begin(), data.end());
+        if (!write_in_progress) {
+            self->doWrite();
+        }
+    });
+}
+
+void WebSocketConnection::doRead() {
+    auto self = shared_from_this();
+    m_socket.async_read_some(
+        asio::buffer(m_read_buffer),
+        asio::bind_executor(m_strand,
+            [this, self](const error_code& ec, size_t bytes_read) {
+                if (!ec) {
+                    m_bytes_received.fetch_add(bytes_read);
+                    if (m_message_handler) {
+                        vector<uint8_t> data(m_read_buffer.begin(), m_read_buffer.begin() + bytes_read);
+                        m_message_handler(data);
+                    }
+                    doRead();
+                } else if (ec != asio::error::operation_aborted) {
+                    handleError(ec);
+                }
+            }));
+}
+
+void WebSocketConnection::doWrite() {
+    auto self = shared_from_this();
+    asio::async_write(m_socket,
+        asio::buffer(m_write_buffer),
+        asio::bind_executor(m_strand,
+            [this, self](const error_code& ec, size_t bytes_written) {
+                if (!ec) {
+                    m_bytes_sent.fetch_add(bytes_written);
+                    m_write_buffer.erase(m_write_buffer.begin(), m_write_buffer.begin() + bytes_written);
+                    if (!m_write_buffer.empty()) {
+                        doWrite();
+                    }
+                } else if (ec != asio::error::operation_aborted) {
+                    handleError(ec);
+                }
+            }));
+}
+
+void WebSocketConnection::handleError(const error_code& ec) {
+    if (ec != asio::error::eof && ec != asio::error::connection_reset) {
+        std::cerr << "[WebSocketConnection] Error: " << ec.message() << "\n";
+    }
+    stop();
+}
+
+void WebSocketConnection::setMessageHandler(function<void(const vector<uint8_t>&)> handler) {
+    m_message_handler = std::move(handler);
+}
+
+void WebSocketConnection::setCloseHandler(function<void()> handler) {
+    m_close_handler = std::move(handler);
+}
+
+// =============================================================================
+// WEBSOCKET GATEWAY
 // =============================================================================
 
 WebSocketGateway::WebSocketGateway(const Protocol::HandlerConfig& config)
-    : m_config(config) {}
+    : m_config(config)
+    , m_acceptor(m_io_context)
+{
+}
 
 WebSocketGateway::~WebSocketGateway() {
     stop();
@@ -68,68 +154,28 @@ void WebSocketGateway::start() {
     m_running.store(true);
     m_connection_count.store(0);
     
-#ifdef _WIN32
-    WSADATA wsa_data;
-    WSAStartup(MAKEWORD(2, 2), &wsa_data);
-#endif
+    tcp::endpoint endpoint(asio::ip::make_address(m_config.bind_address), m_config.listen_port);
     
-    // Create server socket
-    m_server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (m_server_socket == INVALID_SOCKET) {
+    try {
+        m_acceptor.open(endpoint.protocol());
+        m_acceptor.set_option(tcp::acceptor::reuse_address(true));
+        m_acceptor.bind(endpoint);
+        m_acceptor.listen(asio::socket_base::max_listen_connections);
+    } catch (const std::exception& e) {
         if (m_error_handler) {
-            m_error_handler("Failed to create server socket");
+            m_error_handler(string("Failed to setup acceptor: ") + e.what());
         }
+        m_running.store(false);
         return;
     }
     
-    // Set socket options
-    int opt = 1;
-#ifdef _WIN32
-    setsockopt(m_server_socket, SOL_SOCKET, SO_REUSEADDR, 
-               reinterpret_cast<const char*>(&opt), sizeof(opt));
-#else
-    setsockopt(m_server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-#endif
+    m_work = std::make_unique<asio::io_context::work>(m_io_context);
+    m_io_thread = thread([this]() { m_io_context.run(); });
     
-    // Bind to address
-    sockaddr_in server_addr{};
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(m_config.listen_port);
+    doAccept();
     
-    if (bind(m_server_socket, reinterpret_cast<sockaddr*>(&server_addr), 
-             sizeof(server_addr)) == SOCKET_ERROR) {
-        if (m_error_handler) {
-            m_error_handler("Failed to bind server socket");
-        }
-#ifdef _WIN32
-        closesocket(m_server_socket);
-#else
-        close(m_server_socket);
-#endif
-        m_server_socket = INVALID_SOCKET;
-        return;
-    }
-    
-    // Listen
-    if (listen(m_server_socket, SOMAXCONN) == SOCKET_ERROR) {
-        if (m_error_handler) {
-            m_error_handler("Failed to listen on server socket");
-        }
-#ifdef _WIN32
-        closesocket(m_server_socket);
-#else
-        close(m_server_socket);
-#endif
-        m_server_socket = INVALID_SOCKET;
-        return;
-    }
-    
-    // Start threads
-    m_server_thread = std::thread(&WebSocketGateway::serverLoop, this);
-    m_accept_thread = std::thread(&WebSocketGateway::acceptLoop, this);
-    
-    std::cout << "[WebSocketGateway] Started on port " << m_config.listen_port << "\n";
+    std::cout << "[WebSocketGateway] Started on " << m_config.bind_address << ":" 
+              << m_config.listen_port << "\n";
 }
 
 void WebSocketGateway::stop() {
@@ -138,33 +184,25 @@ void WebSocketGateway::stop() {
     }
     
     m_running.store(false);
-    m_cv.notify_all();
     
-    if (m_server_thread.joinable()) {
-        m_server_thread.join();
+    {
+        lock_guard<mutex> lock(m_connections_mutex);
+        for (auto& [id, conn] : m_connections) {
+            conn->stop();
+        }
+        m_connections.clear();
     }
     
-    if (m_accept_thread.joinable()) {
-        m_accept_thread.join();
+    error_code ec;
+    m_acceptor.close(ec);
+    
+    if (m_work) {
+        m_work.reset();
     }
     
-    // Close all connections
-    std::lock_guard<std::mutex> lock(m_connections_mutex);
-    m_connections.clear();
-    
-    // Close server socket
-    if (m_server_socket != INVALID_SOCKET) {
-#ifdef _WIN32
-        closesocket(m_server_socket);
-#else
-        close(m_server_socket);
-#endif
-        m_server_socket = INVALID_SOCKET;
+    if (m_io_thread.joinable()) {
+        m_io_thread.join();
     }
-    
-#ifdef _WIN32
-    WSACleanup();
-#endif
     
     std::cout << "[WebSocketGateway] Stopped\n";
 }
@@ -173,18 +211,92 @@ bool WebSocketGateway::isRunning() const noexcept {
     return m_running.load();
 }
 
+void WebSocketGateway::doAccept() {
+    auto conn = std::make_shared<WebSocketConnection>(generateConnectionId(), m_io_context);
+    
+    m_acceptor.async_accept(conn->socket(),
+        [this, conn](const error_code& ec) {
+            handleAccept(ec, conn);
+        });
+}
+
+void WebSocketGateway::handleAccept(const error_code& ec, shared_ptr<WebSocketConnection> conn) {
+    if (!ec) {
+        conn->setState(ConnectionState::CONNECTED);
+        
+        try {
+            conn->setRemoteAddress(conn->socket().remote_endpoint().address().to_string() + ":" +
+                                   std::to_string(conn->socket().remote_endpoint().port()));
+        } catch (...) {
+            conn->setRemoteAddress("unknown");
+        }
+        
+        string conn_id = conn->connectionId();
+        {
+            lock_guard<mutex> lock(m_connections_mutex);
+            m_connections[conn_id] = conn;
+            m_connection_count.fetch_add(1);
+        }
+        
+        conn->setMessageHandler(
+            [this, conn_id](const vector<uint8_t>& data) {
+                handleConnectionMessage(conn_id, data);
+            });
+        conn->setCloseHandler(
+            [this, conn_id]() {
+                handleConnectionClose(conn_id);
+            });
+        
+        conn->start();
+        
+        std::cout << "[WebSocketGateway] New connection: " << conn_id 
+                  << " from " << conn->remoteAddress() << "\n";
+        
+        if (m_running.load()) {
+            doAccept();
+        }
+    } else if (ec != asio::error::operation_aborted) {
+        std::cerr << "[WebSocketGateway] Accept error: " << ec.message() << "\n";
+        if (m_error_handler) {
+            m_error_handler("Accept failed: " + ec.message());
+        }
+        if (m_running.load()) {
+            doAccept();
+        }
+    }
+}
+
+void WebSocketGateway::handleConnectionMessage(const string& conn_id, const vector<uint8_t>& data) {
+    auto msg = deserializeMessage(data);
+    if (msg.isValid() && m_message_handler) {
+        m_total_messages_received.fetch_add(1);
+        m_total_bytes_received.fetch_add(data.size());
+        m_message_handler(msg);
+    }
+}
+
+void WebSocketGateway::handleConnectionClose(const string& conn_id) {
+    lock_guard<mutex> lock(m_connections_mutex);
+    auto it = m_connections.find(conn_id);
+    if (it != m_connections.end()) {
+        it->second->setState(ConnectionState::DISCONNECTED);
+        m_connections.erase(it);
+        m_connection_count.fetch_sub(1);
+        std::cout << "[WebSocketGateway] Connection closed: " << conn_id << "\n";
+    }
+}
+
 void WebSocketGateway::send(const Protocol::Message& msg) {
-    // Broadcast to all connections
     broadcast(msg);
 }
 
 void WebSocketGateway::broadcast(const Protocol::Message& msg) {
     auto data = serializeMessage(msg);
     
-    std::lock_guard<std::mutex> lock(m_connections_mutex);
+    lock_guard<mutex> lock(m_connections_mutex);
     for (auto& [id, conn] : m_connections) {
         if (conn->isActive()) {
-            // In real implementation, send via WebSocket protocol
+            conn->write(data);
             m_total_bytes_sent.fetch_add(data.size());
             m_total_messages_sent.fetch_add(1);
         }
@@ -194,21 +306,27 @@ void WebSocketGateway::broadcast(const Protocol::Message& msg) {
 void WebSocketGateway::sendToConnection(const string& connection_id, const Protocol::Message& msg) {
     auto data = serializeMessage(msg);
     
-    std::lock_guard<std::mutex> lock(m_connections_mutex);
+    lock_guard<mutex> lock(m_connections_mutex);
     auto it = m_connections.find(connection_id);
     if (it != m_connections.end() && it->second->isActive()) {
+        it->second->write(data);
         m_total_bytes_sent.fetch_add(data.size());
         m_total_messages_sent.fetch_add(1);
     }
 }
 
 void WebSocketGateway::closeConnection(const string& connection_id) {
-    std::lock_guard<std::mutex> lock(m_connections_mutex);
-    removeConnection(connection_id);
+    lock_guard<mutex> lock(m_connections_mutex);
+    auto it = m_connections.find(connection_id);
+    if (it != m_connections.end()) {
+        it->second->stop();
+        m_connections.erase(it);
+        m_connection_count.fetch_sub(1);
+    }
 }
 
 size_t WebSocketGateway::activeConnections() const {
-    std::lock_guard<std::mutex> lock(m_connections_mutex);
+    lock_guard<mutex> lock(m_connections_mutex);
     size_t count = 0;
     for (const auto& [id, conn] : m_connections) {
         if (conn->isActive()) {
@@ -227,125 +345,60 @@ void WebSocketGateway::setErrorHandler(ErrorCallback handler) {
 }
 
 std::string WebSocketGateway::getStats() const {
-    return "WebSocket Gateway Statistics:\n"
-           "  Running: " + std::string(m_running.load() ? "yes" : "no") + "\n"
-           "  Active Connections: " + std::to_string(activeConnections()) + "\n"
-           "  Total Messages Sent: " + std::to_string(m_total_messages_sent.load()) + "\n"
-           "  Total Messages Received: " + std::to_string(m_total_messages_received.load()) + "\n"
-           "  Total Bytes Sent: " + std::to_string(m_total_bytes_sent.load()) + "\n"
-           "  Total Bytes Received: " + std::to_string(m_total_bytes_received.load()) + "\n";
+    std::ostringstream oss;
+    oss << "WebSocket Gateway Statistics:\n"
+        << "  Running: " << (m_running.load() ? "yes" : "no") << "\n"
+        << "  Active Connections: " << activeConnections() << "\n"
+        << "  Total Messages Sent: " << m_total_messages_sent.load() << "\n"
+        << "  Total Messages Received: " << m_total_messages_received.load() << "\n"
+        << "  Total Bytes Sent: " << m_total_bytes_sent.load() << "\n"
+        << "  Total Bytes Received: " << m_total_bytes_received.load() << "\n";
+    return oss.str();
 }
 
-void WebSocketGateway::serverLoop() {
-    while (m_running.load()) {
-        std::unique_lock<std::mutex> lock(m_cv_mutex);
-        m_cv.wait_for(lock, std::chrono::milliseconds(100));
-    }
-}
-
-void WebSocketGateway::acceptLoop() {
-    while (m_running.load()) {
-        sockaddr_in client_addr{};
-#ifdef _WIN32
-        int addr_len = sizeof(client_addr);
-#else
-        socklen_t addr_len = sizeof(client_addr);
-#endif
-        
-        SOCKET client_socket = accept(m_server_socket,
-                                      reinterpret_cast<sockaddr*>(&client_addr), 
-                                      &addr_len);
-        
-        if (client_socket == INVALID_SOCKET) {
-            if (m_running.load()) {
-                // Accept failed but server is still running
-                continue;
-            }
-            break;
-        }
-        
-        // Create new connection
-        string conn_id = generateConnectionId();
-        auto conn = std::make_shared<WebSocketConnection>(conn_id);
-        
-        char client_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
-        conn->setRemoteAddress(string(client_ip) + ":" + 
-                               std::to_string(ntohs(client_addr.sin_port)));
-        conn->setState(ConnectionState::CONNECTED);
-        
-        {
-            std::lock_guard<std::mutex> lock(m_connections_mutex);
-            m_connections[conn_id] = conn;
-            m_connection_count.fetch_add(1);
-        }
-        
-        std::cout << "[WebSocketGateway] New connection: " << conn_id 
-                  << " from " << conn->remoteAddress() << "\n";
-        
-        // In real implementation, start per-connection thread
-#ifdef _WIN32
-        closesocket(client_socket);
-#else
-        close(client_socket);
-#endif
-    }
-}
-
-void WebSocketGateway::processIncomingMessage(const string& connection_id, 
-                                              const vector<uint8_t>& data) {
-    auto msg = deserializeMessage(data);
-    if (msg.isValid() && m_message_handler) {
-        m_total_messages_received.fetch_add(1);
-        m_total_bytes_received.fetch_add(data.size());
-        m_message_handler(msg);
-    }
-}
-
-std::vector<uint8_t> WebSocketGateway::serializeMessage(const Protocol::Message& msg) {
-    // Simplified serialization - in real implementation use proper WebSocket framing
+vector<uint8_t> WebSocketGateway::serializeMessage(const Protocol::Message& msg) {
     vector<uint8_t> buffer;
+    buffer.reserve(4 + msg.payload().size());
     
-    // Add message type
     uint32_t type = static_cast<uint32_t>(msg.header().type);
-    buffer.insert(buffer.end(), reinterpret_cast<uint8_t*>(&type),
-                  reinterpret_cast<uint8_t*>(&type) + sizeof(type));
+    buffer.push_back(static_cast<uint8_t>(type));
+    buffer.push_back(static_cast<uint8_t>(type >> 8));
+    buffer.push_back(static_cast<uint8_t>(type >> 16));
+    buffer.push_back(static_cast<uint8_t>(type >> 24));
     
-    // Add payload
     const auto& payload = msg.payload();
     buffer.insert(buffer.end(), payload.begin(), payload.end());
     
     return buffer;
 }
 
-Protocol::Message WebSocketGateway::deserializeMessage(const std::vector<uint8_t>& data) {
+Protocol::Message WebSocketGateway::deserializeMessage(const vector<uint8_t>& data) {
     Protocol::Message msg;
     
-    if (data.size() < sizeof(uint32_t)) {
+    if (data.size() < 4) {
         return msg;
     }
     
-    uint32_t type;
-    std::memcpy(&type, data.data(), sizeof(type));
+    uint32_t type = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
     msg.setType(static_cast<Protocol::MessageType>(type));
     
-    if (data.size() > sizeof(uint32_t)) {
-        std::vector<uint8_t> payload(data.begin() + sizeof(uint32_t), data.end());
+    if (data.size() > 4) {
+        vector<uint8_t> payload(data.begin() + 4, data.end());
         msg.payload() = std::move(payload);
     }
     
     return msg;
 }
 
-std::string WebSocketGateway::generateConnectionId() {
-    static atomic<uint64_t> counter{0};
-    return "ws_conn_" + std::to_string(counter.fetch_add(1));
+string WebSocketGateway::generateConnectionId() {
+    return "ws_conn_" + std::to_string(m_connection_id_counter.fetch_add(1));
 }
 
 void WebSocketGateway::removeConnection(const string& connection_id) {
-    auto it = m_connections.find(connection_id); // Use member mutex
+    lock_guard<mutex> lock(m_connections_mutex);
+    auto it = m_connections.find(connection_id);
     if (it != m_connections.end()) {
-        it->second->setState(ConnectionState::DISCONNECTED);
+        it->second->stop();
         m_connections.erase(it);
         m_connection_count.fetch_sub(1);
         std::cout << "[WebSocketGateway] Connection removed: " << connection_id << "\n";
@@ -353,30 +406,102 @@ void WebSocketGateway::removeConnection(const string& connection_id) {
 }
 
 // =============================================================================
-// WEBSOCKET CLIENT IMPLEMENTATION
+// WEBSOCKET CLIENT
 // =============================================================================
 
-WebSocketClient::WebSocketClient(std::string server_url)
-    : m_server_url(std::move(server_url)) {}
+WebSocketClient::WebSocketClient(const string& server_url)
+    : m_server_url(server_url)
+    , m_socket(m_io_context)
+    , m_read_buffer(4096)
+{
+    parseUrl(server_url);
+}
 
 WebSocketClient::~WebSocketClient() {
     disconnect();
 }
 
+bool WebSocketClient::parseUrl(const string& url) {
+    if (url.substr(0, 5) == "ws://") {
+        size_t host_start = 5;
+        size_t host_end = url.find(':', host_start);
+        size_t path_start = url.find('/', host_start);
+        
+        if (host_end == string::npos || host_end > path_start) {
+            host_end = path_start;
+        }
+        
+        m_host = url.substr(host_start, host_end - host_start);
+        
+        if (host_end != string::npos && url[host_end] == ':') {
+            size_t port_end = path_start == string::npos ? string::npos : path_start;
+            m_port = url.substr(host_end + 1, port_end - host_end - 1);
+        } else {
+            m_port = "80";
+        }
+        
+        if (path_start != string::npos) {
+            m_path = url.substr(path_start);
+        } else {
+            m_path = "/";
+        }
+        return true;
+    }
+    return false;
+}
+
 void WebSocketClient::connect() {
-    // Simplified connection logic
-    m_connected.store(true);
+    if (m_connected.load()) {
+        return;
+    }
+    
     m_running.store(true);
-    m_client_thread = std::thread(&WebSocketClient::clientLoop, this);
-    std::cout << "[WebSocketClient] Connected to " << m_server_url << "\n";
+    
+    tcp::resolver resolver(m_io_context);
+    try {
+        auto endpoints = resolver.resolve(m_host, m_port);
+        
+        m_work = std::make_unique<asio::io_context::work>(m_io_context);
+        m_io_thread = thread([this]() { m_io_context.run(); });
+        
+        asio::async_connect(m_socket, endpoints,
+            [this](const error_code& ec, tcp::endpoint) {
+                handleConnect(ec);
+            });
+    } catch (const std::exception& e) {
+        if (m_error_handler) {
+            m_error_handler(string("Resolve failed: ") + e.what());
+        }
+        m_running.store(false);
+    }
+}
+
+void WebSocketClient::handleConnect(const error_code& ec) {
+    if (!ec) {
+        m_connected.store(true);
+        std::cout << "[WebSocketClient] Connected to " << m_server_url << "\n";
+        doRead();
+    } else {
+        if (m_error_handler) {
+            m_error_handler("Connect failed: " + ec.message());
+        }
+        m_running.store(false);
+    }
 }
 
 void WebSocketClient::disconnect() {
     m_running.store(false);
     m_connected.store(false);
     
-    if (m_client_thread.joinable()) {
-        m_client_thread.join();
+    if (m_work) {
+        m_work.reset();
+    }
+    
+    error_code ec;
+    m_socket.close(ec);
+    
+    if (m_io_thread.joinable()) {
+        m_io_thread.join();
     }
     
     std::cout << "[WebSocketClient] Disconnected\n";
@@ -387,8 +512,73 @@ bool WebSocketClient::isConnected() const noexcept {
 }
 
 void WebSocketClient::send(const Protocol::Message& msg) {
-    // Simplified send - in real implementation use WebSocket protocol
-    m_messages_sent.fetch_add(1);
+    if (!m_connected.load() || !m_socket.is_open()) {
+        return;
+    }
+    
+    uint32_t type = static_cast<uint32_t>(msg.header().type);
+    lock_guard<mutex> lock(m_write_mutex);
+    
+    m_write_buffer.push_back(static_cast<uint8_t>(type));
+    m_write_buffer.push_back(static_cast<uint8_t>(type >> 8));
+    m_write_buffer.push_back(static_cast<uint8_t>(type >> 16));
+    m_write_buffer.push_back(static_cast<uint8_t>(type >> 24));
+    
+    const auto& payload = msg.payload();
+    m_write_buffer.insert(m_write_buffer.end(), payload.begin(), payload.end());
+    
+    doWrite();
+}
+
+void WebSocketClient::doWrite() {
+    auto self = shared_from_this();
+    asio::async_write(m_socket, asio::buffer(m_write_buffer),
+        [this, self](const error_code& ec, size_t bytes_written) {
+            if (!ec) {
+                m_messages_sent.fetch_add(1);
+                lock_guard<mutex> lock(m_write_mutex);
+                m_write_buffer.erase(m_write_buffer.begin(), m_write_buffer.begin() + bytes_written);
+            } else if (m_error_handler && ec != asio::error::operation_aborted) {
+                m_error_handler("Write failed: " + ec.message());
+                disconnect();
+            }
+        });
+}
+
+void WebSocketClient::doRead() {
+    auto self = shared_from_this();
+    m_socket.async_read_some(asio::buffer(m_read_buffer),
+        [this, self](const error_code& ec, size_t bytes_read) {
+            handleRead(ec, bytes_read);
+        });
+}
+
+void WebSocketClient::handleRead(const error_code& ec, size_t bytes_read) {
+    if (!ec) {
+        m_messages_received.fetch_add(1);
+        if (m_message_handler) {
+            Protocol::Message msg;
+            if (bytes_read >= 4) {
+                uint32_t type = m_read_buffer[0] | (m_read_buffer[1] << 8) |
+                               (m_read_buffer[2] << 16) | (m_read_buffer[3] << 24);
+                msg.setType(static_cast<Protocol::MessageType>(type));
+                if (bytes_read > 4) {
+                    vector<uint8_t> payload(m_read_buffer.begin() + 4,
+                                            m_read_buffer.begin() + bytes_read);
+                    msg.payload() = std::move(payload);
+                }
+            }
+            m_message_handler(msg);
+        }
+        if (m_running.load()) {
+            doRead();
+        }
+    } else if (ec != asio::error::operation_aborted) {
+        if (m_error_handler) {
+            m_error_handler("Read failed: " + ec.message());
+        }
+        disconnect();
+    }
 }
 
 void WebSocketClient::setMessageHandler(function<void(const Protocol::Message&)> handler) {
@@ -399,26 +589,15 @@ void WebSocketClient::setErrorHandler(function<void(const string&)> handler) {
     m_error_handler = std::move(handler);
 }
 
-void WebSocketClient::clientLoop() {
-    while (m_running.load()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-}
-
-void WebSocketClient::processIncomingData(const vector<uint8_t>& data) {
-    // Process incoming WebSocket data
-    m_messages_received.fetch_add(1);
-}
-
 // =============================================================================
-// WEBSOCKET FACTORY IMPLEMENTATION
+// WEBSOCKET FACTORY
 // =============================================================================
 
-std::unique_ptr<WebSocketGateway> WebSocketFactory::createGateway(const Protocol::HandlerConfig& config) {
+unique_ptr<WebSocketGateway> WebSocketFactory::createGateway(const Protocol::HandlerConfig& config) {
     return std::make_unique<WebSocketGateway>(config);
 }
 
-std::unique_ptr<WebSocketClient> WebSocketFactory::createClient(const std::string& server_url) {
+unique_ptr<WebSocketClient> WebSocketFactory::createClient(const string& server_url) {
     return std::make_unique<WebSocketClient>(server_url);
 }
 
