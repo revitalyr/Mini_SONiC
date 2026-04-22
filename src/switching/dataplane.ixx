@@ -53,7 +53,7 @@ public:
     uint64_t m_id;  // Unique packet ID for visualization
 
     // Timestamp for latency measurement
-    chrono::high_resolution_clock::time_point timestamp;
+    std::chrono::high_resolution_clock::time_point timestamp;
 
     // Default constructor
     Packet() : m_id(0) {}
@@ -72,7 +72,7 @@ public:
         m_dst_ip(std::move(dst_ip)),
         m_ingress_port(ingress_port),
         m_id(id),
-        timestamp(chrono::high_resolution_clock::now()) {}
+        timestamp(std::chrono::high_resolution_clock::now()) {}
 
     // Move constructor
     Packet(Packet&& other) noexcept = default;
@@ -107,7 +107,7 @@ public:
 
     // Update timestamp
     void updateTimestamp() noexcept {
-        timestamp = chrono::high_resolution_clock::now();
+        timestamp = std::chrono::high_resolution_clock::now();
     }
 
     // Convert to PacketInfo for event serialization
@@ -127,7 +127,7 @@ public:
     }
 
 private:
-    static string formatMac(Types::MacAddress mac) {
+    static std::string formatMac(Types::MacAddress mac) {
         char buf[18];
         snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
                  static_cast<unsigned int>((mac >> 40) & 0xFF),
@@ -136,17 +136,17 @@ private:
                  static_cast<unsigned int>((mac >> 16) & 0xFF),
                  static_cast<unsigned int>((mac >> 8) & 0xFF),
                  static_cast<unsigned int>(mac & 0xFF));
-        return string(buf);
+        return std::string(buf);
     }
 
-    static string formatIp(Types::IpAddress ip) {
+    static std::string formatIp(Types::IpAddress ip) {
         char buf[16];
         snprintf(buf, sizeof(buf), "%u.%u.%u.%u",
                  static_cast<unsigned int>((ip >> 24) & 0xFF),
                  static_cast<unsigned int>((ip >> 16) & 0xFF),
                  static_cast<unsigned int>((ip >> 8) & 0xFF),
                  static_cast<unsigned int>(ip & 0xFF));
-        return string(buf);
+        return std::string(buf);
     }
 
     // C++23: Get packet as span for efficient data access
@@ -165,7 +165,7 @@ private:
  */
 export class Pipeline {
 public:
-    explicit Pipeline(SAI::SaiInterface& sai, const string& switch_id = "SWITCH0");
+    explicit Pipeline(SAI::SaiInterface& sai, const std::string& switch_id = "SWITCH0");
     ~Pipeline() = default;
 
     /**
@@ -183,21 +183,21 @@ public:
     /**
      * @brief Get pipeline statistics
      */
-    [[nodiscard]] string getStats() const;
+    [[nodiscard]] std::string getStats() const;
 
     /**
      * @brief Set switch ID for event emission
      */
-    void setSwitchId(const string& switch_id) { m_switch_id = switch_id; }
+    void setSwitchId(const std::string& switch_id) { m_switch_id = switch_id; }
 
     /**
      * @brief Get switch ID
      */
-    [[nodiscard]] string switchId() const { return m_switch_id; }
+    [[nodiscard]] std::string switchId() const { return m_switch_id; }
 
 private:
     SAI::SaiInterface& m_sai;
-    string m_switch_id;
+    std::string m_switch_id;
     Events::EventBus& m_event_bus;
     std::atomic<uint64_t> m_packet_counter{0};
 };

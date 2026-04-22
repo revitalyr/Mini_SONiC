@@ -118,8 +118,8 @@ void WebSocketGateway::start() {
     }
     
     // Start threads
-    m_server_thread = thread(&WebSocketGateway::serverLoop, this);
-    m_accept_thread = thread(&WebSocketGateway::acceptLoop, this);
+    m_server_thread = std::thread(&WebSocketGateway::serverLoop, this);
+    m_accept_thread = std::thread(&WebSocketGateway::acceptLoop, this);
     
     std::cout << "[WebSocketGateway] Started on port " << m_config.listen_port << "\n";
 }
