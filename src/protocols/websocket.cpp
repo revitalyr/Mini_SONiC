@@ -330,7 +330,7 @@ Protocol::Message WebSocketGateway::deserializeMessage(const std::vector<uint8_t
     msg.setType(static_cast<Protocol::MessageType>(type));
     
     if (data.size() > sizeof(uint32_t)) {
-        vector<byte> payload(data.begin() + sizeof(uint32_t), data.end());
+        std::vector<uint8_t> payload(data.begin() + sizeof(uint32_t), data.end());
         msg.payload() = std::move(payload);
     }
     

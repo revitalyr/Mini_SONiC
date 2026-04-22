@@ -22,13 +22,16 @@ module;
 #pragma comment(lib, "ws2_32.lib")
 #endif
 
+module MiniSonic.Gossip;
+
 using std::string;
 using std::thread;
 using std::atomic;
 using std::mutex;
 using std::lock_guard;
 using std::vector;
-module MiniSonic.Gossip;
+using std::function;
+using std::unique_ptr;
 
 import MiniSonic.Core.Utils;
 
@@ -193,7 +196,7 @@ string GossipProtocol::getStats() const {
            "  Peer Leaves: " + std::to_string(m_peer_leaves.load()) + "\n";
 }
 
-void GossipProtocol::joinPeer(const string& address, Types::Port port) {
+void GossipProtocol::joinPeer(const string& address, Types::PortId port) {
     PeerInfo peer;
     peer.peer_id = address + ":" + std::to_string(port);
     peer.address = address;
@@ -550,7 +553,7 @@ void GossipNode::stop() {
     m_protocol->stop();
 }
 
-void GossipNode::join(const string& address, Types::Port port) {
+void GossipNode::join(const string& address, Types::PortId port) {
     m_protocol->joinPeer(address, port);
 }
 
