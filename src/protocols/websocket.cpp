@@ -31,6 +31,14 @@ typedef int SOCKET;
 module MiniSonic.WebSocket;
 
 import MiniSonic.Core.Utils;
+import MiniSonic.Protocol;
+
+using std::string;
+using std::vector;
+using std::function;
+using std::lock_guard;
+using std::mutex;
+using std::atomic;
 
 namespace MiniSonic::WebSocket {
 

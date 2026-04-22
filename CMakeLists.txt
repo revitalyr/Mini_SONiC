@@ -254,7 +254,7 @@ target_sources(MiniSonic.DataPlane
 )
 target_sources(MiniSonic.DataPlane PRIVATE src/switching/dataplane.cpp)
 target_include_directories(MiniSonic.DataPlane PUBLIC src)
-target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.SAI MiniSonic.Core.Events)
+target_link_libraries(MiniSonic.DataPlane PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.SAI MiniSonic.Core.Events MiniSonic.Networking)
 
 # Module: MiniSonic.DataPlane.PacketEnhanced
 add_library(MiniSonic.DataPlane.PacketEnhanced STATIC)
@@ -430,7 +430,7 @@ target_link_libraries(mini_sonic_modular PRIVATE
     MiniSonic.DataPlane
     MiniSonic.SAI
     MiniSonic.L2L3
-    MiniSonic.Utils
+    MiniSonic.Core.Utils
     Threads::Threads
 )
 
@@ -533,7 +533,7 @@ target_link_libraries(mini_sonic_integration_tests
     MiniSonic.DataPlane
     MiniSonic.SAI
     MiniSonic.L2L3
-    MiniSonic.Utils
+    MiniSonic.Core.Utils
     Threads::Threads
     Catch2::Catch2WithMain
 )

@@ -15,6 +15,7 @@ module;
 #include <queue>
 #include <thread>
 #include <condition_variable>
+#include <iostream>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -25,6 +26,8 @@ using std::string;
 using std::thread;
 using std::atomic;
 using std::mutex;
+using std::lock_guard;
+using std::vector;
 module MiniSonic.Gossip;
 
 import MiniSonic.Core.Utils;

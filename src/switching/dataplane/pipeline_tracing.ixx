@@ -31,7 +31,7 @@ module;
 export module MiniSonic.DataPlane.PipelineTracing;
 
 import MiniSonic.DataPlane.PacketEnhanced;
-import MiniSonic.Types;
+import MiniSonic.Core.Utils;
 
 export namespace MiniSonic::DataPlane {
 
