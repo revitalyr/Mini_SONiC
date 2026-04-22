@@ -218,9 +218,9 @@ void WebSocketGateway::setErrorHandler(ErrorCallback handler) {
     m_error_handler = std::move(handler);
 }
 
-string WebSocketGateway::getStats() const {
+std::string WebSocketGateway::getStats() const {
     return "WebSocket Gateway Statistics:\n"
-           "  Running: " + string(m_running.load() ? "yes" : "no") + "\n"
+           "  Running: " + std::string(m_running.load() ? "yes" : "no") + "\n"
            "  Active Connections: " + std::to_string(activeConnections()) + "\n"
            "  Total Messages Sent: " + std::to_string(m_total_messages_sent.load()) + "\n"
            "  Total Messages Received: " + std::to_string(m_total_messages_received.load()) + "\n"
