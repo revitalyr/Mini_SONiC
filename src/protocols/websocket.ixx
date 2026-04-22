@@ -104,12 +104,12 @@ public:
     void setMessageHandler(MessageCallback handler) override;
     void setErrorHandler(ErrorCallback handler) override;
     
-    [[nodiscard]] string protocolName() const override { return "WebSocket"; }
-    [[nodiscard]] string getStats() const override;
+    [[nodiscard]] std::string protocolName() const override { return "WebSocket"; }
+    [[nodiscard]] std::string getStats() const override;
     
     // WebSocket-specific methods
-    void sendToConnection(const string& connection_id, const Protocol::Message& msg);
-    void closeConnection(const string& connection_id);
+    void sendToConnection(const std::string& connection_id, const Protocol::Message& msg);
+    void closeConnection(const std::string& connection_id);
     [[nodiscard]] size_t activeConnections() const;
 
 private:
