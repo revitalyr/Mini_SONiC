@@ -163,10 +163,12 @@ private:
 // Export Boost.Thread synchronization
 export namespace MiniSonic::BoostWrapper {
 
-using Mutex = boost::mutex;
-using RecursiveMutex = boost::recursive_mutex;
-using LockGuard = boost::lock_guard<Mutex>;
-using RecursiveLockGuard = boost::lock_guard<RecursiveMutex>;
+// NOTE: Boost-specific mutex types with distinct names to avoid conflicts
+// with standard library types in MiniSonic.Core.Utils
+using BoostMutex = boost::mutex;
+using BoostRecursiveMutex = boost::recursive_mutex;
+using BoostLockGuard = boost::lock_guard<BoostMutex>;
+using BoostRecursiveLockGuard = boost::lock_guard<BoostRecursiveMutex>;
 
 // Spinlock using Boost atomic
 class SpinLock {
@@ -189,6 +191,7 @@ private:
     boost::atomic_flag m_flag = ATOMIC_FLAG_INIT;
 };
 
+// SpinLockGuard uses SpinLock class defined above
 using SpinLockGuard = std::lock_guard<SpinLock>;
 
 } // namespace MiniSonic::BoostWrapper

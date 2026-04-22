@@ -40,6 +40,11 @@ namespace Types {
         template<typename T>
         using Atomic = std::atomic<T>;
     }
+    
+    // Threading types (standard library)
+    export using Mutex = std::mutex;
+    export using LockGuard = std::lock_guard<Mutex>;
+    export using UniqueLock = std::unique_lock<Mutex>;
 }
 
 export namespace MiniSonic::Utils {

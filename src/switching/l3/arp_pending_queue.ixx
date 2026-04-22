@@ -89,7 +89,7 @@ public:
         
         // Track which IP this packet is waiting for (thread-safe)
         {
-            LockGuard lock(m_ip_map_mutex);
+            std::lock_guard<std::mutex> lock(m_ip_map_mutex);
             m_ip_to_packets[pending_ip].push_back(ptr);
         }
         
