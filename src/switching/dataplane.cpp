@@ -8,9 +8,10 @@ module;
 #include <iostream>
 #include <sstream>
 #include <thread>
-#include "core/common/types.hpp"
 
 module MiniSonic.DataPlane;
+
+import MiniSonic.Core.Types;
 import MiniSonic.L2L3;
 
 import MiniSonic.SAI;

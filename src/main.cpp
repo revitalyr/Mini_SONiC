@@ -1,11 +1,9 @@
-#ifdef BOOST_FOUND
-#include "core/app.h"
-#else
-#include "core/app_basic.h"
-#endif
-#include "common/types.hpp"
+import MiniSonic.Core.Types;
+import MiniSonic.App;
+
 #include <iostream>
 #include <string_view>
+#include <memory>
 
 using namespace MiniSonic;
 

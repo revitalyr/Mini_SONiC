@@ -15,9 +15,10 @@ module;
 #include <sstream>
 #include <iomanip>
 #include <cstdint>
-#include "core/common/types.hpp"
 
 module MiniSonic.App;
+
+import MiniSonic.Core.Types;
 
 // Import our custom modules
 import MiniSonic.DataPlane;

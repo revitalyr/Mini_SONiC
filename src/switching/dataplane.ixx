@@ -16,9 +16,10 @@ module;
 #include <ranges>
 #include <span>
 #include <optional>
-#include "core/common/types.hpp"
 
 export module MiniSonic.DataPlane;
+
+import MiniSonic.Core.Types;
 
 // Import networking module
 import MiniSonic.Networking;

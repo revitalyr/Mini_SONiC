@@ -12,8 +12,8 @@ module;
 
 export module MiniSonic.Networking;
 
-// Import Utils module for Types namespace
-import MiniSonic.Core.Utils;
+// Import Types module
+import MiniSonic.Core.Types;
 
 // Re-export common standard library types
 

@@ -9,9 +9,10 @@ module;
 #include <mutex> // For std::mutex, std::lock_guard
 #include <chrono> // For std::chrono
 #include <functional> // For std::function
-#include "core/common/types.hpp"
 
 module MiniSonic.L2L3;
+
+import MiniSonic.Core.Types;
 
 // Import Packet type from DataPlane module
 using MiniSonic::DataPlane::Packet;

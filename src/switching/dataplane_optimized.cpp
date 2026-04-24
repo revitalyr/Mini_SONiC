@@ -15,7 +15,7 @@
 #include <immintrin.h> // For SIMD instructions
 
 #ifdef WIN32
-#include "core/common/types.hpp" // Corrected include path
+    import MiniSonic.Core.Types;
     // Windows-specific headers
     #include <windows.h>
     #include <process.h>

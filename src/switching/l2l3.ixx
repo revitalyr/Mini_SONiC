@@ -17,9 +17,10 @@ module;
 #include <ranges>
 #include <span>
 #include <optional>
-#include "core/common/types.hpp"
 
 export module MiniSonic.L2L3;
+
+import MiniSonic.Core.Types;
 
 // Import dependencies
 import MiniSonic.SAI;

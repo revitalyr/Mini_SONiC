@@ -9,9 +9,10 @@ module;
 #include <chrono> // For std::chrono
 #include <cstdint> // For uint32_t, uint64_t
 #include <optional> // For std::optional
-#include "core/common/types.hpp" // Ensure all Type aliases are visible
 
 export module MiniSonic.SAI;
+
+import MiniSonic.Core.Types;
 
 // Import Utils module for Types namespace
 import MiniSonic.Core.Utils; // Corrected module name
@@ -93,6 +94,8 @@ private:
     std::string m_switch_id;
     Events::EventBus& m_event_bus;
     unordered_map<Types::PortId, PortInfo> m_ports;  // semantic alias
+    unordered_map<Types::MacAddress, Types::PortId> m_fdb;
+    unordered_map<Types::IpAddress, Types::IpAddress> m_routes;
     mutable mutex m_ports_mutex;
 
     void updateOperState(Types::PortId port_id);

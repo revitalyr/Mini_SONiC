@@ -1,20 +1,23 @@
 module;
 
-#include <memory> // For std::unique_ptr, std::shared_ptr
-#include <string> // For std::string
-#include <vector> // For std::vector
-#include <atomic> // For std::atomic
-#include <mutex> // For std::mutex, std::lock_guard
-#include <iostream> // For std::cout, std::cerr
-#include <sstream> // For std::ostringstream
-#include <chrono> // For std::chrono
-#include <algorithm> // For std::sort, std::transform
-#include <iomanip> // For std::fixed, std::setprecision
-#include <limits> // For std::numeric_limits
-#include <unordered_map> // For std::unordered_map
-#include <cctype> // For std::isxdigit
+#include <string>
+#include <vector>
+#include <atomic>
+#include <mutex>
+#include <iostream>
+#include <sstream>
+#include <chrono>
+#include <algorithm>
+#include <iomanip>
+#include <limits>
+#include <unordered_map>
+#include <cctype>
+#include <span>
+#include <numeric>
 
 module MiniSonic.Core.Utils;
+
+import MiniSonic.Core.Types;
 
 namespace MiniSonic::Utils {
 // Metrics Implementation
@@ -369,13 +372,8 @@ std::string formatIpAddress(const std::string& ip) {
     return ip; // Already in correct format
 }
 
-Types::Count calculateChecksum(const std::vector<uint8_t>& data) {
-    Types::Count checksum = 0;
-    
-    for (uint8_t byte : data) {
-        checksum += byte;
-    }
-    
+Types::Count calculateChecksum(std::span<const uint8_t> data) {
+    uint32_t checksum = std::accumulate(data.begin(), data.end(), 0u);
     return checksum & 0xFFFF; // 16-bit checksum
 }
 

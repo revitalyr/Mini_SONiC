@@ -154,4 +154,22 @@ void SimulatedSai::updateOperState(Types::PortId port_id) {
     }
 }
 
+bool SimulatedSai::addFdbEntry(Types::MacAddress mac, Types::PortId port) {
+    std::lock_guard<std::mutex> lock(m_ports_mutex);
+    m_fdb[mac] = port;
+    return true;
+}
+
+bool SimulatedSai::removeFdbEntry(Types::MacAddress mac) {
+    std::lock_guard<std::mutex> lock(m_ports_mutex);
+    m_fdb.erase(mac);
+    return true;
+}
+
+bool SimulatedSai::addRoute(Types::IpAddress prefix, [[maybe_unused]] Types::PrefixLength len, Types::IpAddress next_hop) {
+    std::lock_guard<std::mutex> lock(m_ports_mutex);
+    m_routes[prefix] = next_hop;
+    return true;
+}
+
 } // export namespace MiniSonic::SAI
