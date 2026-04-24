@@ -165,6 +165,8 @@ export struct EnhancedPacket {
     [[nodiscard]] uint8_t ttl() const noexcept { return m_ttl; }
     [[nodiscard]] uint8_t dscp() const noexcept { return m_tos >> 2; }
     [[nodiscard]] std::optional<uint16_t> vlanId() const noexcept { return m_vlan_id; }
+    [[nodiscard]] std::optional<uint16_t> srcPort() const noexcept { return m_src_port; }
+    [[nodiscard]] std::optional<uint16_t> dstPort() const noexcept { return m_dst_port; }
 
     // === Setters ===
     void setSrcMac(uint64_t mac) { m_src_mac = mac; }

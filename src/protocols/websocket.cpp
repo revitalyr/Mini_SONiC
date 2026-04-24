@@ -26,6 +26,9 @@ using std::function;
 using std::lock_guard;
 using std::mutex;
 using std::atomic;
+using std::shared_ptr;
+using std::unique_ptr;
+using std::thread;
 
 namespace MiniSonic::WebSocket {
 
@@ -169,7 +172,7 @@ void WebSocketGateway::start() {
         return;
     }
     
-    m_work = std::make_unique<asio::io_context::work>(m_io_context);
+    m_work_guard.emplace(asio::make_work_guard(m_io_context));
     m_io_thread = thread([this]() { m_io_context.run(); });
     
     doAccept();
@@ -196,9 +199,7 @@ void WebSocketGateway::stop() {
     error_code ec;
     m_acceptor.close(ec);
     
-    if (m_work) {
-        m_work.reset();
-    }
+    m_work_guard = std::nullopt;
     
     if (m_io_thread.joinable()) {
         m_io_thread.join();
@@ -461,7 +462,7 @@ void WebSocketClient::connect() {
     try {
         auto endpoints = resolver.resolve(m_host, m_port);
         
-        m_work = std::make_unique<asio::io_context::work>(m_io_context);
+        m_work_guard.emplace(asio::make_work_guard(m_io_context));
         m_io_thread = thread([this]() { m_io_context.run(); });
         
         asio::async_connect(m_socket, endpoints,
@@ -493,9 +494,7 @@ void WebSocketClient::disconnect() {
     m_running.store(false);
     m_connected.store(false);
     
-    if (m_work) {
-        m_work.reset();
-    }
+    m_work_guard = std::nullopt;
     
     error_code ec;
     m_socket.close(ec);

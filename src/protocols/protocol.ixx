@@ -27,7 +27,7 @@ using std::map;
 using std::atomic;
 using std::mutex;
 using std::variant;
-using std::byte;
+using Byte = uint8_t;
 
 export namespace MiniSonic::Protocol {
 
@@ -69,22 +69,22 @@ class Message {
 public:
     Message() = default;
 
-    explicit Message(MessageType type, vector<byte> payload)
+    explicit Message(MessageType type, vector<uint8_t> payload)
         : m_header{type, static_cast<uint32_t>(payload.size()), 0, 0}
         , m_payload(std::move(payload)) {}
 
     [[nodiscard]] const MessageHeader& header() const noexcept { return m_header; }
-    [[nodiscard]] const vector<byte>& payload() const noexcept { return m_payload; }
-    [[nodiscard]] vector<byte>& payload() noexcept { return m_payload; }
+    [[nodiscard]] const vector<uint8_t>& payload() const noexcept { return m_payload; }
+    [[nodiscard]] vector<uint8_t>& payload() noexcept { return m_payload; }
 
     // C++23: Get payload as span for efficient read-only access
-    [[nodiscard]] std::span<const byte> payloadSpan() const noexcept {
-        return std::span<const byte>(m_payload);
+    [[nodiscard]] std::span<const uint8_t> payloadSpan() const noexcept {
+        return std::span<const uint8_t>(m_payload);
     }
 
     // C++23: Get payload as span for efficient read-write access
-    [[nodiscard]] std::span<byte> payloadSpan() noexcept {
-        return std::span<byte>(m_payload);
+    [[nodiscard]] std::span<uint8_t> payloadSpan() noexcept {
+        return std::span<uint8_t>(m_payload);
     }
 
     void setType(MessageType type) noexcept { m_header.type = type; }
@@ -95,7 +95,7 @@ public:
 
 private:
     MessageHeader m_header;
-    vector<byte> m_payload;
+    vector<uint8_t> m_payload;
 };
 
 // =============================================================================
@@ -223,16 +223,16 @@ private:
  */
 class ITransport {
 public:
-    using ReceiveCallback = function<void(vector<byte>)>;
+    using ReceiveCallback = function<void(vector<uint8_t>)>;
     using ErrorCallback = function<void(const string&)>;
 
     virtual ~ITransport() = default;
 
-    virtual void connect(const string& address, Types::PortId port) = 0;  // semantic alias
-    virtual void listen(Types::PortId port) = 0;  // semantic alias
+    virtual void connect(const string& address, Types::PortId port) = 0;
+    virtual void listen(Types::PortId port) = 0;
     virtual void disconnect() = 0;
 
-    virtual void send(const vector<byte>& data) = 0;
+    virtual void send(const vector<uint8_t>& data) = 0;
 
     virtual void setReceiveHandler(ReceiveCallback handler) = 0;
     virtual void setErrorHandler(ErrorCallback handler) = 0;

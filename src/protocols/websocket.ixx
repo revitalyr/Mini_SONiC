@@ -13,6 +13,7 @@ module;
 #include <thread>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 
 export module MiniSonic.WebSocket;
 
@@ -135,7 +136,7 @@ private:
     Protocol::HandlerConfig m_config;
     
     asio::io_context m_io_context;
-    unique_ptr<asio::io_context::work> m_work;
+    std::optional<asio::executor_work_guard<asio::io_context::executor_type>> m_work_guard;
     tcp::acceptor m_acceptor;
     
     thread m_io_thread;
@@ -186,7 +187,7 @@ private:
     string m_path;
     
     asio::io_context m_io_context;
-    unique_ptr<asio::io_context::work> m_work;
+    std::optional<asio::executor_work_guard<asio::io_context::executor_type>> m_work_guard;
     tcp::socket m_socket;
     thread m_io_thread;
     

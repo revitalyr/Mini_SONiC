@@ -1,7 +1,10 @@
 #pragma once
 
-#include "common/types.hpp"
 #include <memory>
+#include <optional>
+#include <string>
+#include <vector>
+#include <span>
 
 namespace MiniSonic::L3 {
 
@@ -16,27 +19,24 @@ public:
     LpmTrie(LpmTrie&& other) noexcept = default;
     LpmTrie& operator=(LpmTrie&& other) noexcept = default;
 
-    void insert(
-        const Types::String& prefix, 
-        Types::PrefixLength prefix_len,
-        const Types::NextHop& next_hop
-    );
-
-    [[nodiscard]] Types::Optional<Types::NextHop> lookup(const Types::String& ip) const;
+    void insert(const std::string& network, int prefix_len, const std::string& next_hop);
+    void remove(const std::string& network, int prefix_len);
+    [[nodiscard]] std::optional<std::string> lookup(const std::string& ip) const;
+    [[nodiscard]] size_t size() const;
+    void clear();
+    [[nodiscard]] std::string getStats() const;
 
 private:
-    struct Node {
-        Types::UniquePtr<Node> m_left;   // bit 0
-        Types::UniquePtr<Node> m_right;  // bit 1
-        Types::Optional<Types::NextHop> m_next_hop;
-
-        Node() = default;
-        ~Node() = default;
+    struct TrieNode {
+        std::unique_ptr<TrieNode> children[2];
+        std::string next_hop;
+        bool is_route = false;
     };
 
-    Types::UniquePtr<Node> m_root = std::make_unique<Node>();
-    
-    [[nodiscard]] static std::uint32_t ipToInt(const Types::String& ip);
+    std::unique_ptr<TrieNode> m_root;
+
+    [[nodiscard]] static std::vector<bool> ipToBinary(const std::string& ip);
+    [[nodiscard]] static std::string binaryToIp(std::span<const bool> binary, int prefix_len);
 };
 
 } // namespace MiniSonic::L3

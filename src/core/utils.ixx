@@ -20,9 +20,9 @@ module;
 export module MiniSonic.Core.Utils;
 
 /**
- * @brief Internal types for the modular system
+ * @brief Types namespace for semantic type aliases
  */
-namespace Types {
+export namespace Types {
     // Semantic type aliases for domain clarity (C++23)
     export using PortId = uint16_t;           // Port identifier (semantic alias)
     export using MacAddress = uint64_t;       // MAC address (semantic alias)

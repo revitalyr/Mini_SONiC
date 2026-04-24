@@ -1,13 +1,18 @@
 #include <catch2/catch_all.hpp>
+#include "common/types.hpp"
+
 import MiniSonic.SAI;
+
+using MiniSonic::SAI::SimulatedSai;
+using namespace MiniSonic::Types;
 
 TEST_CASE("SaiInterface CreateAndRemovePort", "[sai]") {
     SimulatedSai sai;
     // Create port
-    sai.create_port(1);
+    sai.createPort(1);
 
     // Remove port
-    sai.remove_port(1);
+    sai.deletePort(1);
 
     // Should not crash or throw
 }
@@ -15,27 +20,27 @@ TEST_CASE("SaiInterface CreateAndRemovePort", "[sai]") {
 TEST_CASE("SaiInterface CreateMultiplePorts", "[sai]") {
     SimulatedSai sai;
     // Create multiple ports
-    sai.create_port(1);
-    sai.create_port(2);
-    sai.create_port(3);
-    sai.create_port(10);
-    sai.create_port(24);
+    sai.createPort(1);
+    sai.createPort(2);
+    sai.createPort(3);
+    sai.createPort(10);
+    sai.createPort(24);
 
     // Remove all ports
-    sai.remove_port(1);
-    sai.remove_port(2);
-    sai.remove_port(3);
-    sai.remove_port(10);
-    sai.remove_port(24);
+    sai.deletePort(1);
+    sai.deletePort(2);
+    sai.deletePort(3);
+    sai.deletePort(10);
+    sai.deletePort(24);
 }
 
 TEST_CASE("SaiInterface AddAndRemoveFdbEntry", "[sai]") {
     SimulatedSai sai;
     // Add FDB entry
-    sai.add_fdb_entry("aa:bb:cc:dd:ee:ff", 1);
+    sai.addFdbEntry(macToUint64("aa:bb:cc:dd:ee:ff"), 1);
 
     // Remove FDB entry
-    sai.remove_fdb_entry("aa:bb:cc:dd:ee:ff");
+    sai.removeFdbEntry(macToUint64("aa:bb:cc:dd:ee:ff"));
 
     // Should not crash or throw
 }
@@ -53,22 +58,22 @@ TEST_CASE("SaiInterface MultipleFdbEntries", "[sai]") {
 
     // Add all entries
     for (const auto& [mac, port] : entries) {
-        sai.add_fdb_entry(mac, port);
+        sai.addFdbEntry(macToUint64(mac), port);
     }
 
     // Remove all entries
     for (const auto& [mac, port] : entries) {
-        sai.remove_fdb_entry(mac);
+        sai.removeFdbEntry(macToUint64(mac));
     }
 }
 
 TEST_CASE("SaiInterface AddAndRemoveRoute", "[sai]") {
     SimulatedSai sai;
     // Add route
-    sai.add_route("10.0.0.0/24", "10.0.0.1");
+    sai.addRoute(ipToUint32("10.0.0.0"), 24, ipToUint32("10.0.0.1"));
 
     // Remove route
-    sai.remove_route("10.0.0.0/24");
+    sai.removeRoute(ipToUint32("10.0.0.0"));
 
     // Should not crash or throw
 }
@@ -86,45 +91,45 @@ TEST_CASE("SaiInterface MultipleRoutes", "[sai]") {
 
     // Add all routes
     for (const auto& [prefix, next_hop] : routes) {
-        sai.add_route(prefix, next_hop);
+        sai.addRoute(ipToUint32(prefix), 24, ipToUint32(next_hop));
     }
 
     // Remove all routes
     for (const auto& [prefix, next_hop] : routes) {
-        sai.remove_route(prefix);
+        sai.removeRoute(ipToUint32(prefix));
     }
 }
 
 TEST_CASE("SaiInterface OverwriteFdbEntry", "[sai]") {
     SimulatedSai sai;
     // Add initial FDB entry
-    sai.add_fdb_entry("aa:bb:cc:dd:ee:ff", 1);
+    sai.addFdbEntry(macToUint64("aa:bb:cc:dd:ee:ff"), 1);
 
     // Overwrite with different port
-    sai.add_fdb_entry("aa:bb:cc:dd:ee:ff", 2);
+    sai.addFdbEntry(macToUint64("aa:bb:cc:dd:ee:ff"), 2);
 
     // Remove entry
-    sai.remove_fdb_entry("aa:bb:cc:dd:ee:ff");
+    sai.removeFdbEntry(macToUint64("aa:bb:cc:dd:ee:ff"));
 }
 
 TEST_CASE("SaiInterface OverwriteRoute", "[sai]") {
     SimulatedSai sai;
     // Add initial route
-    sai.add_route("10.0.0.0/24", "10.0.0.1");
+    sai.addRoute(ipToUint32("10.0.0.0"), 24, ipToUint32("10.0.0.1"));
 
     // Overwrite with different next-hop
-    sai.add_route("10.0.0.0/24", "10.0.0.2");
+    sai.addRoute(ipToUint32("10.0.0.0"), 24, ipToUint32("10.0.0.2"));
 
     // Remove route
-    sai.remove_route("10.0.0.0/24");
+    sai.removeRoute(ipToUint32("10.0.0.0"));
 }
 
 TEST_CASE("SaiInterface RemoveNonExistentEntries", "[sai]") {
     SimulatedSai sai;
     // Try to remove non-existent entries (should not crash)
-    sai.remove_port(999);
-    sai.remove_fdb_entry("11:22:33:44:55:66");
-    sai.remove_route("192.168.100.0/24");
+    sai.deletePort(999);
+    sai.removeFdbEntry(macToUint64("11:22:33:44:55:66"));
+    sai.removeRoute(ipToUint32("192.168.100.0"));
 }
 
 TEST_CASE("SaiInterface ComplexMacAddresses", "[sai]") {
@@ -140,8 +145,8 @@ TEST_CASE("SaiInterface ComplexMacAddresses", "[sai]") {
     };
 
     for (const auto& mac : macs) {
-        sai.add_fdb_entry(mac, 1);
-        sai.remove_fdb_entry(mac);
+        sai.addFdbEntry(macToUint64(mac), 1);
+        sai.removeFdbEntry(macToUint64(mac));
     }
 }
 
@@ -160,8 +165,8 @@ TEST_CASE("SaiInterface ComplexRoutePrefixes", "[sai]") {
     };
 
     for (const auto& prefix : prefixes) {
-        sai.add_route(prefix, "192.168.1.1");
-        sai.remove_route(prefix);
+        sai.addRoute(ipToUint32(prefix), 24, ipToUint32("192.168.1.1"));
+        sai.removeRoute(ipToUint32(prefix));
     }
 }
 
@@ -170,34 +175,34 @@ TEST_CASE("SaiInterface MixedOperations", "[sai]") {
     // Perform mixed operations to test state management
 
     // Create ports
-    sai.create_port(1);
-    sai.create_port(2);
-    sai.create_port(3);
+    sai.createPort(1);
+    sai.createPort(2);
+    sai.createPort(3);
 
     // Add FDB entries
-    sai.add_fdb_entry("aa:bb:cc:dd:ee:01", 1);
-    sai.add_fdb_entry("aa:bb:cc:dd:ee:02", 2);
-    sai.add_fdb_entry("aa:bb:cc:dd:ee:03", 3);
+    sai.addFdbEntry(macToUint64("aa:bb:cc:dd:ee:01"), 1);
+    sai.addFdbEntry(macToUint64("aa:bb:cc:dd:ee:02"), 2);
+    sai.addFdbEntry(macToUint64("aa:bb:cc:dd:ee:03"), 3);
 
     // Add routes
-    sai.add_route("10.0.0.0/24", "10.0.0.1");
-    sai.add_route("192.168.1.0/24", "192.168.1.1");
+    sai.addRoute(ipToUint32("10.0.0.0"), 24, ipToUint32("10.0.0.1"));
+    sai.addRoute(ipToUint32("192.168.1.0"), 24, ipToUint32("192.168.1.1"));
 
     // Update some entries
-    sai.add_fdb_entry("aa:bb:cc:dd:ee:01", 2);  // Move to different port
-    sai.add_route("10.0.0.0/24", "10.0.0.2");   // Change next-hop
+    sai.addFdbEntry(macToUint64("aa:bb:cc:dd:ee:01"), 2);  // Move to different port
+    sai.addRoute(ipToUint32("10.0.0.0"), 24, ipToUint32("10.0.0.2"));   // Change next-hop
 
     // Remove some entries
-    sai.remove_fdb_entry("aa:bb:cc:dd:ee:03");
-    sai.remove_route("192.168.1.0/24");
+    sai.removeFdbEntry(macToUint64("aa:bb:cc:dd:ee:03"));
+    sai.removeRoute(ipToUint32("192.168.1.0"));
 
     // Clean up
-    sai.remove_fdb_entry("aa:bb:cc:dd:ee:01");
-    sai.remove_fdb_entry("aa:bb:cc:dd:ee:02");
-    sai.remove_route("10.0.0.0/24");
-    sai.remove_port(1);
-    sai.remove_port(2);
-    sai.remove_port(3);
+    sai.removeFdbEntry(macToUint64("aa:bb:cc:dd:ee:01"));
+    sai.removeFdbEntry(macToUint64("aa:bb:cc:dd:ee:02"));
+    sai.removeRoute(ipToUint32("10.0.0.0"));
+    sai.deletePort(1);
+    sai.deletePort(2);
+    sai.deletePort(3);
 }
 
 TEST_CASE("SaiInterface LargeScaleOperations", "[sai]") {
@@ -206,7 +211,7 @@ TEST_CASE("SaiInterface LargeScaleOperations", "[sai]") {
 
     // Create many ports
     for (int i = 1; i <= 48; ++i) {
-        sai.create_port(i);
+        sai.createPort(i);
     }
 
     // Add many FDB entries
@@ -215,23 +220,23 @@ TEST_CASE("SaiInterface LargeScaleOperations", "[sai]") {
                          std::string(i < 16 ? "0" : "") +
                          std::string(i < 256 ? "0" : "") +
                          std::to_string(i % 256);
-        sai.add_fdb_entry(mac, i % 48 + 1);
+        sai.addFdbEntry(macToUint64(mac), static_cast<PortId>(i % 48 + 1));
     }
 
     // Add many routes
     for (int i = 0; i < 100; ++i) {
         std::string prefix = "10." + std::to_string(i) + ".0.0/16";
         std::string next_hop = "10." + std::to_string(i) + ".0.1";
-        sai.add_route(prefix, next_hop);
+        sai.addRoute(ipToUint32(prefix), 16, ipToUint32(next_hop));
     }
 
     // Clean up (simplified - in real test would track all entries)
     for (int i = 0; i < 100; ++i) {
         std::string prefix = "10." + std::to_string(i) + ".0.0/16";
-        sai.remove_route(prefix);
+        sai.removeRoute(ipToUint32(prefix));
     }
 
     for (int i = 1; i <= 48; ++i) {
-        sai.remove_port(i);
+        sai.deletePort(i);
     }
 }

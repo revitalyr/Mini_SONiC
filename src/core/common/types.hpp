@@ -18,8 +18,8 @@ using String = std::string;
 using StringView = std::string_view;
 
 // Network-related types
-using MacAddress = String;
-using IpAddress = String;
+using MacAddress = std::uint64_t;
+using IpAddress = std::uint32_t;
 using Port = std::uint16_t;
 using NextHop = String;
 
@@ -75,5 +75,27 @@ using Map = std::unordered_map<K, V>;
 
 using FdbTable = Map<MacAddress, Port>;
 using RoutingTable = Map<IpAddress, NextHop>;
+
+// Conversion helpers for tests and logging
+inline MacAddress macToUint64(const std::string& mac) {
+    std::uint64_t res = 0;
+    unsigned int bytes[6];
+    if (sscanf_s(mac.c_str(), "%x:%x:%x:%x:%x:%x",
+                    &bytes[0], &bytes[1], &bytes[2], &bytes[3], &bytes[4], &bytes[5]) == 6) {
+        for (int i = 0; i < 6; ++i) res = (res << 8) | (bytes[i] & 0xFF);
+    }
+    return res;
+}
+
+inline IpAddress ipToUint32(const std::string& ip) {
+    unsigned int bytes[4];
+    if (sscanf_s(ip.c_str(), "%u.%u.%u.%u", &bytes[0], &bytes[1], &bytes[2], &bytes[3]) == 4) {
+        return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    }
+    return 0;
+}
+
+using PortId = std::uint16_t;
+using PacketCount = std::uint64_t;
 
 } // namespace MiniSonic::Types

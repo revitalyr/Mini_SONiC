@@ -50,9 +50,9 @@ static uint32_t ipStringToUint32(const std::string& ip) {
 
 // App Implementation
 App::App(
-    Types::Port listen_port,
+    Types::PortId listen_port,
     const std::string& peer_ip,
-    Types::Port peer_port
+    Types::PortId peer_port
 ) : m_listen_port(listen_port),
     m_peer_ip(peer_ip),
     m_peer_port(peer_port) {

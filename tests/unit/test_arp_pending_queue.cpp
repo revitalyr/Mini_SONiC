@@ -5,6 +5,7 @@
 
 #include <catch2/catch_all.hpp>
 
+import MiniSonic.Core.Utils;
 import MiniSonic.L3.ArpPendingQueue;
 import MiniSonic.DataPlane.PacketEnhanced;
 import MiniSonic.Boost.Wrappers;
@@ -12,14 +13,16 @@ import MiniSonic.Boost.Wrappers;
 using namespace MiniSonic::L3;
 using namespace MiniSonic::DataPlane;
 using namespace MiniSonic::BoostWrapper;
+using namespace MiniSonic::Types;
 
 // Helper to create a test packet
 std::shared_ptr<EnhancedPacket> createTestPacket(const std::string& src_ip, const std::string& dst_ip) {
+    // Use macToUint64 and ipToUint32 for conversion
     auto pkt = std::make_shared<EnhancedPacket>(
-        "aa:bb:cc:dd:ee:01",
-        "aa:bb:cc:dd:ee:02",
-        src_ip,
-        dst_ip,
+        macToUint64("aa:bb:cc:dd:ee:01"),
+        macToUint64("aa:bb:cc:dd:ee:02"),
+        ipToUint32(src_ip),
+        ipToUint32(dst_ip),
         1,
         ProtocolType::TCP
     );

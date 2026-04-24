@@ -34,9 +34,9 @@ public:
      * @param peer_port Peer switch port (optional)
      */
     App(
-        Types::Port listen_port = 9000,
+        Types::PortId listen_port = 9000,
         const std::string& peer_ip = "",
-        Types::Port peer_port = 0
+        Types::PortId peer_port = 0
     );
     
     ~App() = default;
@@ -91,9 +91,9 @@ private:
     std::unique_ptr<Networking::INetworkProvider> m_network_link;
 
     // Configuration
-    const Types::Port m_listen_port;
+    const Types::PortId m_listen_port;
     const std::string m_peer_ip;
-    const Types::Port m_peer_port;
+    const Types::PortId m_peer_port;
 
     // State
     std::atomic<bool> m_running{false};

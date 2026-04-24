@@ -5,6 +5,7 @@
 #include "common/types.hpp"
 
 #include <boost/asio.hpp>
+#include <boost/system/system_error.hpp>
 #include <memory>
 #include <string>
 #include <functional>

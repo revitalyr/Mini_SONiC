@@ -15,6 +15,7 @@
 #include <immintrin.h> // For SIMD instructions
 
 #ifdef WIN32
+#include "common/types.hpp"
     // Windows-specific headers
     #include <windows.h>
     #include <process.h>
@@ -283,9 +284,9 @@ std::string PacketPool::getStats() const {
 OptimizedPacket::OptimizedPacket(
     const std::string& src_mac,
     const std::string& dst_mac,
-    const std::string& src_ip,
-    const std::string& dst_ip,
-    uint32_t ingress_port
+    const std::string& src_ip_str, // Renamed to avoid conflict with member
+    const std::string& dst_ip_str, // Renamed to avoid conflict with member
+    uint32_t ingress_port // Renamed to avoid conflict with member
 ) : m_ingress_port(ingress_port),
     m_timestamp(static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::microseconds>(
@@ -293,33 +294,15 @@ OptimizedPacket::OptimizedPacket(
         ).count()
     )) {
     
-    // Parse and pack MAC addresses
-    auto parse_mac = [](const std::string& mac_str, uint8_t* mac_array) {
-        std::istringstream iss(mac_str);
-        std::string octet;
-        for (int i = 0; i < 6; ++i) {
-            std::getline(iss, octet, ':');
-            mac_array[i] = static_cast<uint8_t>(std::stoi(octet, nullptr, 16));
-        }
-    };
-    
-    parse_mac(src_mac, m_src_mac);
-    parse_mac(dst_mac, m_dst_mac);
-    
-    // Parse and pack IP addresses
-    auto parse_ip = [](const std::string& ip_str) -> uint32_t {
-        std::istringstream iss(ip_str);
-        std::string octet;
-        uint32_t ip = 0;
-        for (int i = 0; i < 4; ++i) {
-            std::getline(iss, octet, '.');
-            ip = (ip << 8) | static_cast<uint32_t>(std::stoi(octet));
-        }
-        return ip;
-    };
-    
-    m_src_ip = parse_ip(src_ip);
-    m_dst_ip = parse_ip(dst_ip);
+    // Use conversion helpers from common/types.hpp
+    MiniSonic::Types::MacAddress src_mac_uint = MiniSonic::Types::macToUint64(src_mac);
+    MiniSonic::Types::MacAddress dst_mac_uint = MiniSonic::Types::macToUint64(dst_mac);
+
+    std::memcpy(m_src_mac, &src_mac_uint, 6);
+    std::memcpy(m_dst_mac, &dst_mac_uint, 6);
+
+    m_src_ip = MiniSonic::Types::ipToUint32(src_ip_str);
+    m_dst_ip = MiniSonic::Types::ipToUint32(dst_ip_str);
 }
 
 // OptimizedProcessor Implementation

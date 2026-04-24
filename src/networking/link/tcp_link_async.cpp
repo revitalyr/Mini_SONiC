@@ -291,7 +291,8 @@ DataPlane::Packet TcpLinkAsync::deserializePacket(const Types::String& data) {
     iss >> ingress_port;
     
     return DataPlane::Packet(
-        src_mac, dst_mac, src_ip, dst_ip, ingress_port
+        Types::macToUint64(src_mac), Types::macToUint64(dst_mac),
+        Types::ipToUint32(src_ip), Types::ipToUint32(dst_ip), ingress_port
     );
 }
 

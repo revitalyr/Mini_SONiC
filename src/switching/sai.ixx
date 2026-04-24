@@ -9,6 +9,7 @@ module;
 #include <chrono> // For std::chrono
 #include <cstdint> // For uint32_t, uint64_t
 #include <optional> // For std::optional
+#include "core/common/types.hpp" // Ensure all Type aliases are visible
 
 export module MiniSonic.SAI;
 
@@ -43,6 +44,12 @@ public:
     virtual bool setPortState(Types::PortId port_id, bool admin_state) = 0;
     virtual std::optional<bool> getPortState(Types::PortId port_id) const = 0;
     virtual vector<Types::PortId> getPortList() const = 0;
+    
+    virtual bool addFdbEntry(Types::MacAddress mac, Types::PortId port) = 0;
+    virtual bool removeFdbEntry(Types::MacAddress mac) = 0;
+    virtual bool addRoute(Types::IpAddress prefix, Types::PrefixLength len, Types::IpAddress next_hop) = 0;
+    virtual bool removeRoute(Types::IpAddress prefix) = 0;
+
     virtual string getStats() const = 0;
 };
 
@@ -63,6 +70,11 @@ public:
     std::optional<bool> getPortState(Types::PortId port_id) const override;
     vector<Types::PortId> getPortList() const override;
     string getStats() const override;
+
+    bool addFdbEntry(Types::MacAddress mac, Types::PortId port) override;
+    bool removeFdbEntry(Types::MacAddress mac) override;
+    bool addRoute(Types::IpAddress prefix, Types::PrefixLength len, Types::IpAddress next_hop) override;
+    bool removeRoute(Types::IpAddress prefix) override;
 
     /**
      * @brief Set switch ID for event emission

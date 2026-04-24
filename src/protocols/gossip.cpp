@@ -562,7 +562,7 @@ void GossipNode::leave() {
 }
 
 void GossipNode::broadcast(const vector<uint8_t>& data) {
-    Protocol::Message msg(Protocol::MessageType::DATA, data);
+    Protocol::Message msg(Protocol::MessageType::MSG_DATA, data);
     m_protocol->broadcast(msg);
 }
 

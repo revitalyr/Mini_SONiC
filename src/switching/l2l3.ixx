@@ -15,6 +15,7 @@ module;
 #include <ranges>
 #include <span>
 #include <optional>
+#include "core/common/types.hpp"
 
 export module MiniSonic.L2L3;
 
@@ -85,6 +86,9 @@ private:
 
 export namespace MiniSonic::L3 {
 
+using std::unordered_map;
+using std::mutex;
+
 /**
  * @brief Longest Prefix Match (LPM) Trie
  *
@@ -92,13 +96,13 @@ export namespace MiniSonic::L3 {
  */
 export class LpmTrie {
 public:
-    LpmTrie() = default;
+    LpmTrie();
     ~LpmTrie() = default;
 
     // Route management
-    void insert(const std::string& network, int prefix_len, const std::string& next_hop);
-    void remove(const std::string& network, int prefix_len);
-    std::optional<std::string> lookup(const std::string& ip) const;
+    void insert(Types::IpAddress network, Types::PrefixLength prefix_len, Types::IpAddress next_hop);
+    void remove(Types::IpAddress network, Types::PrefixLength prefix_len);
+    std::optional<Types::IpAddress> lookup(Types::IpAddress ip) const;
 
     // Utility methods
     size_t size() const;
@@ -108,14 +112,13 @@ public:
 private:
     struct TrieNode {
         std::unique_ptr<TrieNode> children[2];
-        std::string next_hop;
+        Types::IpAddress next_hop = 0;
         bool is_route = false;
     };
 
     std::unique_ptr<TrieNode> m_root;
 
-    static std::vector<bool> ipToBinary(const std::string& ip);
-    static std::string binaryToIp(std::span<const bool> binary, int prefix_len);
+    static std::vector<bool> ipToBinary(Types::IpAddress ip);
 };
 
 /**
@@ -130,8 +133,8 @@ public:
 
     // Public interface
     bool handle(MiniSonic::DataPlane::Packet& pkt);
-    bool addRoute(const std::string& network, int prefix_len, const std::string& next_hop);
-    bool removeRoute(const std::string& network, int prefix_len);
+    bool addRoute(Types::IpAddress network, Types::PrefixLength prefix_len, Types::IpAddress next_hop);
+    bool removeRoute(Types::IpAddress network, Types::PrefixLength prefix_len);
     std::string getStats() const;
 
     /**
@@ -143,11 +146,11 @@ private:
     SAI::SaiInterface& m_sai;
     std::string m_switch_id;
     Events::EventBus& m_event_bus;
-    LpmTrie m_routing_table;
-    unordered_map<std::string, std::string> m_routes; // network -> next_hop
+    std::unique_ptr<LpmTrie> m_lpm_trie;
+    unordered_map<uint32_t, Types::IpAddress> m_routes; // network -> next_hop
     mutable mutex m_routes_mutex;
 
-    bool isLocalIp(const std::string& ip) const;
+    bool isLocalIp(Types::IpAddress ip) const;
     bool forwardPacket(MiniSonic::DataPlane::Packet& pkt);
 };
 

@@ -1,19 +1,20 @@
 #include <catch2/catch_all.hpp>
+#include "common/types.hpp"
 import MiniSonic.L2L3;
 import MiniSonic.SAI;
 import MiniSonic.DataPlane;
+
+using namespace MiniSonic::L2;
+using namespace MiniSonic::SAI;
+using namespace MiniSonic::DataPlane;
+using namespace MiniSonic::Types;
 
 TEST_CASE("L2Service HandlePacketLearnsMacAddress", "[l2]") {
     SimulatedSai sai;
     L2Service l2(sai);
     
-    Packet pkt{
-        .src_mac = "aa:bb:cc:dd:ee:ff",
-        .dst_mac = "ff:ee:dd:cc:bb:aa",
-        .src_ip = "10.0.0.1",
-        .dst_ip = "10.0.0.2",
-        .ingress_port = 1
-    };
+    Packet pkt(macToUint64("aa:bb:cc:dd:ee:ff"), macToUint64("ff:ee:dd:cc:bb:aa"),
+               ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), 1);
 
     bool handled = l2.handle(pkt);
     
@@ -26,23 +27,13 @@ TEST_CASE("L2Service ForwardKnownDestination", "[l2]") {
     L2Service l2(sai);
     
     // First learn a MAC address
-    Packet learn_pkt{
-        .src_mac = "11:22:33:44:55:66",
-        .dst_mac = "ff:ff:ff:ff:ff:ff",
-        .src_ip = "10.0.0.1",
-        .dst_ip = "10.0.0.2",
-        .ingress_port = 1
-    };
+    Packet learn_pkt(macToUint64("11:22:33:44:55:66"), macToUint64("ff:ff:ff:ff:ff:ff"),
+                     ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), 1);
     l2.handle(learn_pkt);
 
     // Now send packet to known MAC
-    Packet forward_pkt{
-        .src_mac = "aa:bb:cc:dd:ee:ff",
-        .dst_mac = "11:22:33:44:55:66",  // Known destination
-        .src_ip = "10.0.0.3",
-        .dst_ip = "10.0.0.4",
-        .ingress_port = 2
-    };
+    Packet forward_pkt(macToUint64("aa:bb:cc:dd:ee:ff"), macToUint64("11:22:33:44:55:66"),
+                       ipToUint32("10.0.0.3"), ipToUint32("10.0.0.4"), 2);
 
     bool handled = l2.handle(forward_pkt);
     REQUIRE(handled);
@@ -52,13 +43,8 @@ TEST_CASE("L2Service FloodUnknownDestination", "[l2]") {
     SimulatedSai sai;
     L2Service l2(sai);
     
-    Packet pkt{
-        .src_mac = "aa:bb:cc:dd:ee:ff",
-        .dst_mac = "99:88:77:66:55:44",  // Unknown destination
-        .src_ip = "10.0.0.1",
-        .dst_ip = "10.0.0.2",
-        .ingress_port = 1
-    };
+    Packet pkt(macToUint64("aa:bb:cc:dd:ee:ff"), macToUint64("99:88:77:66:55:44"),
+               ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), 1);
 
     bool handled = l2.handle(pkt);
     REQUIRE(handled);
@@ -77,25 +63,15 @@ TEST_CASE("L2Service MultipleMacLearning", "[l2]") {
     };
 
     for (const auto& [mac, port] : macs) {
-        Packet pkt{
-            .src_mac = mac,
-            .dst_mac = "ff:ff:ff:ff:ff:ff",
-            .src_ip = "10.0.0.1",
-            .dst_ip = "10.0.0.2",
-            .ingress_port = port
-        };
+        Packet pkt(macToUint64(mac), macToUint64("ff:ff:ff:ff:ff:ff"),
+                   ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), static_cast<Types::PortId>(port));
         l2.handle(pkt);
     }
 
     // Test forwarding to each learned MAC
     for (const auto& [mac, port] : macs) {
-        Packet pkt{
-            .src_mac = "00:11:22:33:44:55",
-            .dst_mac = mac,
-            .src_ip = "10.0.0.100",
-            .dst_ip = "10.0.0.200",
-            .ingress_port = 4  // Different port
-        };
+        Packet pkt(macToUint64("00:11:22:33:44:55"), macToUint64(mac),
+                   ipToUint32("10.0.0.100"), ipToUint32("10.0.0.200"), 4);
         bool handled = l2.handle(pkt);
         REQUIRE(handled);
     }
@@ -106,33 +82,18 @@ TEST_CASE("L2Service MacUpdateOnDifferentPort", "[l2]") {
     L2Service l2(sai);
     
     // Learn MAC on port 1
-    Packet pkt1{
-        .src_mac = "aa:bb:cc:dd:ee:ff",
-        .dst_mac = "ff:ff:ff:ff:ff:ff",
-        .src_ip = "10.0.0.1",
-        .dst_ip = "10.0.0.2",
-        .ingress_port = 1
-    };
+    Packet pkt1(macToUint64("aa:bb:cc:dd:ee:ff"), macToUint64("ff:ff:ff:ff:ff:ff"),
+                ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), 1);
     l2.handle(pkt1);
 
     // Re-learn same MAC on port 2 (should update)
-    Packet pkt2{
-        .src_mac = "aa:bb:cc:dd:ee:ff",
-        .dst_mac = "ff:ff:ff:ff:ff:ff",
-        .src_ip = "10.0.0.1",
-        .dst_ip = "10.0.0.2",
-        .ingress_port = 2
-    };
+    Packet pkt2(macToUint64("aa:bb:cc:dd:ee:ff"), macToUint64("ff:ff:ff:ff:ff:ff"),
+                ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), 2);
     l2.handle(pkt2);
 
     // Send packet to this MAC - should go to port 2
-    Packet pkt3{
-        .src_mac = "11:22:33:44:55:66",
-        .dst_mac = "aa:bb:cc:dd:ee:ff",
-        .src_ip = "10.0.0.3",
-        .dst_ip = "10.0.0.4",
-        .ingress_port = 3
-    };
+    Packet pkt3(macToUint64("11:22:33:44:55:66"), macToUint64("aa:bb:cc:dd:ee:ff"),
+                ipToUint32("10.0.0.3"), ipToUint32("10.0.0.4"), 3);
     bool handled = l2.handle(pkt3);
     REQUIRE(handled);
 }
@@ -141,13 +102,8 @@ TEST_CASE("L2Service BroadcastHandling", "[l2]") {
     SimulatedSai sai;
     L2Service l2(sai);
     
-    Packet pkt{
-        .src_mac = "aa:bb:cc:dd:ee:ff",
-        .dst_mac = "ff:ff:ff:ff:ff:ff",  // Broadcast address
-        .src_ip = "10.0.0.1",
-        .dst_ip = "10.0.0.2",
-        .ingress_port = 1
-    };
+    Packet pkt(macToUint64("aa:bb:cc:dd:ee:ff"), macToUint64("ff:ff:ff:ff:ff:ff"),
+               ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), 1);
 
     bool handled = l2.handle(pkt);
     REQUIRE(handled);
@@ -158,13 +114,8 @@ TEST_CASE("L2Service MulticastHandling", "[l2]") {
     SimulatedSai sai;
     L2Service l2(sai);
     
-    Packet pkt{
-        .src_mac = "aa:bb:cc:dd:ee:ff",
-        .dst_mac = "01:00:5e:00:00:01",  // Multicast address
-        .src_ip = "10.0.0.1",
-        .dst_ip = "10.0.0.2",
-        .ingress_port = 1
-    };
+    Packet pkt(macToUint64("aa:bb:cc:dd:ee:ff"), macToUint64("01:00:5e:00:00:01"),
+               ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), 1);
 
     bool handled = l2.handle(pkt);
     REQUIRE(handled);
@@ -176,13 +127,8 @@ TEST_CASE("L2Service EmptyMacTableFlood", "[l2]") {
     L2Service l2(sai);
     
     // Send packet without any learned MACs
-    Packet pkt{
-        .src_mac = "aa:bb:cc:dd:ee:ff",
-        .dst_mac = "11:22:33:44:55:66",
-        .src_ip = "10.0.0.1",
-        .dst_ip = "10.0.0.2",
-        .ingress_port = 1
-    };
+    Packet pkt(macToUint64("aa:bb:cc:dd:ee:ff"), macToUint64("11:22:33:44:55:66"),
+               ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), 1);
 
     bool handled = l2.handle(pkt);
     REQUIRE(handled);

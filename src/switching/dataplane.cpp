@@ -1,23 +1,24 @@
 module;
 
-#include <memory> // For std::unique_ptr, std::shared_ptr
-#include <string> // For std::string
-#include <vector> // For std::vector
-#include <atomic> // For std::atomic
-#include <chrono> // For std::chrono
-#include <iostream> // For std::cout, std::cerr
-#include <sstream> // For std::ostringstream
+#include <memory>
+#include <string>
+#include <vector>
+#include <atomic>
+#include <chrono>
+#include <iostream>
+#include <sstream>
+#include <thread>
 
 module MiniSonic.DataPlane;
+import MiniSonic.L2L3;
 
-// Import local modules
 import MiniSonic.SAI;
-import MiniSonic.Events;
+import MiniSonic.Core.Events;
 
 namespace MiniSonic::DataPlane {
 
 // Pipeline Implementation
-Pipeline::Pipeline(SAI::SaiInterface& sai, const string& switch_id)
+Pipeline::Pipeline(SAI::SaiInterface& sai, const std::string& switch_id)
     : m_sai(sai),
       m_switch_id(switch_id),
       m_event_bus(Events::getGlobalEventBus()) {
@@ -162,6 +163,10 @@ std::string PipelineThread::getStats() const {
     }
     
     return oss.str();
+}
+
+MiniSonic::L3::L3Service& Pipeline::getL3() {
+    return m_l3_service;
 }
 
 void PipelineThread::run() {
