@@ -6,7 +6,7 @@
 #include <catch2/catch_all.hpp>
 #include <thread>
 #include <chrono>
-#include "common/types.hpp"
+#include "core/common/types.hpp" // Corrected include path
 
 import MiniSonic.DataPlane.PacketEnhanced;
 import MiniSonic.Core.Utils;

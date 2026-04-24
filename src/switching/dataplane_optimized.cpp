@@ -15,7 +15,7 @@
 #include <immintrin.h> // For SIMD instructions
 
 #ifdef WIN32
-#include "common/types.hpp"
+#include "core/common/types.hpp" // Corrected include path
     // Windows-specific headers
     #include <windows.h>
     #include <process.h>

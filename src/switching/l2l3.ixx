@@ -4,11 +4,13 @@ module;
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 #include <unordered_map>
 #include <atomic>
 #include <mutex>
 #include <iostream>
 #include <sstream>
+#include <cstdio>
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -20,17 +22,105 @@ module;
 export module MiniSonic.L2L3;
 
 // Import dependencies
-import MiniSonic.DataPlane;
 import MiniSonic.SAI;
-
-// Import Utils module for Types namespace
 import MiniSonic.Core.Utils;
-
-// Import Constants module
 import MiniSonic.Core.Constants;
-
-// Import Events module for visualization events
 import MiniSonic.Core.Events;
+
+export namespace MiniSonic::DataPlane {
+
+/**
+ * @brief Network packet representation
+ *
+ * Represents a network packet with L2 and L3 headers using modern C++23.
+ */
+export class Packet {
+public:
+    Types::MacAddress m_src_mac;
+    Types::MacAddress m_dst_mac;
+    Types::IpAddress m_src_ip;
+    Types::IpAddress m_dst_ip;
+    Types::PortId m_ingress_port;
+    uint64_t m_id;
+
+    std::chrono::high_resolution_clock::time_point timestamp;
+
+    Packet() : m_id(0) {}
+
+    Packet(
+        Types::MacAddress src_mac,
+        Types::MacAddress dst_mac,
+        Types::IpAddress src_ip,
+        Types::IpAddress dst_ip,
+        Types::PortId ingress_port,
+        uint64_t id = 0
+    ) : m_src_mac(std::move(src_mac)),
+        m_dst_mac(std::move(dst_mac)),
+        m_src_ip(std::move(src_ip)),
+        m_dst_ip(std::move(dst_ip)),
+        m_ingress_port(ingress_port),
+        m_id(id),
+        timestamp(std::chrono::high_resolution_clock::now()) {}
+
+    Packet(Packet&& other) noexcept = default;
+    Packet& operator=(Packet&& other) noexcept = default;
+    Packet(const Packet& other) = default;
+    Packet& operator=(const Packet& other) = default;
+    ~Packet() = default;
+
+    [[nodiscard]] const Types::MacAddress& srcMac() const noexcept { return m_src_mac; }
+    [[nodiscard]] const Types::MacAddress& dstMac() const noexcept { return m_dst_mac; }
+    [[nodiscard]] const Types::IpAddress& srcIp() const noexcept { return m_src_ip; }
+    [[nodiscard]] const Types::IpAddress& dstIp() const noexcept { return m_dst_ip; }
+    [[nodiscard]] Types::PortId ingressPort() const noexcept { return m_ingress_port; }
+    [[nodiscard]] uint64_t id() const noexcept { return m_id; }
+
+    void setSrcMac(Types::MacAddress mac) { m_src_mac = std::move(mac); }
+    void setDstMac(Types::MacAddress mac) { m_dst_mac = std::move(mac); }
+    void setSrcIp(Types::IpAddress ip) { m_src_ip = std::move(ip); }
+    void setDstIp(Types::IpAddress ip) { m_dst_ip = std::move(ip); }
+    void setIngressPort(Types::PortId port) { m_ingress_port = port; }
+    void setId(uint64_t id) { m_id = id; }
+
+    void updateTimestamp() noexcept {
+        timestamp = std::chrono::high_resolution_clock::now();
+    }
+
+    [[nodiscard]] Events::PacketInfo toPacketInfo() const {
+        return Events::PacketInfo{
+            .id = m_id,
+            .src_mac = formatMac(m_src_mac),
+            .dst_mac = formatMac(m_dst_mac),
+            .src_ip = formatIp(m_src_ip),
+            .dst_ip = formatIp(m_dst_ip),
+            .src_port = 0,
+            .dst_port = 0,
+            .protocol = "IPv4",
+            .dscp = 0,
+            .ttl = 64
+        };
+    }
+
+private:
+    static std::string formatMac(Types::MacAddress mac) {
+        char buf[18];
+        snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
+                 static_cast<unsigned int>((mac >> 40) & 0xFF), static_cast<unsigned int>((mac >> 32) & 0xFF),
+                 static_cast<unsigned int>((mac >> 24) & 0xFF), static_cast<unsigned int>((mac >> 16) & 0xFF),
+                 static_cast<unsigned int>((mac >> 8) & 0xFF), static_cast<unsigned int>(mac & 0xFF));
+        return std::string(buf);
+    }
+
+    static std::string formatIp(Types::IpAddress ip) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%u.%u.%u.%u",
+                 static_cast<unsigned int>((ip >> 24) & 0xFF), static_cast<unsigned int>((ip >> 16) & 0xFF),
+                 static_cast<unsigned int>((ip >> 8) & 0xFF), static_cast<unsigned int>(ip & 0xFF));
+        return std::string(buf);
+    }
+};
+
+} // namespace MiniSonic::DataPlane
 
 export namespace MiniSonic::L2 {
 
@@ -49,7 +139,7 @@ namespace chrono = std::chrono;
  */
 export class L2Service {
 public:
-    explicit L2Service(SAI::SaiInterface& sai, const std::string& switch_id = "SWITCH0");
+    explicit L2Service(::MiniSonic::SAI::SaiInterface& sai, const std::string& switch_id = "SWITCH0");
     ~L2Service() = default;
 
     // Public interface
@@ -128,7 +218,7 @@ private:
  */
 export class L3Service {
 public:
-    explicit L3Service(SAI::SaiInterface& sai, const std::string& switch_id = "SWITCH0");
+    explicit L3Service(::MiniSonic::SAI::SaiInterface& sai, const std::string& switch_id = "SWITCH0");
     ~L3Service() = default;
 
     // Public interface
@@ -147,7 +237,7 @@ private:
     std::string m_switch_id;
     Events::EventBus& m_event_bus;
     std::unique_ptr<LpmTrie> m_lpm_trie;
-    unordered_map<uint32_t, Types::IpAddress> m_routes; // network -> next_hop
+    Types::RoutingTable m_routes; // network -> next_hop
     mutable mutex m_routes_mutex;
 
     bool isLocalIp(Types::IpAddress ip) const;

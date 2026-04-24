@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
-#include "common/types.hpp"
-
+#include "core/common/types.hpp" // Corrected include path
+ 
 import MiniSonic.SAI;
 
 using MiniSonic::SAI::SimulatedSai;

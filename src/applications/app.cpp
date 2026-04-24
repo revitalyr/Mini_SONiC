@@ -1,5 +1,10 @@
 module;
 
+#include <system_error>
+#include <boost/system/error_code.hpp>
+#include <boost/asio/error.hpp>
+#include <boost/asio.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -10,6 +15,7 @@ module;
 #include <sstream>
 #include <iomanip>
 #include <cstdint>
+#include "core/common/types.hpp"
 
 module MiniSonic.App;
 
@@ -20,33 +26,7 @@ import MiniSonic.SAI;
 import MiniSonic.L2L3;
 import MiniSonic.Core.Utils;
 
-namespace MiniSonic::Core {
-
-// Helper function to convert MAC string to uint64_t
-static uint64_t macStringToUint64(const std::string& mac) {
-    uint64_t result = 0;
-    std::istringstream iss(mac);
-    std::string byte;
-    int count = 0;
-    while (std::getline(iss, byte, ':') && count < 6) {
-        result = (result << 8) | std::stoul(byte, nullptr, 16);
-        count++;
-    }
-    return result;
-}
-
-// Helper function to convert IP string to uint32_t
-static uint32_t ipStringToUint32(const std::string& ip) {
-    uint32_t result = 0;
-    std::istringstream iss(ip);
-    std::string byte;
-    int count = 0;
-    while (std::getline(iss, byte, '.') && count < 4) {
-        result = (result << 8) | std::stoul(byte);
-        count++;
-    }
-    return result;
-}
+namespace MiniSonic::App {
 
 // App Implementation
 App::App(
@@ -242,40 +222,40 @@ void App::generateTestPackets() {
     switch (counter % 4) {
         case 0: // L2 test packet
             pkt = DataPlane::Packet(
-                macStringToUint64("aa:bb:cc:dd:ee:01"),
-                macStringToUint64("bb:cc:dd:ee:02"),
-                ipStringToUint32("10.0.0.1"),
-                ipStringToUint32("10.0.0.2"),
+                MiniSonic::Types::macToUint64("aa:bb:cc:dd:ee:01"),
+                MiniSonic::Types::macToUint64("bb:cc:dd:ee:02"),
+                MiniSonic::Types::ipToUint32("10.0.0.1"),
+                MiniSonic::Types::ipToUint32("10.0.0.2"),
                 1
             );
             break;
             
         case 1: // Local subnet packet
             pkt = DataPlane::Packet(
-                macStringToUint64("cc:dd:ee:ff:03"),
-                macStringToUint64("dd:ee:ff:aa:04"),
-                ipStringToUint32("10.1.1.100"),
-                ipStringToUint32("10.1.1.42"),
+                MiniSonic::Types::macToUint64("cc:dd:ee:ff:03"),
+                MiniSonic::Types::macToUint64("dd:ee:ff:aa:04"),
+                MiniSonic::Types::ipToUint32("10.1.1.100"),
+                MiniSonic::Types::ipToUint32("10.1.1.42"),
                 2
             );
             break;
             
         case 2: // Broadcast packet
             pkt = DataPlane::Packet(
-                macStringToUint64("ee:ff:aa:bb:05"),
-                macStringToUint64("ff:ff:ff:ff:ff"),
-                ipStringToUint32("10.2.2.1"),
-                ipStringToUint32("255.255.255.255"),
+                MiniSonic::Types::macToUint64("ee:ff:aa:bb:05"),
+                MiniSonic::Types::macToUint64("ff:ff:ff:ff:ff:ff"),
+                MiniSonic::Types::ipToUint32("10.2.2.1"),
+                MiniSonic::Types::ipToUint32("255.255.255.255"),
                 3
             );
             break;
 
         case 3: // Cross-subnet packet
             pkt = DataPlane::Packet(
-                macStringToUint64("ff:aa:bb:cc:06"),
-                macStringToUint64("aa:bb:cc:dd:07"),
-                ipStringToUint32("192.168.100.1"),
-                ipStringToUint32("192.168.200.1"),
+                MiniSonic::Types::macToUint64("ff:aa:bb:cc:06"),
+                MiniSonic::Types::macToUint64("aa:bb:cc:dd:07"),
+                MiniSonic::Types::ipToUint32("192.168.100.1"),
+                MiniSonic::Types::ipToUint32("192.168.200.1"),
                 4
             );
             break;
@@ -329,10 +309,10 @@ void EventLoop::generateTestPackets() {
     std::string dst_ip = "10.1.1." + std::to_string(1 + counter % 100);
     
     DataPlane::Packet pkt(
-        macStringToUint64("aa:bb:cc:dd:ee:ff"),
-        macStringToUint64("ff:ee:dd:cc:bb:aa"),
-        ipStringToUint32(src_ip),
-        ipStringToUint32(dst_ip),
+        MiniSonic::Types::macToUint64("aa:bb:cc:dd:ee:ff"),
+        MiniSonic::Types::macToUint64("ff:ee:dd:cc:bb:aa"),
+        MiniSonic::Types::ipToUint32(src_ip),
+        MiniSonic::Types::ipToUint32(dst_ip),
         counter % 24 + 1
     );
     
@@ -348,4 +328,4 @@ void EventLoop::processPackets() {
     Utils::Metrics::instance().inc("event_loop_cycles");
 }
 
-} // export namespace MiniSonic::Core
+} // namespace MiniSonic::App

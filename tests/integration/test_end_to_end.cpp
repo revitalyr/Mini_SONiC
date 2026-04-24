@@ -1,10 +1,11 @@
 #include <catch2/catch_all.hpp>
-#include "common/types.hpp"
+#include "core/common/types.hpp"
 
 import MiniSonic.SAI;
 import MiniSonic.DataPlane;
 import MiniSonic.App;
 import MiniSonic.L2L3;
+import MiniSonic.Core.Utils;
 
 #include <thread>
 #include <chrono>

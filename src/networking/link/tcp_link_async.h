@@ -1,8 +1,8 @@
 #pragma once
 
-#include "dataplane/packet.h"
-#include "utils/metrics.hpp"
-#include "common/types.hpp"
+#include "dataplane/packet.h" // Packet is now in MiniSonic.L2L3, but this header is for Networking module
+#include "core/utils/metrics.hpp" // Corrected include path
+#include "core/common/types.hpp" // Corrected include path
 
 #include <boost/asio.hpp>
 #include <boost/system/system_error.hpp>

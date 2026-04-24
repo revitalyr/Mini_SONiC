@@ -8,6 +8,7 @@ module;
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include "core/common/types.hpp"
 
 module MiniSonic.DataPlane;
 import MiniSonic.L2L3;
@@ -21,7 +22,9 @@ namespace MiniSonic::DataPlane {
 Pipeline::Pipeline(SAI::SaiInterface& sai, const std::string& switch_id)
     : m_sai(sai),
       m_switch_id(switch_id),
-      m_event_bus(Events::getGlobalEventBus()) {
+      m_event_bus(Events::getGlobalEventBus()),
+      m_l2_service(sai, switch_id),
+      m_l3_service(sai, switch_id) {
 }
 
 void Pipeline::process(Packet& pkt) {
@@ -105,7 +108,7 @@ std::string Pipeline::getStats() const {
 PipelineThread::PipelineThread(
     Pipeline& pipeline, 
     SPSCQueue<Packet>& queue,
-    Types::Count batch_size
+    ::MiniSonic::Types::Count batch_size
 ) : m_pipeline(pipeline),
     m_queue(queue),
     m_batch_size(batch_size) {
@@ -165,7 +168,7 @@ std::string PipelineThread::getStats() const {
     return oss.str();
 }
 
-MiniSonic::L3::L3Service& Pipeline::getL3() {
+::MiniSonic::L3::L3Service& Pipeline::getL3() {
     return m_l3_service;
 }
 
@@ -207,7 +210,7 @@ void PipelineThread::processBatch(std::vector<Packet>& batch) {
         
         // Calculate and record latency
         const auto now = Clock::now();
-        const auto latency_us = std::chrono::duration_cast<std::chrono::microseconds>(
+        [[maybe_unused]] const auto latency_us = std::chrono::duration_cast<std::chrono::microseconds>(
             now - pkt.timestamp
         ).count();
         

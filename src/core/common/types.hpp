@@ -21,7 +21,7 @@ using StringView = std::string_view;
 using MacAddress = std::uint64_t;
 using IpAddress = std::uint32_t;
 using Port = std::uint16_t;
-using NextHop = String;
+using NextHop = IpAddress;
 
 // Container types
 using Strings = std::vector<String>;
@@ -74,7 +74,7 @@ template<typename K, typename V>
 using Map = std::unordered_map<K, V>;
 
 using FdbTable = Map<MacAddress, Port>;
-using RoutingTable = Map<IpAddress, NextHop>;
+using RoutingTable = Map<IpAddress, IpAddress>;
 
 // Conversion helpers for tests and logging
 inline MacAddress macToUint64(const std::string& mac) {

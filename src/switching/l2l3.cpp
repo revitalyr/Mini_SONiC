@@ -8,6 +8,7 @@ module;
 #include <sstream> // For std::ostringstream
 #include <mutex> // For std::mutex, std::lock_guard
 #include <chrono> // For std::chrono
+#include <functional> // For std::function
 #include "core/common/types.hpp"
 
 module MiniSonic.L2L3;
@@ -20,7 +21,7 @@ import MiniSonic.Core.Events;
 
 namespace MiniSonic::L2 {
 // L2Service Implementation
-L2Service::L2Service(SAI::SaiInterface& sai, const std::string& switch_id)
+L2Service::L2Service(::MiniSonic::SAI::SaiInterface& sai, const std::string& switch_id)
     : m_sai(sai),
       m_switch_id(switch_id),
       m_event_bus(Events::getGlobalEventBus()),
@@ -122,7 +123,7 @@ bool L2Service::forwardPacket(Packet& pkt) {
 
 namespace MiniSonic::L3 {
 LpmTrie::LpmTrie() : m_root(std::make_unique<TrieNode>()) {}
-// LpmTrie Implementation
+
 void LpmTrie::insert(Types::IpAddress network, Types::PrefixLength prefix_len, Types::IpAddress next_hop) {
     auto binary = ipToBinary(network);
 
@@ -218,7 +219,7 @@ std::vector<bool> LpmTrie::ipToBinary(Types::IpAddress ip) {
 }
 
 // L3Service Implementation
-L3Service::L3Service(SAI::SaiInterface& sai, const std::string& switch_id)
+L3Service::L3Service(::MiniSonic::SAI::SaiInterface& sai, const std::string& switch_id)
     : m_sai(sai),
       m_switch_id(switch_id), // Initialize m_switch_id
       m_event_bus(Events::getGlobalEventBus()), // Initialize m_event_bus
@@ -226,7 +227,7 @@ L3Service::L3Service(SAI::SaiInterface& sai, const std::string& switch_id)
     std::cout << "[L3] Initializing L3 service for " << m_switch_id << "\n";
     
     // Add default route using numeric types
-    addRoute(0, 0, MiniSonic::Types::ipToUint32("192.168.1.1"));
+    addRoute(static_cast<Types::IpAddress>(0), static_cast<Types::PrefixLength>(0), MiniSonic::Types::ipToUint32("192.168.1.1"));
 }
 
 bool L3Service::handle(Packet& pkt) {
@@ -262,7 +263,7 @@ std::string L3Service::getStats() const {
     
     std::ostringstream oss;
     oss << "L3 Service Statistics:\n";
-    oss << m_lpm_trie->getStats()
+    oss << m_lpm_trie->getStats().c_str()
          << "  Configured Routes: " << m_routes.size() << "\n";
     
     return oss.str();
