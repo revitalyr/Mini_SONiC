@@ -302,27 +302,7 @@ int orchagent_subscribe_to_db(orchagent_t *orch, redis_database_t db) {
 // UTILITY FUNCTIONS
 // =============================================================================
 
-/**
- * @brief SONiC logging function
- */
-void sonic_log(sonic_log_level_t level, const char *format, ...) {
-    const char *levels[] = {"ERROR", "WARN", "INFO", "DEBUG"};
-    time_t now = time(NULL);
-    struct tm *tm_info = localtime(&now);
-    
-    printf("[%04d-%02d-%02d %02d:%02d:%02d] [%s] OrchAgent: ",
-           tm_info->tm_year + 1900, tm_info->tm_mon + 1, tm_info->tm_mday,
-           tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec,
-           levels[level]);
-    
-    va_list args;
-    va_start(args, format);
-    vprintf(format, args);
-    va_end(args);
-    
-    printf("\n");
-    fflush(stdout);
-}
+// sonic_log is defined in sonic_types.c
 
 /**
  * @brief Get OrchAgent status

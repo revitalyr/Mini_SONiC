@@ -84,7 +84,7 @@ void forward_frame(packet_t *pkt, int ingress_port) {
 }
 
 void tx_flood_exclude(packet_t *pkt, int exclude_port) {
-    printf("🌊 [FLOOD] Excluding port %d, flooding to %d ports\n", exclude_port, port_count - 1);
+    printf("🌊 [FLOOD] Excluding port %d, flooding to %zd ports\n", exclude_port, port_count - 1);
     for (int i = 0; i < port_count; i++) {
         if (i != exclude_port && ports[i].active) {
             printf("🌊 [FLOOD] -> Port %d\n", i);
@@ -105,7 +105,7 @@ void tx_send(int port, const uint8_t *buf, size_t len) {
         perror("send");
         printf("❌ [TX] Send failed: %s\n", strerror(errno));
     } else {
-        __sync_fetch_and_add(&global_tx_count, 1);
+        __sync_fetch_and_add((volatile PacketCount *)&global_tx_count, 1);
         printf("✅ [TX] Sent %zd bytes to port %d\n", sent, port);
     }
 }

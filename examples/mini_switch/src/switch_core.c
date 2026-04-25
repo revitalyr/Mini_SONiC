@@ -60,24 +60,24 @@ SwitchStatus_t SwitchCore_Init(SwitchContext_t **ctx)
     context->rx_queue = xQueueCreateStatic(PACKET_QUEUE_DEPTH, sizeof(NetPacket_t),
                                          context->rx_queue_storage, 
                                          &context->rx_queue_struct);
-    if (context->rx_queue == NULL) {
+    if (context->rx_queue == (QueueHandle_t)0) {
         return SWITCH_STATUS_NO_MEMORY;
     }
 
     context->tx_queue = xQueueCreateStatic(PACKET_QUEUE_DEPTH, sizeof(NetPacket_t),
                                          context->tx_queue_storage, 
                                          &context->tx_queue_struct);
-    if (context->tx_queue == NULL) {
+    if (context->tx_queue == (QueueHandle_t)0) {
         return SWITCH_STATUS_NO_MEMORY;
     }
 
     context->mac_mutex = xSemaphoreCreateMutexStatic(&context->mac_mutex_struct);
-    if (context->mac_mutex == NULL) {
+    if (context->mac_mutex == (SemaphoreHandle_t)0) {
         return SWITCH_STATUS_NO_MEMORY;
     }
 
     context->arp_mutex = xSemaphoreCreateMutexStatic(&context->arp_mutex_struct);
-    if (context->arp_mutex == NULL) {
+    if (context->arp_mutex == (SemaphoreHandle_t)0) {
         return SWITCH_STATUS_NO_MEMORY;
     }
 
@@ -95,7 +95,7 @@ SwitchStatus_t SwitchCore_Init(SwitchContext_t **ctx)
                                                   context,
                                                   Core_MaintenanceCallback,
                                                   &context->maintenance_timer_struct);
-    if (context->maintenance_timer == NULL) {
+    if (context->maintenance_timer == (TimerHandle_t)0) {
         return SWITCH_STATUS_NO_MEMORY;
     }
 

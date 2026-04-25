@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
-#include "core/common/types.hpp"
 
+import MiniSonic.Core.Types;
 import MiniSonic.SAI;
 import MiniSonic.DataPlane;
 import MiniSonic.App;
@@ -13,7 +13,7 @@ import MiniSonic.Core.Utils;
 using namespace MiniSonic::SAI;
 using namespace MiniSonic::DataPlane;
 using namespace MiniSonic::Types;
-using namespace MiniSonic::App;
+using namespace MiniSonic::Core;
 
 TEST_CASE("EndToEnd BasicSwitchingScenario", "[e2e][integration]") {
     SimulatedSai sai;

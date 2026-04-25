@@ -21,9 +21,6 @@ export module MiniSonic.DataPlane;
 
 import MiniSonic.Core.Types;
 
-// Import networking module
-import MiniSonic.Networking;
-
 // Import SAI module for SaiInterface
 import MiniSonic.SAI;
 

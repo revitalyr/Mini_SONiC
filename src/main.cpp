@@ -1,9 +1,10 @@
-import MiniSonic.Core.Types;
-import MiniSonic.App;
-
 #include <iostream>
+#include <string>
 #include <string_view>
 #include <memory>
+
+import MiniSonic.Core.Types;
+import MiniSonic.App;
 
 using namespace MiniSonic;
 

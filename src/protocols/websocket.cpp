@@ -267,7 +267,7 @@ void WebSocketGateway::handleAccept(const error_code& ec, shared_ptr<WebSocketCo
     }
 }
 
-void WebSocketGateway::handleConnectionMessage(const string& conn_id, const vector<uint8_t>& data) {
+void WebSocketGateway::handleConnectionMessage(const string& /*conn_id*/, const vector<uint8_t>& data) {
     auto msg = deserializeMessage(data);
     if (msg.isValid() && m_message_handler) {
         m_total_messages_received.fetch_add(1);

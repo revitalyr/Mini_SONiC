@@ -27,7 +27,7 @@ import MiniSonic.SAI;
 import MiniSonic.L2L3;
 import MiniSonic.Core.Utils;
 
-namespace MiniSonic::App {
+namespace MiniSonic::Core {
 
 // App Implementation
 App::App(
@@ -52,6 +52,11 @@ void App::initialize() {
               << "  Peer: " << m_peer_ip << ":" << m_peer_port << "\n"
               << "  Queue Size: " << m_packet_queue->capacity() << "\n"
               << "  Batch Size: 32\n";
+}
+
+void App::setupHandler() {
+    std::cout << "[APP] Setting up signal handlers\n";
+    // Signal handler setup is platform-specific
 }
 
 void App::initializeDataPlane() {

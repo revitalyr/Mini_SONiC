@@ -2,6 +2,8 @@ module;
 
 #include <boost/system/error_code.hpp> // Must be at the absolute top for ADL on MSVC
 #include <boost/asio/error.hpp>       // Required for make_error_code in C++20 modules
+#include <boost/asio.hpp>
+#include <boost/asio/steady_timer.hpp>
 
 #include <memory>
 #include <string>
@@ -14,6 +16,8 @@ module MiniSonic.Networking;
 
 // Import local modules
 import MiniSonic.Core.Utils;
+import MiniSonic.L2L3;
+import MiniSonic.Core.Types;
 
 namespace MiniSonic::Networking {
 
@@ -22,9 +26,9 @@ namespace MiniSonic::Networking {
 // BoostTcpLink Implementation
 BoostTcpLink::BoostTcpLink(
     boost::asio::io_context& io_context,
-    Types::PortId listen_port,
+    MiniSonic::Types::PortId listen_port,
     const std::string& peer_ip,
-    Types::PortId peer_port
+    MiniSonic::Types::PortId peer_port
 ) : m_io_context(io_context),
     m_acceptor(io_context),
     m_socket(io_context),
@@ -93,7 +97,7 @@ bool BoostTcpLink::isConnected() const noexcept {
     return m_connected.load();
 }
 
-void BoostTcpLink::send(const Packet& pkt) {
+void BoostTcpLink::send(const MiniSonic::DataPlane::Packet& pkt) {
     if (!isConnected()) {
         return;
     }
@@ -123,7 +127,7 @@ void BoostTcpLink::send(const Packet& pkt) {
     }
 }
 
-void BoostTcpLink::setPacketHandler(PacketHandler handler) {
+void BoostTcpLink::setPacketHandler(std::function<void(const MiniSonic::DataPlane::Packet&)> handler) {
     m_handler = std::move(handler);
 }
 
@@ -200,7 +204,7 @@ void BoostTcpLink::doRead() {
                     m_receive_buffer.erase(0, pos + 1);
                     
                     try {
-                        Packet pkt = deserializePacket(packet_data);
+                        MiniSonic::DataPlane::Packet pkt = deserializePacket(packet_data);
                         onPacketReceived(pkt);
                     } catch (const std::exception& e) {
                         std::cerr << "[NETWORK] Packet deserialization error: " << e.what() << "\n";
@@ -237,7 +241,7 @@ void BoostTcpLink::onDisconnected() {
     }
 }
 
-void BoostTcpLink::onPacketReceived(const Packet& pkt) {
+void BoostTcpLink::onPacketReceived(const MiniSonic::DataPlane::Packet& pkt) {
     m_packets_received.fetch_add(1, std::memory_order_relaxed);
     
     if (m_handler) {
@@ -245,26 +249,32 @@ void BoostTcpLink::onPacketReceived(const Packet& pkt) {
     }
 }
 
-std::string BoostTcpLink::serializePacket(const Packet& pkt) {
+std::string BoostTcpLink::serializePacket(const MiniSonic::DataPlane::Packet& pkt) {
     std::ostringstream oss;
-    oss << pkt.srcMac() << "|" << pkt.dstMac() << "|"
-        << pkt.srcIp() << "|" << pkt.dstIp() << "|"
-        << pkt.ingressPort() << "\n";
+    oss << pkt.m_src_mac << "|" << pkt.m_dst_mac << "|"
+        << pkt.m_src_ip << "|" << pkt.m_dst_ip << "|"
+        << pkt.m_ingress_port << "\n";
     return oss.str();
 }
 
-Packet BoostTcpLink::deserializePacket(const std::string& data) {
+MiniSonic::DataPlane::Packet BoostTcpLink::deserializePacket(const std::string& data) {
     std::istringstream iss(data);
-    std::string src_mac, dst_mac, src_ip, dst_ip;
-    Types::PortId ingress_port;
+    std::string src_mac_str, dst_mac_str, src_ip_str, dst_ip_str;
+    MiniSonic::Types::PortId ingress_port;
 
-    std::getline(iss, src_mac, '|');
-    std::getline(iss, dst_mac, '|');
-    std::getline(iss, src_ip, '|');
-    std::getline(iss, dst_ip, '|');
+    std::getline(iss, src_mac_str, '|');
+    std::getline(iss, dst_mac_str, '|');
+    std::getline(iss, src_ip_str, '|');
+    std::getline(iss, dst_ip_str, '|');
     iss >> ingress_port;
 
-    return Packet(src_mac, dst_mac, src_ip, dst_ip, ingress_port);
+    MiniSonic::DataPlane::Packet pkt;
+    pkt.m_src_mac = std::stoull(src_mac_str);
+    pkt.m_dst_mac = std::stoull(dst_mac_str);
+    pkt.m_src_ip = std::stoul(src_ip_str);
+    pkt.m_dst_ip = std::stoul(dst_ip_str);
+    pkt.m_ingress_port = ingress_port;
+    return pkt;
 }
 
 #endif

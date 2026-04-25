@@ -12,15 +12,15 @@ module;
 
 export module MiniSonic.Networking;
 
-// Import Types module
+// Import Types and L2L3 modules (Packet is defined in L2L3)
 import MiniSonic.Core.Types;
+import MiniSonic.L2L3;
 
 // Re-export common standard library types
 
 export namespace MiniSonic::Networking {
 
 // Forward declarations
-class Packet;
 class TcpLinkAsync;
 
 /**
@@ -37,8 +37,8 @@ public:
     virtual void start() = 0;
     virtual void stop() = 0;
     virtual bool isConnected() const noexcept = 0;
-    virtual void send(const Packet& pkt) = 0;
-    virtual void setPacketHandler(std::function<void(const Packet&)> handler) = 0;
+    virtual void send(const MiniSonic::DataPlane::Packet& pkt) = 0;
+    virtual void setPacketHandler(std::function<void(const MiniSonic::DataPlane::Packet&)> handler) = 0;
     virtual std::string getStats() const = 0;
 };
 
@@ -65,9 +65,9 @@ public:
  * 
  * Provides high-performance async networking using Boost.Asio.
  */
-class BoostTcpLink : public INetworkProvider {
+class BoostTcpLink : public INetworkProvider, public std::enable_shared_from_this<BoostTcpLink> {
 public:
-    using PacketHandler = std::function<void(const Packet&)>;
+    using PacketHandler = std::function<void(const MiniSonic::DataPlane::Packet&)>;
     
     BoostTcpLink(
         boost::asio::io_context& io_context,
@@ -82,7 +82,7 @@ public:
     void start() override;
     void stop() override;
     bool isConnected() const noexcept override;
-    void send(const Packet& pkt) override;
+    void send(const MiniSonic::DataPlane::Packet& pkt) override;
     void setPacketHandler(PacketHandler handler) override;
     std::string getStats() const override;
 
@@ -93,10 +93,10 @@ private:
     void doRead();
     void onConnected();
     void onDisconnected();
-    void onPacketReceived(const Packet& pkt);
+    void onPacketReceived(const MiniSonic::DataPlane::Packet& pkt);
     
-    static std::string serializePacket(const Packet& pkt);
-    static Packet deserializePacket(const std::string& data);
+    static std::string serializePacket(const MiniSonic::DataPlane::Packet& pkt);
+    static MiniSonic::DataPlane::Packet deserializePacket(const std::string& data);
     
     boost::asio::io_context& m_io_context;
     boost::asio::ip::tcp::acceptor m_acceptor;

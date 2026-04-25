@@ -172,4 +172,10 @@ bool SimulatedSai::addRoute(Types::IpAddress prefix, [[maybe_unused]] Types::Pre
     return true;
 }
 
+bool SimulatedSai::removeRoute(Types::IpAddress prefix) {
+    std::lock_guard<std::mutex> lock(m_ports_mutex);
+    m_routes.erase(prefix);
+    return true;
+}
+
 } // export namespace MiniSonic::SAI

@@ -129,7 +129,7 @@ find_package(Boost 1.85.0 REQUIRED COMPONENTS
 )
 if(Boost_FOUND)
     message(STATUS "Boost found: ${Boost_VERSION}")
-    add_compile_definitions(BOOST_FOUND)
+    add_compile_definitions(BOOST_FOUND HAS_BOOST_ASIO)
 else()
     message(FATAL_ERROR "Boost 1.85.0 or higher is required")
 endif()
@@ -143,23 +143,25 @@ else()
 endif()
 
 include(FetchContent)
+set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/build/_deps")
+
 FetchContent_Declare(
     Celero
     GIT_REPOSITORY https://github.com/DigitalInBlue/Celero.git
-    GIT_TAG        master
+    GIT_TAG        v2.10.0
+    GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(Celero)
 message(STATUS "Celero downloaded via FetchContent")
 # Create alias for Celero
 add_library(Celero::Celero ALIAS celero)
 
-include(FetchContent)
-
 # Find Catch2 v3 for testing
 FetchContent_Declare(
     Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.4.0
+    GIT_TAG        v3.7.1
+    GIT_SHALLOW    TRUE
 )
 
 find_package(Catch2 QUIET)
@@ -180,6 +182,7 @@ FetchContent_Declare(
     nlohmann_json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG        v3.11.3
+    GIT_SHALLOW    TRUE
 )
 
 find_package(nlohmann_json QUIET)
@@ -268,7 +271,7 @@ target_sources(MiniSonic.DataPlane
 )
 target_sources(MiniSonic.DataPlane PRIVATE src/switching/dataplane.cpp)
 target_include_directories(MiniSonic.DataPlane PUBLIC src src/switching src/core)
-target_link_libraries(MiniSonic.DataPlane PUBLIC MiniSonic.Core.Types PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.SAI MiniSonic.Core.Events MiniSonic.Networking MiniSonic.L2L3)
+target_link_libraries(MiniSonic.DataPlane PUBLIC MiniSonic.Core.Types PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.SAI MiniSonic.Core.Events MiniSonic.L2L3)
 
 # Module: MiniSonic.DataPlane.PacketEnhanced
 add_library(MiniSonic.DataPlane.PacketEnhanced STATIC)
@@ -314,7 +317,7 @@ target_sources(MiniSonic.Networking
 )
 target_sources(MiniSonic.Networking PRIVATE src/networking/networking.cpp)
 target_include_directories(MiniSonic.Networking PUBLIC src src/networking)
-target_link_libraries(MiniSonic.Networking PUBLIC Boost::asio MiniSonic.Core.Types PRIVATE sonic_common_options MiniSonic.Core.Utils)
+target_link_libraries(MiniSonic.Networking PUBLIC Boost::asio MiniSonic.Core.Types MiniSonic.L2L3 PRIVATE sonic_common_options MiniSonic.Core.Utils)
 
 # Module: MiniSonic.Protocol
 add_library(MiniSonic.Protocol STATIC)
@@ -324,7 +327,7 @@ target_sources(MiniSonic.Protocol
 )
 target_sources(MiniSonic.Protocol PRIVATE src/protocols/protocol.cpp)
 target_include_directories(MiniSonic.Protocol PUBLIC src)
-target_link_libraries(MiniSonic.Protocol PUBLIC MiniSonic.Core.Types PRIVATE sonic_common_options MiniSonic.Core.Utils MiniSonic.Core.Constants)
+target_link_libraries(MiniSonic.Protocol PUBLIC MiniSonic.Core.Types MiniSonic.Core.Utils MiniSonic.Core.Constants PRIVATE sonic_common_options)
 
 # Module: MiniSonic.Serialization
 add_library(MiniSonic.Serialization STATIC)
@@ -370,12 +373,12 @@ target_link_libraries(MiniSonic.App
     PUBLIC MiniSonic.Core.Types
     PRIVATE sonic_common_options
     MiniSonic.DataPlane
+    MiniSonic.Networking
     MiniSonic.SAI
     MiniSonic.L2L3
     MiniSonic.Core.Utils
     MiniSonic.Protocol
     MiniSonic.Serialization
-    MiniSonic.Networking
 )
 
 # =============================================================================
@@ -403,7 +406,6 @@ set(MINISWITCH_C_SOURCES
     examples/mini_switch/src/timer.c
     examples/mini_switch/src/utils.c
     examples/mini_switch/src/logging.c
-    examples/mini_switch/src/tx_simple.c
     examples/mini_switch/src/net_utils.c
 )
 
@@ -522,6 +524,7 @@ add_executable(mini_sonic_switching_tests
 target_include_directories(mini_sonic_switching_tests PRIVATE src src/switching src/core)
 target_link_libraries(mini_sonic_switching_tests
     PRIVATE sonic_common_options
+    MiniSonic.Core.Types
     MiniSonic.SAI
     MiniSonic.DataPlane
     MiniSonic.DataPlane.PacketEnhanced
@@ -549,6 +552,8 @@ add_test(NAME ProtocolTests COMMAND mini_sonic_protocol_tests)
 add_executable(mini_sonic_integration_tests tests/integration/test_pipeline.cpp tests/integration/test_end_to_end.cpp)
 target_link_libraries(mini_sonic_integration_tests
     PRIVATE sonic_common_options
+    MiniSonic.Core.Types
+    MiniSonic.App
     MiniSonic.DataPlane
     MiniSonic.SAI
     MiniSonic.L2L3

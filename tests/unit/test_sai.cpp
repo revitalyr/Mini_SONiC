@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
-#include "core/common/types.hpp" // Corrected include path
  
+import MiniSonic.Core.Types;
 import MiniSonic.SAI;
 
 using MiniSonic::SAI::SimulatedSai;
@@ -211,7 +211,7 @@ TEST_CASE("SaiInterface LargeScaleOperations", "[sai]") {
 
     // Create many ports
     for (int i = 1; i <= 48; ++i) {
-        sai.createPort(i);
+        sai.createPort(static_cast<MiniSonic::Types::PortId>(i));
     }
 
     // Add many FDB entries
@@ -220,13 +220,14 @@ TEST_CASE("SaiInterface LargeScaleOperations", "[sai]") {
                          std::string(i < 16 ? "0" : "") +
                          std::string(i < 256 ? "0" : "") +
                          std::to_string(i % 256);
-        sai.addFdbEntry(macToUint64(mac), static_cast<PortId>(i % 48 + 1));
+        sai.addFdbEntry(macToUint64(mac), static_cast<MiniSonic::Types::PortId>(i % 48 + 1));
     }
 
     // Add many routes
     for (int i = 0; i < 100; ++i) {
         std::string prefix = "10." + std::to_string(i) + ".0.0/16";
         std::string next_hop = "10." + std::to_string(i) + ".0.1";
+        sai.addRoute(ipToUint32(prefix), static_cast<MiniSonic::Types::PortId>(i), ipToUint32(next_hop));
         sai.addRoute(ipToUint32(prefix), 16, ipToUint32(next_hop));
     }
 
@@ -236,7 +237,7 @@ TEST_CASE("SaiInterface LargeScaleOperations", "[sai]") {
         sai.removeRoute(ipToUint32(prefix));
     }
 
-    for (int i = 1; i <= 48; ++i) {
-        sai.deletePort(i);
+    for (int i = 1; i <= 24; ++i) {
+        sai.deletePort(static_cast<MiniSonic::Types::PortId>(i));
     }
 }

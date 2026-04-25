@@ -160,7 +160,7 @@ bool GossipProtocol::isRunning() const noexcept {
     return m_running.load();
 }
 
-void GossipProtocol::send(const Protocol::Message& msg) {
+void GossipProtocol::send(const Protocol::Message& /*msg*/) {
     // Convert to gossip payload and broadcast
     GossipPayload payload;
     payload.type = GossipMessageType::GOSSIP_DIGEST;
@@ -345,7 +345,7 @@ void GossipProtocol::handleGossipMessage(const GossipPayload& payload, const str
     }
 }
 
-void GossipProtocol::handlePing(const GossipPayload& payload, const string& source) {
+void GossipProtocol::handlePing(const GossipPayload& /*payload*/, const string& source) {
     GossipPayload pong;
     pong.type = GossipMessageType::PONG;
     pong.sender_id = m_peer_id;
@@ -354,7 +354,7 @@ void GossipProtocol::handlePing(const GossipPayload& payload, const string& sour
     sendToPeer(source, pong);
 }
 
-void GossipProtocol::handlePong(const GossipPayload& payload, const string& source) {
+void GossipProtocol::handlePong(const GossipPayload& /*payload*/, const string& source) {
     updatePeerHeartbeat(source);
 }
 

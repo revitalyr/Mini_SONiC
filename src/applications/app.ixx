@@ -17,6 +17,7 @@ import MiniSonic.Networking;
 import MiniSonic.SAI;
 import MiniSonic.L2L3;
 import MiniSonic.Core.Utils;
+import MiniSonic.Core.Types;
 
 export namespace MiniSonic::Core {
 
@@ -56,6 +57,11 @@ public:
      * @brief Get application statistics
      */
     [[nodiscard]] std::string getStats() const;
+
+    /**
+     * @brief Setup signal handlers
+     */
+    void setupHandler();
 
 private:
     /**

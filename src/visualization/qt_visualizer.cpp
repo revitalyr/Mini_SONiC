@@ -56,7 +56,7 @@ private slots:
         m_connectButton->setEnabled(true);
     }
 
-    void onSocketError(QAbstractSocket::SocketError error) {
+    void onSocketError(QAbstractSocket::SocketError /*error*/) {
         m_statusLabel->setText("Socket error: " + m_socket->errorString());
     }
 
