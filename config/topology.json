@@ -1,0 +1,77 @@
+{
+  "hosts": [
+    {
+      "id": "H1",
+      "name": "Host 1",
+      "mac": "00:11:22:33:44:55",
+      "ip": "10.0.1.2",
+      "x": 100,
+      "y": 300,
+      "connected_switch": "SW1",
+      "connected_port": 1
+    },
+    {
+      "id": "H2",
+      "name": "Host 2",
+      "mac": "00:11:22:33:44:56",
+      "ip": "10.0.3.7",
+      "x": 700,
+      "y": 300,
+      "connected_switch": "SW4",
+      "connected_port": 1
+    }
+  ],
+  "switches": [
+    {
+      "id": "SW1",
+      "name": "Core Switch",
+      "mac": "00:11:22:33:44:61",
+      "x": 250,
+      "y": 300,
+      "ports": [
+        {"id": 1, "connected_to": "H1"},
+        {"id": 2, "connected_to": "SW2"}
+      ]
+    },
+    {
+      "id": "SW2",
+      "name": "Aggregation Switch",
+      "mac": "00:11:22:33:44:62",
+      "x": 400,
+      "y": 200,
+      "ports": [
+        {"id": 1, "connected_to": "SW1"},
+        {"id": 2, "connected_to": "SW3"}
+      ]
+    },
+    {
+      "id": "SW3",
+      "name": "Edge Switch",
+      "mac": "00:11:22:33:44:63",
+      "x": 400,
+      "y": 400,
+      "ports": [
+        {"id": 1, "connected_to": "SW2"},
+        {"id": 2, "connected_to": "SW4"}
+      ]
+    },
+    {
+      "id": "SW4",
+      "name": "Access Switch",
+      "mac": "00:11:22:33:44:64",
+      "x": 550,
+      "y": 300,
+      "ports": [
+        {"id": 1, "connected_to": "H2"},
+        {"id": 2, "connected_to": "SW3"}
+      ]
+    }
+  ],
+  "links": [
+    {"source": "H1", "target": "SW1"},
+    {"source": "SW1", "target": "SW2"},
+    {"source": "SW2", "target": "SW3"},
+    {"source": "SW3", "target": "SW4"},
+    {"source": "SW4", "target": "H2"}
+  ]
+}

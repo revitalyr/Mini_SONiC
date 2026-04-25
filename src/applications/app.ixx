@@ -27,15 +27,31 @@ export struct Host {
     std::string name;
     Types::MacAddress mac;
     Types::IpAddress ip;
-    int connected_switch_id;
+    int x, y; // Coordinates for visualization
+    std::string connected_switch;
     int connected_port;
+};
+
+// Switch structure
+export struct Switch {
+    std::string id;
+    std::string name;
+    Types::MacAddress mac;
+    int x, y; // Coordinates for visualization
+    std::vector<std::pair<int, std::string>> ports; // port_id -> connected_to
+};
+
+// Link structure
+export struct Link {
+    std::string source;
+    std::string target;
 };
 
 // Topology configuration
 export struct TopologyConfig {
     std::vector<Host> hosts;
-    std::vector<std::pair<int, int>> links; // switch_id to switch_id
-    std::vector<std::pair<std::string, int>> host_links; // host_id to switch_id
+    std::vector<Switch> switches;
+    std::vector<Link> links;
 };
 
 /**
@@ -110,6 +126,16 @@ private:
      * @brief Initialize topology configuration
      */
     void initializeTopology();
+
+    /**
+     * @brief Find path from source to destination
+     */
+    std::vector<std::string> findPath(const std::string& src, const std::string& dst);
+
+    /**
+     * @brief Route packet through switches sequentially
+     */
+    void routePacketSequentially(const DataPlane::Packet& pkt, const std::vector<std::string>& path);
 
     // Core components
     std::unique_ptr<SAI::SaiInterface> m_sai;
