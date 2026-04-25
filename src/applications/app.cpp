@@ -15,6 +15,7 @@ module;
 #include <sstream>
 #include <iomanip>
 #include <cstdint>
+#include <nlohmann/json.hpp>
 
 module MiniSonic.App;
 
@@ -26,6 +27,7 @@ import MiniSonic.Networking;
 import MiniSonic.SAI;
 import MiniSonic.L2L3;
 import MiniSonic.Core.Utils;
+import MiniSonic.Core.Events;
 
 namespace MiniSonic::Core {
 
@@ -44,14 +46,67 @@ App::App(
 void App::initialize() {
     std::cout << "[APP] Initializing Mini SONiC with modular architecture\n";
     
+    // Initialize topology
+    initializeTopology();
+    
+    // Initialize data plane
     initializeDataPlane();
+    
+    // Initialize networking
     initializeNetworking();
+    
+    // Subscribe to event bus for web visualization
+    auto& event_bus = Events::getGlobalEventBus();
+    event_bus.subscribe("packet", [this](const nlohmann::json& event) {
+        // Forward packet events to visualization
+        // This will be picked up by the event server
+    });
     
     std::cout << "[APP] Initialized with:\n"
               << "  Listen Port: " << m_listen_port << "\n"
               << "  Peer: " << m_peer_ip << ":" << m_peer_port << "\n"
               << "  Queue Size: " << m_packet_queue->capacity() << "\n"
-              << "  Batch Size: 32\n";
+              << "  Batch Size: 32\n"
+              << "  Hosts: " << m_topology.hosts.size() << "\n"
+              << "  Switch Links: " << m_topology.links.size() << "\n";
+}
+
+void App::initializeTopology() {
+    std::cout << "[APP] Initializing topology configuration\n";
+    
+    // Configure hosts H1 and H2
+    m_topology.hosts = {
+        {
+            "H1",
+            "Host 1",
+            Types::macToUint64("00:11:22:33:44:55"),
+            Types::ipToUint32("10.0.1.2"),
+            1, // Connected to switch 1
+            1  // Port 1
+        },
+        {
+            "H2",
+            "Host 2",
+            Types::macToUint64("00:11:22:33:44:56"),
+            Types::ipToUint32("10.0.3.7"),
+            4, // Connected to switch 4
+            1  // Port 1
+        }
+    };
+    
+    // Configure switch links (topology: 1<->2<->3<->4)
+    m_topology.links = {
+        {1, 2}, // Core <-> Aggregation
+        {2, 3}, // Aggregation <-> Edge
+        {3, 4}  // Edge <-> Access
+    };
+    
+    std::cout << "[APP] Topology configured:\n";
+    for (const auto& host : m_topology.hosts) {
+        std::cout << "  Host: " << host.name << " (" << host.id 
+                  << ") connected to switch " << host.connected_switch_id 
+                  << " port " << host.connected_port << "\n";
+    }
 }
 
 void App::setupHandler() {
@@ -82,51 +137,42 @@ void App::initializeDataPlane() {
 void App::initializeNetworking() {
     std::cout << "[APP] Initializing networking components\n";
     
-    // Create network link using factory
-    m_network_link = Networking::NetworkProviderFactory::createTcpLink(
-        m_listen_port, m_peer_ip, m_peer_port
-    );
-    
-    // Set packet handler
-    // TODO: Type mismatch - Networking::Packet vs DataPlane::Packet needs resolution
-    // m_network_link->setPacketHandler([this](const DataPlane::Packet& pkt) {
-    //     // Add timestamp and queue for processing
-    //     auto timestamped_pkt = pkt;
-    //     timestamped_pkt.updateTimestamp();
-    //
-    //     if (m_packet_queue->push(std::move(timestamped_pkt))) {
-    //         Utils::Metrics::instance().inc("app_packets_queued");
-    //     } else {
-    //         Utils::Metrics::instance().inc("app_queue_full");
-    //     }
-    // });
-    
-    std::cout << "[APP] Networking components initialized\n";
-    std::cout << "[APP] Boost.Asio support: " 
-              << (Networking::NetworkProviderFactory::hasBoostSupport() ? "Yes" : "No") << "\n";
+    // Only initialize networking if peer is specified (for distributed mode)
+    if (!m_peer_ip.empty() && m_peer_port > 0) {
+        m_network_link = Networking::NetworkProviderFactory::createTcpLink(
+            m_listen_port, m_peer_ip, m_peer_port
+        );
+        std::cout << "[APP] Networking components initialized for distributed mode\n";
+        std::cout << "[APP] Boost.Asio support: "
+                  << (Networking::NetworkProviderFactory::hasBoostSupport() ? "Yes" : "No") << "\n";
+    } else {
+        std::cout << "[APP] Running in standalone mode (no networking)\n";
+    }
 }
 
 void App::run() {
     m_running.store(true);
-    
+
     std::cout << "[APP] Starting Mini SONiC\n";
-    
+
     try {
         // Start pipeline thread
         m_pipeline_thread->start();
-        
-        // Start network link
-        m_network_link->start();
-        
+
+        // Start network link if in distributed mode
+        if (m_network_link) {
+            m_network_link->start();
+        }
+
         // Start packet generator
         startPacketGenerator();
-        
+
         std::cout << "[APP] All components started\n";
-        
+
         // Main thread - wait for shutdown
         while (m_running.load()) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
-            
+
             // Print periodic stats
             static Types::Count stats_counter = 0;
             if (++stats_counter % 30 == 0) { // Every 30 seconds
@@ -134,7 +180,7 @@ void App::run() {
                 std::cout << Utils::Metrics::instance().getSummary() << "\n";
             }
         }
-        
+
     } catch (const std::exception& e) {
         std::cerr << "[APP] Fatal error: " << e.what() << "\n";
         stop();
@@ -220,61 +266,44 @@ void App::startPacketGenerator() {
 }
 
 void App::generateTestPackets() {
-    // Generate packets with different patterns
-    const Types::Count counter = Utils::Metrics::instance().getCounter("app_packets_generated");
-    
-    DataPlane::Packet pkt;
-    
-    switch (counter % 4) {
-        case 0: // L2 test packet
-            pkt = DataPlane::Packet(
-                MiniSonic::Types::macToUint64("aa:bb:cc:dd:ee:01"),
-                MiniSonic::Types::macToUint64("bb:cc:dd:ee:02"),
-                MiniSonic::Types::ipToUint32("10.0.0.1"),
-                MiniSonic::Types::ipToUint32("10.0.0.2"),
-                1
-            );
-            break;
-            
-        case 1: // Local subnet packet
-            pkt = DataPlane::Packet(
-                MiniSonic::Types::macToUint64("cc:dd:ee:ff:03"),
-                MiniSonic::Types::macToUint64("dd:ee:ff:aa:04"),
-                MiniSonic::Types::ipToUint32("10.1.1.100"),
-                MiniSonic::Types::ipToUint32("10.1.1.42"),
-                2
-            );
-            break;
-            
-        case 2: // Broadcast packet
-            pkt = DataPlane::Packet(
-                MiniSonic::Types::macToUint64("ee:ff:aa:bb:05"),
-                MiniSonic::Types::macToUint64("ff:ff:ff:ff:ff:ff"),
-                MiniSonic::Types::ipToUint32("10.2.2.1"),
-                MiniSonic::Types::ipToUint32("255.255.255.255"),
-                3
-            );
-            break;
+    static Types::Count packet_id = 0;
+    static int direction = 0;
 
-        case 3: // Cross-subnet packet
-            pkt = DataPlane::Packet(
-                MiniSonic::Types::macToUint64("ff:aa:bb:cc:06"),
-                MiniSonic::Types::macToUint64("aa:bb:cc:dd:07"),
-                MiniSonic::Types::ipToUint32("192.168.100.1"),
-                MiniSonic::Types::ipToUint32("192.168.200.1"),
-                4
-            );
-            break;
-    }
-    
+    const Host& src_host = m_topology.hosts[direction];
+    const Host& dst_host = m_topology.hosts[1 - direction];
+
+    DataPlane::Packet pkt(
+        src_host.mac,
+        dst_host.mac,
+        src_host.ip,
+        dst_host.ip,
+        src_host.connected_port,
+        ++packet_id
+    );
+
     pkt.updateTimestamp();
-    
+
+    // Emit event for web visualization
+    auto& event_bus = Events::getGlobalEventBus();
+    nlohmann::json event;
+    event["type"] = "packet_generated";
+    event["src_host"] = src_host.id;
+    event["dst_host"] = dst_host.id;
+    event["src_switch"] = src_host.connected_switch_id;
+    event["dst_switch"] = dst_host.connected_switch_id;
+    event["packet_id"] = packet_id;
+    event["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now().time_since_epoch()
+    ).count();
+    event_bus.publishJson(event);
+
     if (m_packet_queue->push(std::move(pkt))) {
         Utils::Metrics::instance().inc("app_packets_generated");
-        Utils::Metrics::instance().inc("app_packets_queued");
-    } else {
-        Utils::Metrics::instance().inc("app_queue_full");
+        std::cout << "[APP] Packet " << packet_id << " generated: "
+                  << src_host.id << " -> " << dst_host.id << "\n";
     }
+
+    direction = 1 - direction;
 }
 
 // EventLoop Implementation

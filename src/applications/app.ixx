@@ -21,6 +21,23 @@ import MiniSonic.Core.Types;
 
 export namespace MiniSonic::Core {
 
+// Host structure
+export struct Host {
+    std::string id;
+    std::string name;
+    Types::MacAddress mac;
+    Types::IpAddress ip;
+    int connected_switch_id;
+    int connected_port;
+};
+
+// Topology configuration
+export struct TopologyConfig {
+    std::vector<Host> hosts;
+    std::vector<std::pair<int, int>> links; // switch_id to switch_id
+    std::vector<std::pair<std::string, int>> host_links; // host_id to switch_id
+};
+
 /**
  * @brief Main application class
  * 
@@ -89,6 +106,11 @@ private:
      */
     void initializeDataPlane();
 
+    /**
+     * @brief Initialize topology configuration
+     */
+    void initializeTopology();
+
     // Core components
     std::unique_ptr<SAI::SaiInterface> m_sai;
     std::unique_ptr<DataPlane::Pipeline> m_pipeline;
@@ -100,6 +122,7 @@ private:
     const Types::PortId m_listen_port;
     const std::string m_peer_ip;
     const Types::PortId m_peer_port;
+    TopologyConfig m_topology;
 
     // State
     std::atomic<bool> m_running{false};

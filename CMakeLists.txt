@@ -494,11 +494,6 @@ set_target_properties(mini_sonic_benchmarks PROPERTIES
 )
 target_link_libraries(mini_sonic_benchmarks PRIVATE sonic_common_options)
 
-# 5. Real-time Demo (C)
-add_executable(mini_sonic_demo src/realtime_demo.c)
-target_include_directories(mini_sonic_demo PRIVATE examples/mini_switch/include)
-target_link_libraries(mini_sonic_demo Threads::Threads)
-
 # 6. Unit Tests
 enable_testing()
 
