@@ -1,110 +1,92 @@
 # Mini SONiC Documentation
 
-This directory contains the interactive technical documentation for the Mini SONiC project.
-
 ## Files
 
-- **index.html** - Main interactive documentation with Mermaid diagrams
-- **mermaid-height-util.js** - JavaScript utility for diagram scaling and tab navigation
-- **README.md** - This file
+- `index.html` - Interactive documentation with Mermaid diagrams
+- `mermaid-height-util.js` - Diagram scaling and tab navigation utility
+- `README.md` - This file
 
 ## Usage
 
-### Opening the Documentation
+### Viewing Documentation
 
-The documentation can be opened directly in a web browser:
+Open `index.html` directly in a web browser. No build process required.
 
-```bash
-# Open directly in browser
-open docs/index.html
-
-# Or navigate to the file and double-click
-```
-
-**Note:** The documentation requires an internet connection to load Mermaid.js from CDN:
+**Dependency:** Requires internet connection to load Mermaid.js from CDN:
 ```
 https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js
 ```
 
 ### Features
 
-- **Interactive Tabs:** Navigate between different documentation sections
-- **Mermaid Diagrams:** Visual architecture and flow diagrams
-- **Zoom Controls:** Scale diagrams between 50% and 200%
-- **Responsive Design:** Works on desktop and mobile devices
-- **Gradient UI:** Modern gradient background and card design
+- Interactive tab navigation
+- Mermaid diagram rendering
+- Zoom controls (50%-200%)
+- Responsive design
+- Inline CSS styling
 
 ### Documentation Sections
 
-1. **📊 Overview** - High-level system overview and key features
-2. **🏗️ Architecture** - Component architecture and module dependencies
-3. **🧩 Modules** - C++20 module structure and descriptions
-4. **🔄 Data Flow** - Packet processing flow and LPM trie implementation
-5. **💻 Cross-Platform** - Platform support and abstraction layer
-6. **🚀 Build** - Build process and targets
+1. Overview - System overview and features
+2. Architecture - Component architecture and dependencies
+3. Modules - C++20 module structure
+4. Data Flow - Packet processing and LPM trie
+5. Cross-Platform - Platform support and abstraction
+6. Build - Build process and targets
 
 ### Diagram Controls
 
-Each diagram has zoom controls in the top-right corner:
-- **−** - Decrease zoom by 10%
-- **+** - Increase zoom by 10%
-- **⟲** - Reset zoom to 100%
+- `-` - Decrease zoom by 10%
+- `+` - Increase zoom by 10%
+- `⟲` - Reset zoom to 100%
 
 ### Browser Compatibility
 
-- Chrome/Edge: Full support
-- Firefox: Full support
-- Safari: Full support
-- Mobile browsers: Responsive design supported
+- Chrome/Edge: Supported
+- Firefox: Supported
+- Safari: Supported
+- Mobile: Responsive design
 
-### Technical Details
+### Technical Specifications
 
-- **Framework:** Pure HTML/CSS/JavaScript (no external frameworks)
-- **Diagram Library:** Mermaid.js 10.6.1
-- **Styling:** Inline CSS (no external stylesheets)
-- **Icons:** Emoji characters for tab navigation
+- Framework: HTML/CSS/JavaScript
+- Diagram Library: Mermaid.js 10.6.1
+- Styling: Inline CSS
+- Icons: Emoji characters
 
-## Development
+## Modification
 
-### Modifying the Documentation
+### Updating Content
 
-To update the documentation:
-
-1. Edit `index.html` to modify content or add new sections
-2. Add new Mermaid diagrams using the syntax:
+1. Edit `index.html`
+2. Add Mermaid diagrams with unique IDs:
    ```html
    <div class="mermaid" id="section-diagram">
    graph TD
        A[Node A] --> B[Node B]
    </div>
    ```
-3. Ensure new diagrams have unique IDs
-4. Test changes by opening `index.html` in a browser
+3. Verify in browser
 
-### Adding New Tabs
+### Adding Tabs
 
-1. Add a new tab button in the `.nav-tabs` section:
+1. Add tab button in `.nav-tabs`:
    ```html
    <button class="nav-tab" data-tab="newsection">🔖 New Section</button>
    ```
-2. Add corresponding tab content:
+2. Add tab content:
    ```html
    <div class="tab-content" id="newsection">
-       <!-- Content here -->
    </div>
    ```
-3. Add a Mermaid diagram if needed with a unique ID
+3. Add Mermaid diagram with unique ID if required
 
-### Customizing Colors
+### Color Scheme
 
-Color scheme is defined in the `<style>` section of `index.html`:
+Defined in `<style>` section of `index.html`:
 
 - Primary gradient: `#667eea` to `#764ba2`
-- Success color: `#28a745`
-- Warning color: `#ffc107`
-- Error color: `#dc3545`
-- Neutral color: `#6c757d`
-
-## License
-
-This documentation is part of the Mini SONiC project.
+- Success: `#28a745`
+- Warning: `#ffc107`
+- Error: `#dc3545`
+- Neutral: `#6c757d`

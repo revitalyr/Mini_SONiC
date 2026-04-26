@@ -1,36 +1,36 @@
 # Mini SONiC
 
-A protocol-oriented low-level networking stack and protocol-oriented system, demonstrating understanding of networking primitives, pluggable protocols, and zero-copy serialization.
+Protocol-oriented low-level networking stack implementing networking primitives, pluggable protocols, and zero-copy serialization.
 
-## 📚 Interactive Documentation
+## Documentation
 
-**NEW:** Check out the [interactive HTML documentation](docs/index.html) with Mermaid diagrams!
+Interactive HTML documentation available at [docs/index.html](docs/index.html).
 
-The documentation includes:
-- 📊 **Overview** - System architecture and key features
-- 🏗️ **Architecture** - Component interactions and module dependencies
-- 🧩 **Modules** - C++20 module structure
-- 🔄 **Data Flow** - Packet processing pipeline
-- 💻 **Cross-Platform** - Windows/Unix support
-- 🚀 **Build** - Build process and targets
+Documentation sections:
+- Overview - System architecture and features
+- Architecture - Component interactions and dependencies
+- Modules - C++20 module structure
+- Data Flow - Packet processing pipeline
+- Cross-Platform - Platform support
+- Build - Build process and targets
 
-Open `docs/index.html` in your browser to explore the interactive diagrams with zoom controls.
+Open `docs/index.html` in a browser to view interactive diagrams.
 
 ## Overview
 
-Mini SONiC is a production-grade protocol-oriented networking stack that implements core networking primitives:
+Mini SONiC implements core networking primitives:
 
-- **Pluggable Protocol Architecture** - Extensible protocol handler interface
-- **Zero-Copy Serialization** - FlatBuffers-based serialization layer
-- **Native WebSocket Gateway** - Real-time bidirectional communication
-- **P2P Gossip Protocol** - Lightweight peer discovery and membership
-- **Control Plane / Data Plane Separation**
-- **SAI (Switch Abstraction Interface) Layer**
-- **L2 Switching with MAC learning**
-- **L3 Routing with Longest Prefix Match (LPM)**
-- **C++20 Modules for modular architecture**
-- **Cross-platform support (Windows/Unix)**
-- **Visual dashboard with ncurses**
+- Pluggable protocol architecture
+- Zero-copy serialization (FlatBuffers)
+- WebSocket gateway
+- P2P gossip protocol
+- Control/data plane separation
+- SAI abstraction layer
+- L2 switching with MAC learning
+- L3 routing with LPM
+- C++20 modules
+- Cross-platform support
+- Visual dashboard
 
 ## Architecture
 

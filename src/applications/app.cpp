@@ -18,11 +18,11 @@ module;
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <queue>
-#include <map>
 
 module MiniSonic.App;
 
 import MiniSonic.Core.Types;
+import MiniSonic.Core.Constants;
 
 // Import our custom modules
 import MiniSonic.DataPlane;
@@ -50,31 +50,44 @@ void App::initialize() {
     initializeTopology();
     initializeDataPlane();
     initializeNetworking();
-    
+
     auto& event_bus = Events::getGlobalEventBus();
     event_bus.subscribe("packet", [this](const nlohmann::json& event) {});
-    
-    std::cout << "[APP] Initialized: " << m_topology.hosts.size() << " hosts, "
+
+    std::cout << Constants::LOG_PREFIX_APP << " " << Constants::INFO_INITIALIZED << ": "
+              << m_topology.hosts.size() << " hosts, "
               << m_topology.links.size() << " switch links\n";
 }
 
 void App::initializeTopology() {
-    std::ifstream config_file("examples/config/topology.json");
+    std::ifstream config_file(Constants::TOPOLOGY_CONFIG_PATH);
     if (!config_file.is_open()) {
-        std::cerr << "[APP] Failed to open topology.json, using defaults\n";
+        std::cerr << Constants::LOG_PREFIX_APP << " " << Constants::ERR_TOPOLOGY_CONFIG_OPEN << "\n";
         // Fallback to hardcoded topology
         m_topology.hosts = {
-            {"H1", "Host 1", Types::macToUint64("00:11:22:33:44:55"), Types::ipToUint32("10.0.1.2"), 100, 300, "SW1", 1},
-            {"H2", "Host 2", Types::macToUint64("00:11:22:33:44:56"), Types::ipToUint32("10.0.3.7"), 700, 300, "SW4", 1}
+            {Constants::DEFAULT_HOST_H1_ID, Constants::DEFAULT_HOST_H1_NAME,
+             Types::macToUint64(Constants::DEFAULT_HOST_H1_MAC), Types::ipToUint32(Constants::DEFAULT_HOST_H1_IP),
+             Constants::DEFAULT_HOST_H1_X, Constants::DEFAULT_HOST_H1_Y,
+             Constants::DEFAULT_HOST_H1_SWITCH, Constants::DEFAULT_HOST_H1_PORT},
+            {Constants::DEFAULT_HOST_H2_ID, Constants::DEFAULT_HOST_H2_NAME,
+             Types::macToUint64(Constants::DEFAULT_HOST_H2_MAC), Types::ipToUint32(Constants::DEFAULT_HOST_H2_IP),
+             Constants::DEFAULT_HOST_H2_X, Constants::DEFAULT_HOST_H2_Y,
+             Constants::DEFAULT_HOST_H2_SWITCH, Constants::DEFAULT_HOST_H2_PORT}
         };
-        m_topology.links = {{"H1", "SW1"}, {"SW1", "SW2"}, {"SW2", "SW3"}, {"SW3", "SW4"}, {"SW4", "H2"}};
+        m_topology.links = {
+            {Constants::DEFAULT_HOST_H1_ID, Constants::DEFAULT_HOST_H1_SWITCH},
+            {Constants::DEFAULT_HOST_H1_SWITCH, "SW2"},
+            {"SW2", "SW3"},
+            {"SW3", Constants::DEFAULT_HOST_H2_SWITCH},
+            {Constants::DEFAULT_HOST_H2_SWITCH, Constants::DEFAULT_HOST_H2_ID}
+        };
         return;
     }
-    
+
     try {
         nlohmann::json config;
         config_file >> config;
-        
+
         // Load hosts
         for (const auto& h : config["hosts"]) {
             Host host;
@@ -88,7 +101,7 @@ void App::initializeTopology() {
             host.connected_port = h["connected_port"];
             m_topology.hosts.push_back(host);
         }
-        
+
         // Load switches
         for (const auto& s : config["switches"]) {
             Switch sw;
@@ -102,7 +115,7 @@ void App::initializeTopology() {
             }
             m_topology.switches.push_back(sw);
         }
-        
+
         // Load links
         for (const auto& l : config["links"]) {
             Link link;
@@ -110,56 +123,83 @@ void App::initializeTopology() {
             link.target = l["target"];
             m_topology.links.push_back(link);
         }
-        
-        std::cout << "[APP] Loaded topology: " << m_topology.hosts.size() << " hosts, " 
+
+        std::cout << Constants::LOG_PREFIX_APP << " " << Constants::INFO_LOADED_TOPOLOGY << ": "
+                  << m_topology.hosts.size() << " hosts, "
                   << m_topology.links.size() << " links\n";
-        
+
     } catch (const std::exception& e) {
-        std::cerr << "[APP] Failed to parse topology config: " << e.what() << "\n";
+        std::cerr << Constants::LOG_PREFIX_APP << " " << Constants::ERR_TOPOLOGY_CONFIG_PARSE
+                  << ": " << e.what() << "\n";
     }
 }
 
+/**
+ * @brief Setup signal handlers.
+ *
+ * Platform-specific signal handler configuration.
+ */
 void App::setupHandler() {
     // Signal handler setup is platform-specific
 }
 
+/**
+ * @brief Initialize data plane components.
+ *
+ * Sets up SAI, pipeline, packet queue, and pipeline thread.
+ */
 void App::initializeDataPlane() {
     m_sai = std::make_unique<SAI::SimulatedSai>();
     m_pipeline = std::make_unique<DataPlane::Pipeline>(*m_sai);
-    m_packet_queue = std::make_unique<DataPlane::SPSCQueue<DataPlane::Packet>>(1024);
-    m_pipeline_thread = std::make_unique<DataPlane::PipelineThread>(*m_pipeline, *m_packet_queue, 32);
+    m_packet_queue = std::make_unique<DataPlane::SPSCQueue<DataPlane::Packet>>(Constants::DEFAULT_SPSC_QUEUE_CAPACITY);
+    m_pipeline_thread = std::make_unique<DataPlane::PipelineThread>(*m_pipeline, *m_packet_queue, Constants::DEFAULT_BATCH_SIZE);
 }
 
+/**
+ * @brief Initialize networking components.
+ *
+ * Only initializes networking if peer parameters are specified for distributed mode.
+ */
 void App::initializeNetworking() {
     if (!m_peer_ip.empty() && m_peer_port > 0) {
         m_network_link = Networking::NetworkProviderFactory::createTcpLink(m_listen_port, m_peer_ip, m_peer_port);
     }
 }
 
+/**
+ * @brief Run the application.
+ *
+ * Starts all components and enters main loop.
+ */
 void App::run() {
     m_running.store(true);
-    
+
     try {
         m_pipeline_thread->start();
         if (m_network_link) m_network_link->start();
         startPacketGenerator();
-        
-        std::cout << "[APP] Running\n";
-        
+
+        std::cout << Constants::LOG_PREFIX_APP << " " << Constants::INFO_RUNNING << "\n";
+
         while (m_running.load()) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     } catch (const std::exception& e) {
-        std::cerr << "[APP] Fatal: " << e.what() << "\n";
+        std::cerr << Constants::LOG_PREFIX_APP << " " << Constants::INFO_FATAL_ERROR << ": " << e.what() << "\n";
         stop();
     }
 }
 
+/**
+ * @brief Stop the application.
+ *
+ * Gracefully shuts down all components.
+ */
 void App::stop() {
     if (!m_running.load()) return;
-    
+
     m_running.store(false);
-    
+
     if (m_network_link) m_network_link->stop();
     if (m_pipeline_thread) m_pipeline_thread->stop();
     if (m_generator_thread && m_generator_thread->joinable()) m_generator_thread->join();
@@ -176,19 +216,6 @@ std::string App::getStats() const {
          << "  Listen Port: " << m_listen_port << "\n"
          << "  Peer: " << m_peer_ip << ":" << m_peer_port << "\n";
     
-    if (m_network_link) {
-        oss << m_network_link->getStats();
-    }
-    
-    if (m_pipeline_thread) {
-        oss << m_pipeline_thread->getStats();
-    }
-    
-    if (m_packet_queue) {
-        oss << "  Queue Usage: " << m_packet_queue->size() 
-             << "/" << m_packet_queue->capacity() << "\n";
-    }
-    
     if (m_sai) {
         oss << m_sai->getStats();
     }
@@ -202,9 +229,9 @@ void App::startPacketGenerator() {
         while (m_running.load()) {
             generateTestPackets();
             ++packet_counter;
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(Constants::PACKET_GENERATION_INTERVAL_MS));
             if (packet_counter % 100 == 0) {
-                Utils::Metrics::instance().inc("app_generator_cycles");
+                Utils::Metrics::instance().inc(Constants::METRIC_GENERATOR_CYCLES);
             }
         }
     });
@@ -269,12 +296,20 @@ std::vector<std::string> App::findPath(const std::string& src, const std::string
     return path;
 }
 
+/**
+ * @brief Route packet through switches sequentially.
+ *
+ * Emits hop events for each node in the path and queues packet for pipeline processing at final destination.
+ *
+ * @param pkt Packet to route
+ * @param path Vector of node identifiers representing the route
+ */
 void App::routePacketSequentially(const DataPlane::Packet& pkt, const std::vector<std::string>& path) {
     auto& event_bus = Events::getGlobalEventBus();
-    
+
     for (size_t i = 0; i < path.size(); ++i) {
         nlohmann::json event;
-        event["type"] = "packet_hop";
+        event["type"] = Constants::EVENT_PACKET_HOP;
         event["packet_id"] = pkt.id();
         event["current_node"] = path[i];
         event["hop_index"] = i;
@@ -283,13 +318,13 @@ void App::routePacketSequentially(const DataPlane::Packet& pkt, const std::vecto
             std::chrono::high_resolution_clock::now().time_since_epoch()
         ).count();
         event_bus.publishJson(event);
-        
+
         // Process packet at this hop
         if (i == path.size() - 1) {
             // Final destination - queue for pipeline processing
             auto pkt_copy = pkt;
             if (m_packet_queue->push(std::move(pkt_copy))) {
-                Utils::Metrics::instance().inc("app_packets_generated");
+                Utils::Metrics::instance().inc(Constants::METRIC_PACKETS_GENERATED);
             }
         }
     }

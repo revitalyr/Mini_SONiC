@@ -21,56 +21,74 @@ import MiniSonic.Core.Types;
 
 export namespace MiniSonic::Core {
 
-// Host structure
+/**
+ * @brief Network host configuration.
+ *
+ * Represents a host in the network topology with address information and connection details.
+ */
 export struct Host {
-    std::string id;
-    std::string name;
-    Types::MacAddress mac;
-    Types::IpAddress ip;
-    int x, y; // Coordinates for visualization
-    std::string connected_switch;
-    int connected_port;
+    std::string id;                     ///< Host identifier
+    std::string name;                   ///< Host name
+    Types::MacAddress mac;              ///< MAC address
+    Types::IpAddress ip;                ///< IP address
+    int x, y;                          ///< Coordinates for visualization
+    std::string connected_switch;      ///< Connected switch identifier
+    int connected_port;                ///< Connected port number
 };
 
-// Switch structure
+/**
+ * @brief Network switch configuration.
+ *
+ * Represents a switch in the network topology with port information.
+ */
 export struct Switch {
-    std::string id;
-    std::string name;
-    Types::MacAddress mac;
-    int x, y; // Coordinates for visualization
-    std::vector<std::pair<int, std::string>> ports; // port_id -> connected_to
+    std::string id;                                        ///< Switch identifier
+    std::string name;                                      ///< Switch name
+    Types::MacAddress mac;                                 ///< MAC address
+    int x, y;                                              ///< Coordinates for visualization
+    std::vector<std::pair<int, std::string>> ports;       ///< Port configuration (port_id -> connected_to)
 };
 
-// Link structure
+/**
+ * @brief Network link configuration.
+ *
+ * Represents a bidirectional link between two network nodes.
+ */
 export struct Link {
-    std::string source;
-    std::string target;
+    std::string source;     ///< Source node identifier
+    std::string target;     ///< Target node identifier
 };
 
-// Topology configuration
+/**
+ * @brief Complete network topology configuration.
+ *
+ * Contains all hosts, switches, and links defining the network topology.
+ */
 export struct TopologyConfig {
-    std::vector<Host> hosts;
-    std::vector<Switch> switches;
-    std::vector<Link> links;
+    std::vector<Host> hosts;       ///< List of hosts
+    std::vector<Switch> switches;  ///< List of switches
+    std::vector<Link> links;       ///< List of links
 };
 
 /**
  * @brief Main application class
- * 
- * Orchestrates all components and provides the main entry point.
+ *
+ * Orchestrates system components and provides the primary entry point.
+ * Manages topology configuration, data plane initialization, and packet generation.
  */
 export class App {
 public:
     /**
-     * @brief Construct application with modular architecture
-     * @param listen_port Port for this switch instance
-     * @param peer_ip Peer switch IP (optional)
-     * @param peer_port Peer switch port (optional)
+     * @brief Construct application with specified network parameters.
+     *
+     * @param listen_port Port to listen on for incoming connections
+     * @param peer_ip Peer IP address for distributed mode (empty for standalone)
+     * @param peer_port Peer port for distributed mode (0 for standalone)
      */
     App(
-        Types::PortId listen_port = 9000,
-        const std::string& peer_ip = "",
-        Types::PortId peer_port = 0
+        Types::PortId listen_port,
+        const std::string& peer_ip,
+        Types::PortId peer_port
     );
     
     ~App() = default;
@@ -79,63 +97,102 @@ public:
     App(const App& other) = delete;
     App& operator=(const App& other) = delete;
     App(App&& other) noexcept = delete;
-    App& operator=(App&& other) noexcept = delete;
+    App& operator=(App&& other) = delete;
 
+    /**
+     * @brief Run the application.
+     *
+     * Starts all components and enters main loop.
+     */
     void run();
+
+    /**
+     * @brief Stop the application.
+     *
+     * Gracefully shuts down all components.
+     */
     void stop();
 
+    /**
+     * @brief Check if application is running.
+     *
+     * @return true if running, false otherwise
+     */
     [[nodiscard]] bool isRunning() const noexcept;
 
     /**
-     * @brief Get application statistics
+     * @brief Get application statistics.
+     *
+     * @return String containing application statistics
      */
     [[nodiscard]] std::string getStats() const;
 
     /**
-     * @brief Setup signal handlers
+     * @brief Setup signal handlers.
+     *
+     * Platform-specific signal handler configuration.
      */
     void setupHandler();
 
 private:
     /**
-     * @brief Initialize all components
+     * @brief Initialize all components.
      */
     void initialize();
 
     /**
-     * @brief Start packet generator thread
+     * @brief Start packet generator thread.
+     *
+     * Generates test packets from topology hosts at regular intervals.
      */
     void startPacketGenerator();
 
     /**
-     * @brief Generate test packets
-     */
-    void generateTestPackets();
-
-    /**
-     * @brief Initialize networking components
+     * @brief Initialize networking components.
+     *
+     * Only initializes networking if peer parameters are specified for distributed mode.
      */
     void initializeNetworking();
 
     /**
-     * @brief Initialize data plane components
+     * @brief Initialize data plane components.
+     *
+     * Sets up SAI, pipeline, packet queue, and pipeline thread.
      */
     void initializeDataPlane();
 
     /**
-     * @brief Initialize topology configuration
+     * @brief Initialize topology configuration.
+     *
+     * Loads topology from configuration file or uses default values.
      */
     void initializeTopology();
 
     /**
-     * @brief Find path from source to destination
+     * @brief Find path from source to destination using BFS.
+     *
+     * @param src Source node identifier
+     * @param dst Destination node identifier
+     * @return Vector of node identifiers representing the path
      */
     std::vector<std::string> findPath(const std::string& src, const std::string& dst);
 
     /**
-     * @brief Route packet through switches sequentially
+     * @brief Route packet through switches sequentially.
+     *
+     * Emits hop events for each node in the path and queues packet for pipeline processing at final destination.
+     *
+     * @param pkt Packet to route
+     * @param path Vector of node identifiers representing the route
      */
     void routePacketSequentially(const DataPlane::Packet& pkt, const std::vector<std::string>& path);
+
+    /**
+     * @brief Generate test packets from topology hosts.
+     *
+     * Alternates between hosts to generate bidirectional traffic.
+     */
+    void generateTestPackets();
 
     // Core components
     std::unique_ptr<SAI::SaiInterface> m_sai;
