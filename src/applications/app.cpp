@@ -59,7 +59,7 @@ void App::initialize() {
 }
 
 void App::initializeTopology() {
-    std::ifstream config_file("topology.json");
+    std::ifstream config_file("examples/config/topology.json");
     if (!config_file.is_open()) {
         std::cerr << "[APP] Failed to open topology.json, using defaults\n";
         // Fallback to hardcoded topology
