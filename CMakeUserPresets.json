@@ -1,0 +1,29 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "msvc-debug-qt",
+      "inherits": "msvc-debug",
+      "cacheVariables": {
+        "Qt6_DIR": "D:\\work\\Qt\\6.7.0\\msvc2019_64\\lib\\cmake\\Qt6"
+      }
+    },
+    {
+      "name": "msvc-release-qt",
+      "inherits": "msvc-release",
+      "cacheVariables": {
+        "Qt6_DIR": "D:\\work\\Qt\\6.7.0\\msvc2019_64\\lib\\cmake\\Qt6"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-debug-qt",
+      "configurePreset": "msvc-debug-qt"
+    },
+    {
+      "name": "msvc-release-qt",
+      "configurePreset": "msvc-release-qt"
+    }
+  ]
+}

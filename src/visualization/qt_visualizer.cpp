@@ -1,27 +1,27 @@
 #include <QApplication>
 #include <QMainWindow>
 #include <QGraphicsScene>
-#include <QGraphicsView> // For QGraphicsView
-#include <QGraphicsRectItem> // For QGraphicsRectItem
-#include <QGraphicsTextItem> // For QGraphicsTextItem
-#include <QTimer> // For QTimer
-#include <QTcpSocket> // For QTcpSocket
-#include <QJsonDocument> // For QJsonDocument
-#include <QJsonObject> // For QJsonObject
-#include <QJsonArray> // For QJsonArray
-#include <QVBoxLayout> // For QVBoxLayout
-#include <QHBoxLayout> // For QHBoxLayout
-#include <QLabel> // For QLabel
-#include <QPushButton> // For QPushButton
-#include <QPlainTextEdit> // For QPlainTextEdit
-#include <QMap> // For QMap
-#include <QColor> // For QColor
-#include <QBrush> // For QBrush
-#include <QPen> // For QPen
+#include <QGraphicsView>
+#include <QGraphicsRectItem>
+#include <QGraphicsTextItem>
+#include <QTimer>
+#include <QTcpSocket>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QPlainTextEdit>
+#include <QMap>
+#include <QColor>
+#include <QBrush>
+#include <QPen>
 
 /**
  * @brief Qt6 Visualizer for Mini_SONiC
- * 
+ *
  * Visualizes network packets and switch states in real-time.
  * Connects to event stream via TCP socket and renders the visualization.
  */
@@ -123,7 +123,7 @@ private:
         m_socket = new QTcpSocket(this);
         connect(m_socket, &QTcpSocket::connected, this, &MiniSonicVisualizer::onSocketConnected);
         connect(m_socket, &QTcpSocket::disconnected, this, &MiniSonicVisualizer::onSocketDisconnected);
-        connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::errorOccurred),
+        connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred),
                 this, &MiniSonicVisualizer::onSocketError);
         connect(m_socket, &QTcpSocket::readyRead, this, &MiniSonicVisualizer::onSocketReadyRead);
     }

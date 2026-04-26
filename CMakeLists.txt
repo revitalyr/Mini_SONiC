@@ -194,7 +194,7 @@ if(NOT nlohmann_json_FOUND)
 endif()
 
 # Find Qt6 for visualizer
-find_package(Qt6 QUIET COMPONENTS Core Network Widgets)
+find_package(Qt6 COMPONENTS Core Network Widgets)
 if(Qt6_FOUND)
     message(STATUS "Qt6 found - visualizer components will be built")
 else()
@@ -587,6 +587,18 @@ if(WIN32)
     target_link_libraries(mini_sonic_event_server ws2_32)
 endif()
 message(STATUS "  ✓ mini_sonic_event_server - WebSocket event streaming server")
+
+# TCP Event Server (plain TCP event streaming for Qt visualizer)
+add_executable(mini_sonic_tcp_event_server src/visualization/tcp_event_server.cpp)
+target_link_libraries(mini_sonic_tcp_event_server
+    sonic_common_options
+    nlohmann_json::nlohmann_json
+    Boost::system Boost::asio
+)
+if(WIN32)
+    target_link_libraries(mini_sonic_tcp_event_server ws2_32)
+endif()
+message(STATUS "  ✓ mini_sonic_tcp_event_server - TCP event streaming server")
 
 # =============================================================================
 # INFORMATION
