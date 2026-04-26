@@ -13,11 +13,6 @@ EventLoop::~EventLoop() {
 }
 
 void EventLoop::run() {
-    // Add some test routes
-    m_pipeline.getL3().addRoute("10.0.0.0", 8, "1.1.1.1");
-    m_pipeline.getL3().addRoute("10.1.0.0", 16, "2.2.2.2");
-    m_pipeline.getL3().addRoute("10.1.1.0", 24, "3.3.3.3");
-
     while (m_running.load()) {
         generateTestPackets();
 

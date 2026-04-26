@@ -222,13 +222,10 @@ std::vector<bool> LpmTrie::ipToBinary(Types::IpAddress ip) {
 // L3Service Implementation
 L3Service::L3Service(::MiniSonic::SAI::SaiInterface& sai, const std::string& switch_id)
     : m_sai(sai),
-      m_switch_id(switch_id), // Initialize m_switch_id
-      m_event_bus(Events::getGlobalEventBus()), // Initialize m_event_bus
-      m_lpm_trie(std::make_unique<LpmTrie>()) { // Initialize m_lpm_trie
+      m_switch_id(switch_id),
+      m_event_bus(Events::getGlobalEventBus()),
+      m_lpm_trie(std::make_unique<LpmTrie>()) {
     std::cout << "[L3] Initializing L3 service for " << m_switch_id << "\n";
-    
-    // Add default route using numeric types
-    addRoute(static_cast<Types::IpAddress>(0), static_cast<Types::PrefixLength>(0), MiniSonic::Types::ipToUint32("192.168.1.1"));
 }
 
 bool L3Service::handle(Packet& pkt) {
