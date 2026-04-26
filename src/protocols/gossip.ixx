@@ -26,6 +26,8 @@ export module MiniSonic.Gossip;
 import MiniSonic.Protocol;
 import MiniSonic.Core.Utils;
 import MiniSonic.Core.Constants;
+import MiniSonic.Core.Types;
+
 
 using std::string;
 using std::function;

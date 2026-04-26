@@ -76,7 +76,7 @@ public:
         m_messages_sent++;
         std::cout << "[WebSocket] Sent message (" << msg.payload.size() << " bytes)\n";
     }
-    void broadcast(const Message& msg) override {
+    void broadcast(const Message& /*msg*/) override {
         m_messages_sent++;
         std::cout << "[WebSocket] Broadcast message to " << m_connections << " clients\n";
     }
@@ -104,11 +104,11 @@ public:
         m_running = false;
         std::cout << "[Gossip] Stopped\n";
     }
-    void send(const Message& msg) override {
+    void send(const Message& /*msg*/) override {
         m_messages_sent++;
         std::cout << "[Gossip] Sent message to peer\n";
     }
-    void broadcast(const Message& msg) override {
+    void broadcast(const Message& /*msg*/) override {
         m_messages_sent++;
         std::cout << "[Gossip] Gossip message to " << m_peers.size() << " peers\n";
     }

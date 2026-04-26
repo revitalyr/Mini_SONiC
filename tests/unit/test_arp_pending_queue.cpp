@@ -4,8 +4,8 @@
  */
 
 #include <catch2/catch_all.hpp>
-#include "core/common/types.hpp"
 
+import MiniSonic.Core.Types;
 import MiniSonic.Core.Utils;
 import MiniSonic.L3.ArpPendingQueue;
 import MiniSonic.DataPlane.PacketEnhanced;

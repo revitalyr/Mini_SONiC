@@ -140,8 +140,6 @@ private:
     alignas(64) std::atomic<Types::Count> m_tail{0};  // Consumer index
 };
 
-export namespace MiniSonic::Utils {
-
 /**
  * @brief Thread-safe metrics collection system
  *

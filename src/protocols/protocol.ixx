@@ -15,6 +15,7 @@ module;
 
 export module MiniSonic.Protocol;
 
+import MiniSonic.Core.Types;
 import MiniSonic.Core.Utils;
 import MiniSonic.Core.Constants;
 

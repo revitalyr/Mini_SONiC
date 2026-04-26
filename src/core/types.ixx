@@ -54,12 +54,15 @@ using Seconds = std::chrono::seconds;
 using Minutes = std::chrono::minutes;
 using Hours = std::chrono::hours;
 using TimePoint = std::chrono::steady_clock::time_point;
+using Timestamp = std::time_t;
 
 // Numeric types with semantic meaning
 using Count = std::size_t;
+using SequenceNumber = std::size_t;
 using RateLimit = std::size_t;
 using Threshold = std::size_t;
 using PrefixLength = std::uint8_t;
+using BufferLength = std::size_t;
 
 // Configuration types
 using FileName = String;

@@ -7,9 +7,10 @@
 
 // Import the module
 import MiniSonic.Core.Utils;
+import MiniSonic.Core.Types;
 
 using namespace MiniSonic::Utils;
-using namespace Types;
+using namespace MiniSonic::Types;
 
 TEST_CASE("Utils Metrics CounterOperations", "[utils][metrics]") {
     SECTION("Increment counter") {

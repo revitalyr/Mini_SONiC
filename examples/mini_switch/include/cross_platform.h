@@ -424,15 +424,16 @@ typedef int socket_t;
 // VISUAL FUNCTION STUBS (when HAS_CURSES is not defined)
 // =============================================================================
 #ifndef HAS_CURSES
-    static inline void visual_mac_table(void) {
-        // Stub when curses is not available
+    static inline void visual_packet(const uint8_t *src, const uint8_t *dst, int src_port, int dst_port, int known_mac, int is_arp, int vlan_id) {
+        (void)src; (void)dst; (void)src_port; (void)dst_port; (void)known_mac; (void)is_arp; (void)vlan_id;
+    }
+    static inline void visual_mac_table(uint8_t macs[][6], int ports[], int count) {
+        (void)macs; (void)ports; (void)count;
+    }
+    static inline void visual_arp_table(uint32_t ips[], uint8_t macs[][6], int count) {
+        (void)ips; (void)macs; (void)count;
     }
     static inline void arp_table_print_visual(void) {
-        // Stub when curses is not available
-    }
-    static inline void visual_packet(const void *pkt) {
-        // Stub when curses is not available
-        (void)pkt;
     }
 #endif
 

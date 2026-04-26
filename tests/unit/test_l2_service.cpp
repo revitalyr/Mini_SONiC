@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
-#include "core/common/types.hpp" // Corrected include path
  
+import MiniSonic.Core.Types;
 import MiniSonic.L2L3;
 import MiniSonic.SAI;
 import MiniSonic.DataPlane;
@@ -66,7 +66,7 @@ TEST_CASE("L2Service MultipleMacLearning", "[l2]") {
 
     for (const auto& [mac, port] : macs) {
         Packet pkt(macToUint64(mac), macToUint64("ff:ff:ff:ff:ff:ff"),
-                   ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), static_cast<Types::PortId>(port));
+                   ipToUint32("10.0.0.1"), ipToUint32("10.0.0.2"), static_cast<MiniSonic::Types::PortId>(port));
         l2.handle(pkt);
     }
 

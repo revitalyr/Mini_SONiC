@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include <optional>
-#include "core/common/types.hpp" // Corrected include path
 
+import MiniSonic.Core.Types;
 import MiniSonic.L2L3;
 using MiniSonic::L3::LpmTrie;
 using namespace MiniSonic::Types;

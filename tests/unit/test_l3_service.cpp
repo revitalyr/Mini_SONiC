@@ -1,6 +1,6 @@
 #include <catch2/catch_all.hpp>
-#include "core/common/types.hpp" // Corrected include path
  
+import MiniSonic.Core.Types;
 import MiniSonic.L2L3;
 import MiniSonic.SAI;
 import MiniSonic.DataPlane;

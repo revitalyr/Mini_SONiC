@@ -39,7 +39,7 @@ void* rx_thread(void *arg) {
         pkt->port = port_idx;
         clock_gettime(CLOCK_MONOTONIC, &pkt->timestamp);
         
-        __sync_fetch_and_add(&global_rx_count, 1);
+        __sync_fetch_and_add((volatile PacketCount *)&global_rx_count, 1);
         
         if (ring_push(&global_queues.rx_queue, pkt) < 0) {
             free(pkt);

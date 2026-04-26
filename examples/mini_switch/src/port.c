@@ -74,7 +74,7 @@ int port_add(const char *ifname) {
     p->vlan = 1;
     p->active = 1;
     
-    printf("Added port %d: %s (ifindex: %d)\n", port_count, p->name, p->ifindex);
+    printf("Added port %zd: %s (ifindex: %d)\n", port_count, p->name, p->ifindex);
     port_count++;
     return port_count - 1;
 }
@@ -109,7 +109,7 @@ void port_print(void) {
     printf("\n");
 }
 
-int port_get_sock(int port_idx) {
+SocketFd port_get_sock(EntryCount port_idx) {
     if (port_idx < 0 || port_idx >= port_count || !ports[port_idx].active) {
         return -1;
     }
