@@ -5,14 +5,16 @@
       "name": "msvc-debug-qt",
       "inherits": "msvc-debug",
       "cacheVariables": {
-        "Qt6_DIR": "D:\\work\\Qt\\6.7.0\\msvc2019_64\\lib\\cmake\\Qt6"
+        "Qt6_DIR": "D:\\work\\Qt\\6.7.0\\msvc2019_64\\lib\\cmake\\Qt6",
+        "CMAKE_PREFIX_PATH": "D:\\work\\Qt\\6.7.0\\msvc2019_64"
       }
     },
     {
       "name": "msvc-release-qt",
       "inherits": "msvc-release",
       "cacheVariables": {
-        "Qt6_DIR": "D:\\work\\Qt\\6.7.0\\msvc2019_64\\lib\\cmake\\Qt6"
+        "Qt6_DIR": "D:\\work\\Qt\\6.7.0\\msvc2019_64\\lib\\cmake\\Qt6",
+        "CMAKE_PREFIX_PATH": "D:\\work\\Qt\\6.7.0\\msvc2019_64"
       }
     }
   ],

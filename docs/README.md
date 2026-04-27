@@ -2,91 +2,41 @@
 
 ## Files
 
-- `index.html` - Interactive documentation with Mermaid diagrams
-- `mermaid-height-util.js` - Diagram scaling and tab navigation utility
-- `README.md` - This file
+| File | Purpose |
+|------|---------|
+| `index.html` | Interactive documentation with Mermaid diagrams |
+| `mermaid-height-util.js` | Diagram scaling utility |
+| `README.md` | This file |
 
-## Usage
+## Viewing
 
-### Viewing Documentation
+Open `index.html` in a web browser. Requires internet connection for Mermaid.js CDN.
 
-Open `index.html` directly in a web browser. No build process required.
+## Structure
 
-**Dependency:** Requires internet connection to load Mermaid.js from CDN:
-```
-https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js
-```
+- **Overview**: System architecture and components
+- **Architecture**: Component interactions
+- **Modules**: C++20 module dependencies
+- **Data Flow**: Packet processing pipeline
+- **Cross-Platform**: Platform abstraction
+- **Build**: Build targets and commands
 
-### Features
+## Diagram Controls
 
-- Interactive tab navigation
-- Mermaid diagram rendering
-- Zoom controls (50%-200%)
-- Responsive design
-- Inline CSS styling
+| Control | Action |
+|---------|--------|
+| `-` | Zoom out 10% |
+| `+` | Zoom in 10% |
+| `⟲` | Reset zoom |
 
-### Documentation Sections
-
-1. Overview - System overview and features
-2. Architecture - Component architecture and dependencies
-3. Modules - C++20 module structure
-4. Data Flow - Packet processing and LPM trie
-5. Cross-Platform - Platform support and abstraction
-6. Build - Build process and targets
-
-### Diagram Controls
-
-- `-` - Decrease zoom by 10%
-- `+` - Increase zoom by 10%
-- `⟲` - Reset zoom to 100%
-
-### Browser Compatibility
+## Browser Support
 
 - Chrome/Edge: Supported
 - Firefox: Supported
 - Safari: Supported
-- Mobile: Responsive design
 
-### Technical Specifications
+## Technical Stack
 
-- Framework: HTML/CSS/JavaScript
-- Diagram Library: Mermaid.js 10.6.1
-- Styling: Inline CSS
-- Icons: Emoji characters
-
-## Modification
-
-### Updating Content
-
-1. Edit `index.html`
-2. Add Mermaid diagrams with unique IDs:
-   ```html
-   <div class="mermaid" id="section-diagram">
-   graph TD
-       A[Node A] --> B[Node B]
-   </div>
-   ```
-3. Verify in browser
-
-### Adding Tabs
-
-1. Add tab button in `.nav-tabs`:
-   ```html
-   <button class="nav-tab" data-tab="newsection">🔖 New Section</button>
-   ```
-2. Add tab content:
-   ```html
-   <div class="tab-content" id="newsection">
-   </div>
-   ```
-3. Add Mermaid diagram with unique ID if required
-
-### Color Scheme
-
-Defined in `<style>` section of `index.html`:
-
-- Primary gradient: `#667eea` to `#764ba2`
-- Success: `#28a745`
-- Warning: `#ffc107`
-- Error: `#dc3545`
-- Neutral: `#6c757d`
+- HTML5/CSS3/JavaScript
+- Mermaid.js 10.6.1
+- Inline CSS styling

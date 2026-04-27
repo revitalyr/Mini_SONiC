@@ -449,6 +449,7 @@ target_link_libraries(mini_sonic_modular PRIVATE
     MiniSonic.SAI
     MiniSonic.L2L3
     MiniSonic.Core.Utils
+    MiniSonic.Visualization
     Threads::Threads
 )
 
@@ -568,37 +569,43 @@ target_link_libraries(mini_sonic_protocol_demo PRIVATE sonic_common_options Thre
 # VISUALIZATION COMPONENTS
 # =============================================================================
 
-# Qt6 Visualizer (only if Qt6 is found)
-if(Qt6_FOUND)
-    add_executable(mini_sonic_qt_visualizer src/visualization/qt_visualizer.cpp)
-    target_link_libraries(mini_sonic_qt_visualizer PRIVATE sonic_common_options Qt6::Core Qt6::Network Qt6::Widgets)
-    message(STATUS "  ✓ mini_sonic_qt_visualizer - Qt6 visualizer application")
-endif()
-
-# Event Server (standalone WebSocket server for event streaming)
-add_executable(mini_sonic_event_server src/visualization/event_server.cpp)
-target_link_libraries(mini_sonic_event_server
+# Visualization library (shared between event_server executable and modular app)
+add_library(MiniSonic.Visualization STATIC src/visualization/event_server.cpp)
+target_link_libraries(MiniSonic.Visualization
     MiniSonic.Core.Events
     sonic_common_options
     nlohmann_json::nlohmann_json
     Boost::system Boost::asio Boost::filesystem
 )
-if(WIN32)
-    target_link_libraries(mini_sonic_event_server ws2_32)
-endif()
-message(STATUS "  ✓ mini_sonic_event_server - WebSocket event streaming server")
+target_compile_definitions(MiniSonic.Visualization PRIVATE VISUALIZATION_LIBRARY)
 
-# TCP Event Server (plain TCP event streaming for Qt visualizer)
-add_executable(mini_sonic_tcp_event_server src/visualization/tcp_event_server.cpp)
-target_link_libraries(mini_sonic_tcp_event_server
-    sonic_common_options
-    nlohmann_json::nlohmann_json
-    Boost::system Boost::asio
-)
-if(WIN32)
-    target_link_libraries(mini_sonic_tcp_event_server ws2_32)
+# Event Server executable (links to visualization library)
+add_executable(mini_sonic_event_server src/visualization/event_server_main.cpp)
+target_link_libraries(mini_sonic_event_server PRIVATE MiniSonic.Visualization)
+
+# Qt6 Visualizer (only if Qt6 is found)
+if(Qt6_FOUND)
+    add_executable(mini_sonic_qt_visualizer
+        src/visualization/qt_visualizer.cpp
+        src/visualization/visualizer_core_std.cpp)
+    target_link_libraries(mini_sonic_qt_visualizer PRIVATE sonic_common_options Qt6::Core Qt6::Network Qt6::Widgets Boost::asio nlohmann_json::nlohmann_json)
+    message(STATUS "  ✓ mini_sonic_qt_visualizer - Qt6 visualizer application")
+
+    # Manual Qt DLL deployment to ensure version consistency
+    if(WIN32)
+        get_filename_component(Qt6_BIN_DIR "${Qt6_DIR}/../../../bin" ABSOLUTE)
+        get_filename_component(Qt6_PLUGINS_DIR "${Qt6_DIR}/../../../plugins" ABSOLUTE)
+        add_custom_command(TARGET mini_sonic_qt_visualizer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${Qt6_BIN_DIR}" $<TARGET_FILE_DIR:mini_sonic_qt_visualizer>
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${Qt6_PLUGINS_DIR}" $<TARGET_FILE_DIR:mini_sonic_qt_visualizer>
+            COMMENT "Copying Qt DLLs and plugins from ${Qt6_BIN_DIR}"
+        )
+    endif()
 endif()
-message(STATUS "  ✓ mini_sonic_tcp_event_server - TCP event streaming server")
+if(WIN32)
+    target_link_libraries(mini_sonic_event_server PRIVATE ws2_32)
+endif()
+message(STATUS "  ✓ mini_sonic_event_server - WebSocket and TCP event streaming server")
 
 # =============================================================================
 # INFORMATION

@@ -70,7 +70,10 @@
   "links": [
     {"source": "H1", "target": "SW1"},
     {"source": "SW1", "target": "SW2"},
+    {"source": "SW1", "target": "SW3"},
     {"source": "SW2", "target": "SW3"},
+    {"source": "SW2", "target": "SW3"},
+    {"source": "SW4", "target": "SW2"},
     {"source": "SW3", "target": "SW4"},
     {"source": "SW4", "target": "H2"}
   ]

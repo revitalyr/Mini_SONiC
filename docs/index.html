@@ -238,19 +238,20 @@
             <div class="tab-content active" id="overview">
                 <div class="feature-section">
                     <h3>System Overview</h3>
-                    <p>Mini SONiC is a production-grade demonstration project implementing core networking concepts with modern C++20 modules. It demonstrates understanding of networking stacks, control/data plane separation, and SAI abstraction.</p>
+                    <p>Protocol-oriented networking stack with C++20 modules. Implements control/data plane separation, SAI abstraction, L2/L3 forwarding, and visualization components.</p>
                 </div>
 
                 <div class="feature-section">
-                    <h3>Key Features</h3>
+                    <h3>Components</h3>
                     <ul class="feature-list">
-                        <li>✅ Control Plane / Data Plane Separation</li>
-                        <li>✅ SAI (Switch Abstraction Interface) Layer</li>
-                        <li>✅ L2 Switching with MAC learning</li>
-                        <li>✅ L3 Routing with Longest Prefix Match (LPM)</li>
-                        <li>✅ C++20 Modules for modular architecture</li>
-                        <li>✅ Cross-platform support (Windows/Unix)</li>
-                        <li>✅ Visual dashboard with ncurses</li>
+                        <li>Control Plane / Data Plane Separation</li>
+                        <li>SAI (Switch Abstraction Interface) Layer</li>
+                        <li>L2 Switching with MAC learning</li>
+                        <li>L3 Routing with Longest Prefix Match (LPM)</li>
+                        <li>C++20 Modules</li>
+                        <li>Cross-platform support (Windows/Unix)</li>
+                        <li>Qt6 Visualizer with Boost.Asio</li>
+                        <li>Semantic type aliases</li>
                     </ul>
                 </div>
 
@@ -308,12 +309,53 @@ graph TD
                             <td>MSVC 19.5+, GCC 11+, Clang 13+</td>
                         </tr>
                         <tr>
-                            <td>UI Library</td>
-                            <td>ncurses/PDCurses (optional)</td>
+                            <td>Libraries</td>
+                            <td>Boost.Asio, nlohmann/json, Qt6</td>
                         </tr>
                         <tr>
                             <td>Platform</td>
                             <td>Windows, Linux, Unix</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="feature-section">
+                    <h3>Semantic Type Aliases</h3>
+                    <table>
+                        <tr>
+                            <th>Alias</th>
+                            <th>Underlying Type</th>
+                            <th>Usage</th>
+                        </tr>
+                        <tr>
+                            <td>PortNo</td>
+                            <td>std::uint16_t</td>
+                            <td>Network port numbers</td>
+                        </tr>
+                        <tr>
+                            <td>SpeedMultiplier</td>
+                            <td>int</td>
+                            <td>Animation speed control</td>
+                        </tr>
+                        <tr>
+                            <td>PacketId</td>
+                            <td>std::string</td>
+                            <td>Packet identifiers</td>
+                        </tr>
+                        <tr>
+                            <td>SwitchId</td>
+                            <td>std::string</td>
+                            <td>Switch node identifiers</td>
+                        </tr>
+                        <tr>
+                            <td>HostId</td>
+                            <td>std::string</td>
+                            <td>Host node identifiers</td>
+                        </tr>
+                        <tr>
+                            <td>IpString</td>
+                            <td>std::string</td>
+                            <td>IP address strings</td>
                         </tr>
                     </table>
                 </div>

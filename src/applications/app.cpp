@@ -18,6 +18,8 @@ module;
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <queue>
+#include <boost/asio.hpp>
+#include "../visualization/event_server.h"
 
 module MiniSonic.App;
 
@@ -50,6 +52,7 @@ void App::initialize() {
     initializeTopology();
     initializeDataPlane();
     initializeNetworking();
+    Visualization::startEventServer(8080);
 
     auto& event_bus = Events::getGlobalEventBus();
     event_bus.subscribe("packet", [this](const nlohmann::json& event) {});
@@ -312,6 +315,7 @@ void App::routePacketSequentially(const DataPlane::Packet& pkt, const std::vecto
         event["type"] = Constants::EVENT_PACKET_HOP;
         event["packet_id"] = pkt.id();
         event["current_node"] = path[i];
+        event["next_node"] = (i + 1 < path.size()) ? path[i + 1] : "";
         event["hop_index"] = i;
         event["total_hops"] = path.size();
         event["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(

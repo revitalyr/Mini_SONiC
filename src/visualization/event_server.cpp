@@ -1,10 +1,11 @@
 #include <iostream>
-#include <string>
-#include <thread>
-#include <vector>
+#include <fstream>
 #include <memory>
-#include <mutex>
+#include <string>
+#include <vector>
 #include <atomic>
+#include <thread>
+#include <mutex>
 #include <functional>
 #include <condition_variable>
 #include <boost/asio.hpp>
@@ -29,7 +30,123 @@ using std::unique_ptr;
 namespace MiniSonic::Visualization {
 
 /**
- * @brief WebSocket session for a single client
+ * @brief Plain TCP session for Qt visualizer
+ */
+class TcpSession : public std::enable_shared_from_this<TcpSession> {
+public:
+    explicit TcpSession(boost::asio::ip::tcp::socket socket)
+        : m_socket(std::move(socket)) {
+    }
+
+    void start() {
+        std::cout << "[TcpSession] TCP connection accepted\n";
+        startReading();
+    }
+
+    void send(const string& message) {
+        boost::asio::write(m_socket, boost::asio::buffer(message + "\n"));
+    }
+
+    void close() {
+        boost::system::error_code ec;
+        m_socket.close(ec);
+    }
+
+private:
+    void startReading() {
+        auto self = shared_from_this();
+        m_socket.async_read_some(
+            boost::asio::buffer(m_buffer),
+            [this, self](boost::system::error_code ec, size_t bytes_transferred) {
+                if (ec) {
+                    return;
+                }
+                // Parse received data
+                std::string data(m_buffer.data(), bytes_transferred);
+                handleMessage(data);
+                startReading();
+            });
+    }
+
+    void handleMessage(const string& data) {
+        try {
+            auto json = ::nlohmann::json::parse(data);
+            if (json.contains("type") && json["type"] == "topology_query") {
+                sendTopology();
+            }
+        } catch (...) {
+            // Ignore parse errors
+        }
+    }
+
+    void sendTopology() {
+        nlohmann::json topology;
+        topology["type"] = "topology";
+        topology["nodes"] = nlohmann::json::array();
+        topology["links"] = nlohmann::json::array();
+
+        // Read topology from config file (same as app)
+        std::ifstream config_file("examples/config/topology.json");
+        if (!config_file.is_open()) {
+            std::cerr << "[TcpSession] Failed to open topology config\n";
+            return;
+        }
+
+        try {
+            nlohmann::json config;
+            config_file >> config;
+
+            // Load hosts as nodes
+            if (config.contains("hosts")) {
+                for (const auto& h : config["hosts"]) {
+                    nlohmann::json node;
+                    node["id"] = h["id"];
+                    node["type"] = "host";
+                    node["x"] = h["x"];
+                    node["y"] = h["y"];
+                    topology["nodes"].push_back(node);
+                }
+            }
+
+            // Load switches as nodes
+            if (config.contains("switches")) {
+                for (const auto& s : config["switches"]) {
+                    nlohmann::json node;
+                    node["id"] = s["id"];
+                    node["type"] = "switch";
+                    node["role"] = s.contains("role") ? s["role"] : "switch";
+                    node["x"] = s["x"];
+                    node["y"] = s["y"];
+                    topology["nodes"].push_back(node);
+                }
+            }
+
+            // Load links
+            if (config.contains("links")) {
+                for (const auto& l : config["links"]) {
+                    nlohmann::json link;
+                    link["source"] = l["source"];
+                    link["target"] = l["target"];
+                    topology["links"].push_back(link);
+                }
+            }
+
+            std::cout << "[TcpSession] Sent topology: " << topology["nodes"].size() << " nodes, " << topology["links"].size() << " links\n";
+        } catch (const std::exception& e) {
+            std::cerr << "[TcpSession] Failed to parse topology config: " << e.what() << "\n";
+            return;
+        }
+
+        send(topology.dump());
+    }
+
+private:
+    boost::asio::ip::tcp::socket m_socket;
+    std::array<char, 8192> m_buffer;
+};
+
+/**
+ * @brief WebSocket session for web visualizer
  */
 class Session : public std::enable_shared_from_this<Session> {
 public:
@@ -105,131 +222,66 @@ private:
     }
 
     void sendTopology() {
-        // Send topology information
-        // TODO: This should query the actual Mini_SONiC system for real topology data
-        // Currently using test topology for demonstration purposes
         nlohmann::json topology;
         topology["type"] = "topology";
-        topology["switches"] = {
-            {
-                {"id", "TOR1"},
-                {"name", "TOR1"},
-                {"role", "Top-of-Rack"},
-                {"x", 200},
-                {"y", 100},
-                {"ports", nlohmann::json::array({
-                    {{"name", "Eth0"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 40}},
-                    {{"name", "Eth4"}, {"speed", "100G"}, {"state", "UP"}, {"type", "LAG1"}, {"queue", 60}},
-                    {{"name", "Eth8"}, {"speed", "100G"}, {"state", "DOWN"}, {"type", ""}, {"queue", 0}}
-                })},
-                {"routing", "ECMP: hash=0xA3 → Eth4"},
-                {"acl", "permit tcp dst 443"},
-                {"qos", "DSCP 46 → Q3"},
-                {"stats", {{"packets", 12400}, {"drops", 42}, {"cpu", 3}}}
-            },
-            {
-                {"id", "Spine1"},
-                {"name", "Spine1"},
-                {"role", "Spine"},
-                {"x", 600},
-                {"y", 20},
-                {"ports", nlohmann::json::array({
-                    {{"name", "Eth0"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 30}},
-                    {{"name", "Eth4"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 45}},
-                    {{"name", "Eth8"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 35}}
-                })},
-                {"routing", "Route: 10.0.3.0/24 via TOR2"},
-                {"acl", ""},
-                {"qos", ""},
-                {"stats", {{"packets", 45000}, {"drops", 12}, {"cpu", 5}}}
-            },
-            {
-                {"id", "Spine2"},
-                {"name", "Spine2"},
-                {"role", "Spine"},
-                {"x", 600},
-                {"y", 280},
-                {"ports", nlohmann::json::array({
-                    {{"name", "Eth0"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 25}},
-                    {{"name", "Eth4"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 40}},
-                    {{"name", "Eth8"}, {"speed", "400G"}, {"state", "UP"}, {"type", ""}, {"queue", 30}}
-                })},
-                {"routing", "Route: 10.0.1.0/24 via TOR1"},
-                {"acl", ""},
-                {"qos", ""},
-                {"stats", {{"packets", 42000}, {"drops", 8}, {"cpu", 4}}}
-            },
-            {
-                {"id", "TOR2"},
-                {"name", "TOR2"},
-                {"role", "Top-of-Rack"},
-                {"x", 1000},
-                {"y", 100},
-                {"ports", nlohmann::json::array({
-                    {{"name", "Eth0"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 35}},
-                    {{"name", "Eth4"}, {"speed", "100G"}, {"state", "UP"}, {"type", "LAG2"}, {"queue", 50}},
-                    {{"name", "Eth8"}, {"speed", "100G"}, {"state", "DOWN"}, {"type", ""}, {"queue", 0}}
-                })},
-                {"routing", "ECMP: hash=0xB7 → Eth4"},
-                {"acl", "permit tcp dst 443"},
-                {"qos", "DSCP 46 → Q3"},
-                {"stats", {{"packets", 11800}, {"drops", 35}, {"cpu", 3}}}
-            },
-            {
-                {"id", "Leaf1"},
-                {"name", "Leaf1"},
-                {"role", "Leaf"},
-                {"x", 1000},
-                {"y", 280},
-                {"ports", nlohmann::json::array({
-                    {{"name", "Eth0"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 28}},
-                    {{"name", "Eth4"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 32}},
-                    {{"name", "Eth8"}, {"speed", "100G"}, {"state", "UP"}, {"type", ""}, {"queue", 38}}
-                })},
-                {"routing", "Route: 10.0.5.0/24 via Spine1"},
-                {"acl", ""},
-                {"qos", ""},
-                {"stats", {{"packets", 9500}, {"drops", 15}, {"cpu", 2}}}
+        topology["nodes"] = nlohmann::json::array();
+        topology["links"] = nlohmann::json::array();
+
+        // Read topology from config file (same as app)
+        std::ifstream config_file("examples/config/topology.json");
+        if (!config_file.is_open()) {
+            std::cerr << "[Session] Failed to open topology config\n";
+            return;
+        }
+
+        try {
+            nlohmann::json config;
+            config_file >> config;
+
+            // Load hosts as nodes
+            if (config.contains("hosts")) {
+                for (const auto& h : config["hosts"]) {
+                    nlohmann::json node;
+                    node["id"] = h["id"];
+                    node["type"] = "host";
+                    node["x"] = h["x"];
+                    node["y"] = h["y"];
+                    topology["nodes"].push_back(node);
+                }
             }
-        };
-        topology["links"] = {
-            {{"from", "TOR1"}, {"to", "Spine1"}, {"bandwidth", "100G"}, {"utilization", 0.4}, {"state", "up"}},
-            {{"from", "TOR1"}, {"to", "Spine2"}, {"bandwidth", "100G"}, {"utilization", 0.35}, {"state", "up"}},
-            {{"from", "TOR2"}, {"to", "Spine1"}, {"bandwidth", "100G"}, {"utilization", 0.3}, {"state", "up"}},
-            {{"from", "TOR2"}, {"to", "Spine2"}, {"bandwidth", "100G"}, {"utilization", 0.45}, {"state", "up"}},
-            {{"from", "Spine1"}, {"to", "Spine2"}, {"bandwidth", "400G"}, {"utilization", 0.25}, {"state", "up"}},
-            {{"from", "Leaf1"}, {"to", "Spine1"}, {"bandwidth", "100G"}, {"utilization", 0.2}, {"state", "up"}},
-            {{"from", "Leaf1"}, {"to", "Spine2"}, {"bandwidth", "100G"}, {"utilization", 0.15}, {"state", "up"}},
-            {{"from", "H1"}, {"to", "TOR1"}, {"bandwidth", "10G"}, {"utilization", 0.3}, {"state", "up"}},
-            {{"from", "H2"}, {"to", "TOR2"}, {"bandwidth", "10G"}, {"utilization", 0.25}, {"state", "up"}}
-        };
-        topology["hosts"] = {
-            {
-                {"id", "H1"},
-                {"name", "H1"},
-                {"ip", "10.0.1.2"},
-                {"mac", "00:11:22:33:44:55"},
-                {"x", 20},
-                {"y", 100},
-                {"connected_to", "TOR1"},
-                {"stats", {{"sent", 1500}, {"received", 1200}}}
-            },
-            {
-                {"id", "H2"},
-                {"name", "H2"},
-                {"ip", "10.0.3.7"},
-                {"mac", "00:11:22:33:44:56"},
-                {"x", 1180},
-                {"y", 20},
-                {"connected_to", "TOR2"},
-                {"stats", {{"sent", 1200}, {"received", 1500}}}
+
+            // Load switches as nodes
+            if (config.contains("switches")) {
+                for (const auto& s : config["switches"]) {
+                    nlohmann::json node;
+                    node["id"] = s["id"];
+                    node["type"] = "switch";
+                    node["role"] = s.contains("role") ? s["role"] : "switch";
+                    node["x"] = s["x"];
+                    node["y"] = s["y"];
+                    topology["nodes"].push_back(node);
+                }
             }
-        };
+
+            // Load links
+            if (config.contains("links")) {
+                for (const auto& l : config["links"]) {
+                    nlohmann::json link;
+                    link["source"] = l["source"];
+                    link["target"] = l["target"];
+                    topology["links"].push_back(link);
+                }
+            }
+
+            std::cout << "[Session] Sent topology: " << topology["nodes"].size() << " nodes, " << topology["links"].size() << " links\n";
+        } catch (const std::exception& e) {
+            std::cerr << "[Session] Failed to parse topology config: " << e.what() << "\n";
+            return;
+        }
 
         string topology_data = topology.dump();
         topology_data += "\n";
         m_ws.write(boost::asio::buffer(topology_data));
-        std::cout << "[Session] Sent topology information\n";
     }
 
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket> m_ws;
@@ -248,8 +300,7 @@ public:
         : m_io_context(),
           m_acceptor(m_io_context, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
           m_port(port),
-          m_running(false),
-          m_speed(1) {
+          m_running(false) {
     }
 
     ~EventServer() {
@@ -267,27 +318,14 @@ public:
             m_io_context.run();
         });
 
-        // Start test event timer
-        m_test_timer_thread = std::thread([this]() {
-            while (m_running.load()) {
-                int speed = getSpeed();
-                int delay = std::max(2, 10 / speed); // Adjust delay based on speed (10s base)
-                std::this_thread::sleep_for(std::chrono::seconds(delay));
-                if (!m_sessions.empty()) {
-                    sendTestEvent();
-                }
-            }
-        });
-
-        // Subscribe to event bus - subscribe to all events using wildcard
+        // Subscribe to event bus - subscribe to packet_hop events
         auto& event_bus = MiniSonic::Events::getGlobalEventBus();
-        event_bus.subscribe("*", [this](const nlohmann::json& json_event) {
+        event_bus.subscribe("packet_hop", [this](const nlohmann::json& json_event) {
             handleJsonEvent(json_event);
         });
 
         std::cout << "[EventServer] Started on port " << m_port << "\n";
         std::cout << "[EventServer] Subscribed to global event bus\n";
-        std::cout << "[EventServer] Test event timer started (sends events every second when clients connected)\n";
     }
 
     void stop() {
@@ -329,17 +367,17 @@ private:
                     return;
                 }
 
-                // Create a new session
-                auto session = std::make_shared<Session>(std::move(socket));
-                session->setSpeedCallback([this](int speed) { setSpeed(speed); });
-                session->start();
+                // Create a TCP session for Qt visualizer (plain TCP)
+                auto tcp_session = std::make_shared<TcpSession>(std::move(socket));
 
                 {
                     std::lock_guard<std::mutex> lock(m_sessions_mutex);
-                    m_sessions.push_back(session);
-                    std::cout << "[EventServer] Client connected. Total clients: " 
+                    m_sessions.push_back(tcp_session);
+                    std::cout << "[EventServer] TCP client connected. Total clients: "
                               << m_sessions.size() << "\n";
                 }
+
+                tcp_session->start();
 
                 // Accept next connection
                 doAccept();
@@ -351,11 +389,109 @@ private:
             return;
         }
 
+        // Transform packet_hop events to visualizer's expected format
+        nlohmann::json transformed_event = json_event;
+        if (json_event.contains("type") && json_event["type"] == "packet_hop") {
+            std::string packet_id;
+            if (json_event["packet_id"].is_string()) {
+                packet_id = json_event["packet_id"].get<std::string>();
+            } else {
+                packet_id = std::to_string(json_event["packet_id"].get<int>());
+            }
+            std::string current_node = json_event["current_node"];
+            std::string next_node = json_event.contains("next_node") ? json_event["next_node"].get<std::string>() : "";
+            int hop_index = json_event["hop_index"];
+            int total_hops = json_event["total_hops"];
+
+            if (hop_index == 0) {
+                // First hop - send PacketGenerated event
+                nlohmann::json packet_gen;
+                packet_gen["type"] = "PacketGenerated";
+                packet_gen["timestamp"] = json_event["timestamp"];
+                packet_gen["packet"] = {
+                    {"id", packet_id},
+                    {"src_ip", "10.0.1.2"},
+                    {"dst_ip", "10.0.3.7"},
+                    {"src_port", 12345},
+                    {"dst_port", 80},
+                    {"protocol", "TCP"}
+                };
+                transformed_event = packet_gen;
+            } else {
+                // Subsequent hops - send packet events
+                if (hop_index == 1) {
+                    nlohmann::json entered;
+                    entered["type"] = "PacketEnteredSwitch";
+                    entered["timestamp"] = json_event["timestamp"];
+                    entered["switch_id"] = current_node;
+                    entered["packet_id"] = packet_id;
+                    entered["ingress_port"] = "Eth0";
+                    transformed_event = entered;
+                } else if (hop_index < total_hops - 1) {
+                    nlohmann::json forward;
+                    forward["type"] = "PacketForwardDecision";
+                    forward["timestamp"] = json_event["timestamp"];
+                    forward["switch_id"] = current_node;
+                    forward["packet_id"] = packet_id;
+                    forward["egress_port"] = "Eth1";
+                    forward["next_hop"] = next_node;
+                    transformed_event = forward;
+
+                    nlohmann::json exited;
+                    exited["type"] = "PacketExitedSwitch";
+                    exited["timestamp"] = json_event["timestamp"];
+                    exited["switch_id"] = current_node;
+                    exited["packet_id"] = packet_id;
+                    exited["egress_port"] = "Eth1";
+                    exited["next_hop"] = next_node;
+                    exited["src_ip"] = "10.0.1.2";
+                    exited["dst_ip"] = "10.0.3.7";
+                    broadcastEvent(exited);
+                } else {
+                    nlohmann::json exited;
+                    exited["type"] = "PacketExitedSwitch";
+                    exited["timestamp"] = json_event["timestamp"];
+                    exited["switch_id"] = current_node;
+                    exited["packet_id"] = packet_id;
+                    exited["egress_port"] = "Eth0";
+                    exited["next_hop"] = next_node;
+                    exited["src_ip"] = "10.0.1.2";
+                    exited["dst_ip"] = "10.0.3.7";
+                    transformed_event = exited;
+                }
+            }
+        }
+
         // Convert JSON to string
-        string json_data = json_event.dump();
-        json_data += "\n"; // Add newline for framing
+        string json_data = transformed_event.dump();
 
         // Broadcast to all connected clients
+        std::lock_guard<std::mutex> lock(m_sessions_mutex);
+        if (m_sessions.empty()) {
+            static int drop_counter = 0;
+            if (++drop_counter % 100 == 0) {
+                std::cout << "[EventServer] No clients connected, events dropped: " << drop_counter << "\n";
+            }
+        } else {
+            static int event_counter = 0;
+            if (++event_counter % 50 == 0) {
+                std::cout << "[EventServer] Broadcasted " << event_counter << " events to " << m_sessions.size() << " clients\n";
+            }
+            for (auto it = m_sessions.begin(); it != m_sessions.end(); ) {
+                try {
+                    (*it)->send(json_data);
+                    ++it;
+                } catch (const std::exception& e) {
+                    std::cerr << "[EventServer] Failed to send to client: " << e.what() << "\n";
+                    (*it)->close();
+                    it = m_sessions.erase(it);
+                }
+            }
+        }
+    }
+
+    void broadcastEvent(const nlohmann::json& event) {
+        string json_data = event.dump();
         std::lock_guard<std::mutex> lock(m_sessions_mutex);
         for (auto it = m_sessions.begin(); it != m_sessions.end(); ) {
             try {
@@ -369,151 +505,14 @@ private:
         }
     }
 
-    void setSpeed(int speed) {
-        std::lock_guard<std::mutex> lock(m_speed_mutex);
-        m_speed = speed;
-        std::cout << "[EventServer] Speed set to " << speed << "x\n";
-    }
-
-    int getSpeed() const {
-        std::lock_guard<std::mutex> lock(m_speed_mutex);
-        return m_speed;
-    }
-
-    void sendTestEvent() {
-        if (!m_running.load()) {
-            return;
-        }
-
-        static int packet_counter = 0;
-        packet_counter++;
-
-        // Create realistic host-to-host packet flows
-        // Flow 1: H1 -> TOR1 -> Spine1 -> TOR2 -> H2
-        // Flow 2: H1 -> TOR1 -> Spine2 -> TOR2 -> H2
-        static const std::vector<std::vector<const char*>> packet_flows = {
-            {"H1", "TOR1", "Spine1", "TOR2", "H2"},
-            {"H1", "TOR1", "Spine2", "TOR2", "H2"},
-            {"H2", "TOR2", "Spine1", "TOR1", "H1"},
-            {"H2", "TOR2", "Spine2", "TOR1", "H1"}
-        };
-
-        const auto& flow = packet_flows[packet_counter % packet_flows.size()];
-        int hop_index = packet_counter % (flow.size() - 1); // Don't include final destination as a "hop"
-
-        const char* from_node = flow[hop_index];
-        const char* to_node = flow[hop_index + 1];
-
-        // Skip if source is a host (hosts don't process packets, switches do)
-        if (std::string(from_node) == "H1" || std::string(from_node) == "H2") {
-            return;
-        }
-
-        // Determine egress port based on topology
-        std::string egress_port = "eth0";
-        if (std::string(from_node) == "TOR1" && std::string(to_node) == "Spine1") egress_port = "Eth4";
-        else if (std::string(from_node) == "TOR1" && std::string(to_node) == "Spine2") egress_port = "Eth8";
-        else if (std::string(from_node) == "TOR2" && std::string(to_node) == "Spine1") egress_port = "Eth4";
-        else if (std::string(from_node) == "TOR2" && std::string(to_node) == "Spine2") egress_port = "Eth8";
-        else if (std::string(from_node) == "Spine1" && std::string(to_node) == "TOR1") egress_port = "Eth0";
-        else if (std::string(from_node) == "Spine1" && std::string(to_node) == "TOR2") egress_port = "Eth4";
-        else if (std::string(from_node) == "Spine2" && std::string(to_node) == "TOR1") egress_port = "Eth0";
-        else if (std::string(from_node) == "Spine2" && std::string(to_node) == "TOR2") egress_port = "Eth4";
-
-        // Send PacketGenerated event (only for first hop)
-        if (hop_index == 1) { // First switch in flow
-            nlohmann::json packet_gen;
-            packet_gen["type"] = "PacketGenerated";
-            packet_gen["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()
-            ).count();
-            packet_gen["packet"] = {
-                {"id", "TEST-" + std::to_string(packet_counter)},
-                {"src_ip", "10.0.1.2"},
-                {"dst_ip", "10.0.3.7"},
-                {"src_port", 12345},
-                {"dst_port", 80},
-                {"protocol", "TCP"}
-            };
-            handleJsonEvent(packet_gen);
-        }
-
-        // Send PacketEnteredSwitch event
-        nlohmann::json packet_entered;
-        packet_entered["type"] = "PacketEnteredSwitch";
-        packet_entered["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()
-        ).count();
-        packet_entered["switch_id"] = from_node;
-        packet_entered["packet_id"] = "TEST-" + std::to_string(packet_counter);
-        packet_entered["ingress_port"] = "Eth0";
-        handleJsonEvent(packet_entered);
-
-        // Send PacketForwardDecision event
-        nlohmann::json packet_forward;
-        packet_forward["type"] = "PacketForwardDecision";
-        packet_forward["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()
-        ).count();
-        packet_forward["switch_id"] = from_node;
-        packet_forward["packet_id"] = "TEST-" + std::to_string(packet_counter);
-        packet_forward["egress_port"] = egress_port;
-        packet_forward["next_hop"] = to_node;
-        handleJsonEvent(packet_forward);
-
-        // Send PacketExitedSwitch event (triggers packet movement along link)
-        nlohmann::json packet_exited;
-        packet_exited["type"] = "PacketExitedSwitch";
-        packet_exited["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()
-        ).count();
-        packet_exited["switch_id"] = from_node;
-        packet_exited["packet_id"] = "TEST-" + std::to_string(packet_counter);
-        packet_exited["egress_port"] = egress_port;
-        packet_exited["next_hop"] = to_node;
-        packet_exited["src_ip"] = "10.0.1.2";
-        packet_exited["dst_ip"] = "10.0.3.7";
-        packet_exited["src_port"] = 443;
-        packet_exited["dst_port"] = 51832;
-        packet_exited["dscp"] = 46;
-        packet_exited["ttl"] = 62;
-        packet_exited["state"] = "normal";
-        handleJsonEvent(packet_exited);
-    }
-
-    void handleEvent(const std::shared_ptr<Events::Event>& event) {
-        if (!m_running.load()) {
-            return;
-        }
-
-        // Serialize event to JSON
-        string json_data = event->toJson();
-        json_data += "\n"; // Add newline for framing
-
-        // Broadcast to all connected clients
-        std::lock_guard<std::mutex> lock(m_sessions_mutex);
-        for (auto it = m_sessions.begin(); it != m_sessions.end(); ) {
-            try {
-                (*it)->send(json_data);
-                ++it;
-            } catch (const std::exception& e) {
-                std::cerr << "[EventServer] Failed to send to client: " << e.what() << "\n";
-                (*it)->close();
-                it = m_sessions.erase(it);
-            }
-        }
-    }
-
+private:
     net::io_context m_io_context;
     tcp::acceptor m_acceptor;
     uint16_t m_port;
     atomic<bool> m_running;
     thread m_server_thread;
-    thread m_test_timer_thread;
-    std::vector<std::shared_ptr<Session>> m_sessions;
+    std::vector<std::shared_ptr<TcpSession>> m_sessions;
     mutex m_sessions_mutex;
-    int m_speed;
-    mutable mutex m_speed_mutex;
 };
 
 // Global event server instance
@@ -535,6 +534,7 @@ void stopEventServer() {
 
 } // namespace MiniSonic::Visualization
 
+#ifndef VISUALIZATION_LIBRARY
 int main(int argc, char* argv[]) {
     using namespace MiniSonic::Visualization;
 
@@ -560,3 +560,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+#endif
